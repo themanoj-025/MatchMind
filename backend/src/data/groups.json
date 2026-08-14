@@ -1,0 +1,49 @@
+[
+  { "tournamentId": "fifa-wc-2026", "groupLetter": "A", "pot": 1, "teamId": "t1_team_01" },
+  { "tournamentId": "fifa-wc-2026", "groupLetter": "A", "pot": 2, "teamId": "t1_team_02" },
+
+  { "tournamentId": "fifa-wc-2026", "groupLetter": "B", "pot": 1, "teamId": "t1_team_03" },
+  { "tournamentId": "fifa-wc-2026", "groupLetter": "B", "pot": 2, "teamId": "t1_team_04" },
+
+  { "tournamentId": "fifa-wc-2026", "groupLetter": "C", "pot": 1, "teamId": "t1_team_05" },
+  { "tournamentId": "fifa-wc-2026", "groupLetter": "C", "pot": 2, "teamId": "t1_team_06" },
+
+  { "tournamentId": "fifa-wc-2026", "groupLetter": "D", "pot": 1, "teamId": "t1_team_07" },
+  { "tournamentId": "fifa-wc-2026", "groupLetter": "D", "pot": 2, "teamId": "t1_team_08" },
+
+  { "tournamentId": "fifa-wc-2026", "groupLetter": "E", "pot": 2, "teamId": "t1_team_09" },
+  { "tournamentId": "fifa-wc-2026", "groupLetter": "E", "pot": 3, "teamId": "t1_team_10" },
+
+  { "tournamentId": "fifa-wc-2026", "groupLetter": "F", "pot": 2, "teamId": "t1_team_11" },
+  { "tournamentId": "fifa-wc-2026", "groupLetter": "F", "pot": 3, "teamId": "t1_team_12" },
+
+  { "tournamentId": "caf-afcon-2027", "groupLetter": "A", "pot": 1, "teamId": "t4_team_01" },
+  { "tournamentId": "caf-afcon-2027", "groupLetter": "A", "pot": 2, "teamId": "t4_team_02" },
+
+  { "tournamentId": "caf-afcon-2027", "groupLetter": "B", "pot": 1, "teamId": "t4_team_03" },
+  { "tournamentId": "caf-afcon-2027", "groupLetter": "B", "pot": 2, "teamId": "t4_team_04" },
+
+  { "tournamentId": "caf-afcon-2027", "groupLetter": "C", "pot": 1, "teamId": "t4_team_05" },
+  { "tournamentId": "caf-afcon-2027", "groupLetter": "C", "pot": 2, "teamId": "t4_team_06" },
+
+  { "tournamentId": "caf-afcon-2027", "groupLetter": "D", "pot": 4, "teamId": "t4_team_07" },
+  { "tournamentId": "caf-afcon-2027", "groupLetter": "D", "pot": 4, "teamId": "t4_team_08" },
+
+  { "tournamentId": "caf-afcon-2027", "groupLetter": "E", "pot": 4, "teamId": "t4_team_09" },
+  { "tournamentId": "caf-afcon-2027", "groupLetter": "E", "pot": 2, "teamId": "t4_team_10" },
+
+  { "tournamentId": "caf-afcon-2027", "groupLetter": "F", "pot": 1, "teamId": "t4_team_11" },
+  { "tournamentId": "caf-afcon-2027", "groupLetter": "F", "pot": 2, "teamId": "t4_team_12" },
+
+  { "tournamentId": "fifa-wwc-2027", "groupLetter": "A", "pot": 1, "teamId": "t5_team_01" },
+  { "tournamentId": "fifa-wwc-2027", "groupLetter": "A", "pot": 2, "teamId": "t5_team_02" },
+
+  { "tournamentId": "fifa-wwc-2027", "groupLetter": "B", "pot": 1, "teamId": "t5_team_03" },
+  { "tournamentId": "fifa-wwc-2027", "groupLetter": "B", "pot": 2, "teamId": "t5_team_04" },
+
+  { "tournamentId": "fifa-wwc-2027", "groupLetter": "C", "pot": 1, "teamId": "t5_team_05" },
+  { "tournamentId": "fifa-wwc-2027", "groupLetter": "C", "pot": 2, "teamId": "t5_team_06" },
+
+  { "tournamentId": "fifa-wwc-2027", "groupLetter": "D", "pot": 1, "teamId": "t5_team_07" },
+  { "tournamentId": "fifa-wwc-2027", "groupLetter": "D", "pot": 2, "teamId": "t5_team_08" }
+]

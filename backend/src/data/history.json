@@ -1,0 +1,94 @@
+[
+  {
+    "tournamentId": "fifa-wc-2026",
+    "pastWinners": [
+      { "year": 2022, "winner": "Argentina", "runnerUp": "France", "host": "Qatar", "score": "3–3 (4–2 pens)" },
+      { "year": 2018, "winner": "France", "runnerUp": "Croatia", "host": "Russia", "score": "4–2" },
+      { "year": 2014, "winner": "Germany", "runnerUp": "Argentina", "host": "Brazil", "score": "1–0 (aet)" },
+      { "year": 2010, "winner": "Spain", "runnerUp": "Netherlands", "host": "South Africa", "score": "1–0 (aet)" },
+      { "year": 2006, "winner": "Italy", "runnerUp": "France", "host": "Germany", "score": "1–1 (5–3 pens)" }
+    ],
+    "allTimeTopScorer": { "name": "Miroslav Klose", "goals": 16, "nation": "Germany" },
+    "mostAppearances": { "name": "Lionel Messi", "appearances": 26, "nation": "Argentina" },
+    "mostTitles": { "nation": "Brazil", "count": 5 },
+    "defendingChampionPath": "Argentina defeated France 3–3 (4–2 pens) in the 2022 final after being 2–0 up and then pegged back by a Kylian Mbappé hat-trick."
+  },
+  {
+    "tournamentId": "uefa-ucl-2026-27",
+    "pastWinners": [
+      {
+        "year": "2024-25",
+        "winner": "Real Madrid",
+        "runnerUp": "Borussia Dortmund",
+        "host": "Wembley",
+        "score": "2–0"
+      },
+      {
+        "year": "2023-24",
+        "winner": "Real Madrid",
+        "runnerUp": "Borussia Dortmund",
+        "host": "Wembley",
+        "score": "2–0"
+      },
+      { "year": "2022-23", "winner": "Manchester City", "runnerUp": "Inter Milan", "host": "Istanbul", "score": "1–0" },
+      { "year": "2021-22", "winner": "Real Madrid", "runnerUp": "Liverpool", "host": "Paris", "score": "1–0" },
+      { "year": "2020-21", "winner": "Chelsea", "runnerUp": "Manchester City", "host": "Porto", "score": "1–0" }
+    ],
+    "allTimeTopScorer": { "name": "Cristiano Ronaldo", "goals": 140, "nation": "Portugal" },
+    "mostTitles": { "club": "Real Madrid", "count": 15 }
+  },
+  {
+    "tournamentId": "uefa-uel-2026-27",
+    "pastWinners": [
+      { "year": "2024-25", "winner": "Atalanta", "runnerUp": "Bayer Leverkusen", "host": "Dublin", "score": "3–0" },
+      { "year": "2023-24", "winner": "Atalanta", "runnerUp": "Bayer Leverkusen", "host": "Dublin", "score": "3–0" },
+      { "year": "2022-23", "winner": "Sevilla", "runnerUp": "Roma", "host": "Budapest", "score": "1–1 (4–1 pens)" },
+      {
+        "year": "2021-22",
+        "winner": "Eintracht Frankfurt",
+        "runnerUp": "Rangers",
+        "host": "Seville",
+        "score": "1–1 (5–4 pens)"
+      },
+      {
+        "year": "2020-21",
+        "winner": "Villarreal",
+        "runnerUp": "Manchester United",
+        "host": "Gdańsk",
+        "score": "1–1 (11–10 pens)"
+      }
+    ],
+    "allTimeTopScorer": { "name": "Henrik Larsson", "goals": 40, "nation": "Sweden" },
+    "mostTitles": { "club": "Sevilla", "count": 7 }
+  },
+  {
+    "tournamentId": "caf-afcon-2027",
+    "pastWinners": [
+      { "year": 2023, "winner": "Côte d'Ivoire", "runnerUp": "Nigeria", "host": "Côte d'Ivoire", "score": "2–1" },
+      { "year": 2021, "winner": "Senegal", "runnerUp": "Egypt", "host": "Cameroon", "score": "0–0 (4–2 pens)" },
+      { "year": 2019, "winner": "Algeria", "runnerUp": "Senegal", "host": "Egypt", "score": "1–0" },
+      { "year": 2017, "winner": "Cameroon", "runnerUp": "Egypt", "host": "Gabon", "score": "2–1" },
+      {
+        "year": 2015,
+        "winner": "Côte d'Ivoire",
+        "runnerUp": "Ghana",
+        "host": "Equatorial Guinea",
+        "score": "0–0 (9–8 pens)"
+      }
+    ],
+    "allTimeTopScorer": { "name": "Samuel Eto'o", "goals": 18, "nation": "Cameroon" },
+    "mostTitles": { "nation": "Egypt", "count": 7 }
+  },
+  {
+    "tournamentId": "fifa-wwc-2027",
+    "pastWinners": [
+      { "year": 2023, "winner": "Spain", "runnerUp": "England", "host": "Australia/New Zealand", "score": "1–0" },
+      { "year": 2019, "winner": "USA", "runnerUp": "Netherlands", "host": "France", "score": "2–0" },
+      { "year": 2015, "winner": "USA", "runnerUp": "Japan", "host": "Canada", "score": "5–2" },
+      { "year": 2011, "winner": "Japan", "runnerUp": "USA", "host": "Germany", "score": "2–2 (3–1 pens)" },
+      { "year": 2007, "winner": "Germany", "runnerUp": "Brazil", "host": "China", "score": "2–0" }
+    ],
+    "allTimeTopScorer": { "name": "Marta", "goals": 17, "nation": "Brazil" },
+    "mostTitles": { "nation": "USA", "count": 4 }
+  }
+]

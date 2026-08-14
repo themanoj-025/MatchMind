@@ -1,0 +1,26 @@
+[
+  {
+    "id": "sub_mr4s28pw_q1uvnc",
+    "userId": "user_mr4s28ns_2tqull",
+    "stripeCustomerId": "cus_mock_user_mr4s28ns_2tqull",
+    "stripeSubscriptionId": "sub_mock_user_mr4s28ns_2tqull",
+    "plan": "monthly",
+    "status": "ACTIVE",
+    "currentPeriodStart": "2026-06-03T10:15:31.672Z",
+    "currentPeriodEnd": "2027-06-03T10:15:31.672Z",
+    "cancelAtPeriodEnd": false,
+    "createdAt": "2026-06-03T10:15:31.672Z"
+  },
+  {
+    "id": "sub_mr4s28px_lts6q9",
+    "userId": "user_mr4s28o2_0e71nr",
+    "stripeCustomerId": "cus_mock_user_mr4s28o2_0e71nr",
+    "stripeSubscriptionId": "sub_mock_user_mr4s28o2_0e71nr",
+    "plan": "monthly",
+    "status": "ACTIVE",
+    "currentPeriodStart": "2026-06-03T10:15:31.672Z",
+    "currentPeriodEnd": "2027-06-03T10:15:31.672Z",
+    "cancelAtPeriodEnd": false,
+    "createdAt": "2026-06-03T10:15:31.672Z"
+  }
+]

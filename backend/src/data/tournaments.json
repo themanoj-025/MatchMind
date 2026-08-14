@@ -1,0 +1,294 @@
+[
+  {
+    "id": "fifa-wc-2026",
+    "name": "FIFA World Cup 2026",
+    "shortName": "WC26",
+    "edition": 23,
+    "status": "UPCOMING",
+    "confederation": "FIFA",
+    "gender": "MEN",
+    "format": "GROUP_KNOCKOUT",
+    "formatDescription": "12 groups of 4, top 2 + 8 best 3rd-placed advance to Round of 32 → knockout to Final",
+    "teamCount": 48,
+    "squadSize": 26,
+    "hosts": ["USA", "Canada", "Mexico"],
+    "dateRange": { "start": "2026-06-11", "end": "2026-07-19" },
+    "theme": { "primary": "#0B3D91", "accent": "#D4AF37" },
+    "officialBall": "Adidas Pro Ball (TBC)",
+    "slogan": "United for the Beautiful Game",
+    "defendingChampion": "Argentina (2022)",
+    "prizeMoney": {
+      "totalPool": "TBC (approx. $440M)",
+      "winner": "TBC",
+      "runnerUp": "TBC"
+    },
+    "history": {
+      "pastWinners": [
+        { "year": 2022, "winner": "Argentina", "runnerUp": "France", "host": "Qatar" },
+        { "year": 2018, "winner": "France", "runnerUp": "Croatia", "host": "Russia" },
+        { "year": 2014, "winner": "Germany", "runnerUp": "Argentina", "host": "Brazil" },
+        { "year": 2010, "winner": "Spain", "runnerUp": "Netherlands", "host": "South Africa" },
+        { "year": 2006, "winner": "Italy", "runnerUp": "France", "host": "Germany" }
+      ],
+      "allTimeTopScorer": "Miroslav Klose (16 goals)",
+      "hostHistory": ["Uruguay 1930", "Italy 1934", "France 1938", "Brazil 1950", "Switzerland 1954", "Sweden 1958", "Chile 1962", "England 1966", "Mexico 1970", "West Germany 1974", "Argentina 1978", "Spain 1982", "Mexico 1986", "Italy 1990", "USA 1994", "France 1998", "Korea/Japan 2002", "Germany 2006", "South Africa 2010", "Brazil 2014", "Russia 2018", "Qatar 2022"]
+    },
+    "formatRules": {
+      "groupSize": 4,
+      "advancementRule": "Top 2 + 8 best 3rd-placed",
+      "knockoutBracket": "Round of 32 → Round of 16 → QF → SF → Final",
+      "extraTimeRule": "30 min ET + penalties if still tied",
+      "substitutionRule": "5 subs per match (3 windows + HT)"
+    },
+    "qualification": {
+      "slotsByConfederation": { "UEFA": 16, "CAF": 9, "AFC": 8, "CONMEBOL": 6, "CONCACAF": 6, "OFC": 1, "Hosts (auto)": 3 },
+      "totalSlots": 48,
+      "windowStart": "2023-09-01",
+      "windowEnd": "2026-03-31"
+    }
+  },
+  {
+    "id": "uefa-ucl-2026-27",
+    "name": "UEFA Champions League 2026/27",
+    "shortName": "UCL",
+    "edition": 72,
+    "status": "UPCOMING",
+    "confederation": "UEFA",
+    "gender": "MEN",
+    "format": "LEAGUE_KNOCKOUT",
+    "formatDescription": "36-club Swiss-style league phase (8 matches each) → top 24 advance: top 8 to R16, 9th–24th to knockout playoffs → knockout to Final",
+    "teamCount": 36,
+    "squadSize": 25,
+    "dateRange": { "start": "2026-09-16", "end": "2027-05-30" },
+    "theme": { "primary": "#0E1E4A", "accent": "#8E44FF" },
+    "officialBall": "Adidas UCL Pro Ball (TBC)",
+    "slogan": "The Stars Align",
+    "defendingChampion": "TBC (2026 Final)",
+    "prizeMoney": {
+      "totalPool": "€2.5B (est.)",
+      "winner": "€25M+ (est.)",
+      "runnerUp": "€18M (est.)"
+    },
+    "history": {
+      "pastWinners": [
+        { "year": "2025-26", "winner": "TBC", "runnerUp": "TBC" },
+        { "year": "2024-25", "winner": "Real Madrid", "runnerUp": "Borussia Dortmund" },
+        { "year": "2023-24", "winner": "Real Madrid", "runnerUp": "Borussia Dortmund" },
+        { "year": "2022-23", "winner": "Manchester City", "runnerUp": "Inter Milan" },
+        { "year": "2021-22", "winner": "Real Madrid", "runnerUp": "Liverpool" }
+      ],
+      "allTimeTopScorer": "Cristiano Ronaldo (140 goals)",
+      "mostTitles": "Real Madrid (15 titles)"
+    },
+    "formatRules": {
+      "leaguePhaseMatches": 8,
+      "advancementRule": "Top 8 to R16; 9th–24th to knockout playoffs",
+      "knockoutBracket": "Knockout playoffs → Round of 16 → QF → SF → Final",
+      "extraTimeRule": "30 min ET + penalties if still tied (knockout only)",
+      "substitutionRule": "5 subs per match (3 windows + HT)"
+    },
+    "qualification": {
+      "slotsByConfederation": { "UEFA": 36 },
+      "totalSlots": 36,
+      "method": "UEFA club coefficients + domestic league performance",
+      "windowStart": "2026-07-01",
+      "windowEnd": "2026-08-31"
+    }
+  },
+  {
+    "id": "uefa-uel-2026-27",
+    "name": "UEFA Europa League 2026/27",
+    "shortName": "UEL",
+    "edition": 57,
+    "status": "UPCOMING",
+    "confederation": "UEFA",
+    "gender": "MEN",
+    "format": "LEAGUE_KNOCKOUT",
+    "formatDescription": "36-club Swiss-style league phase (8 matches each) → top 24 advance: top 8 to R16, 9th–24th to knockout playoffs → knockout to Final",
+    "teamCount": 36,
+    "squadSize": 25,
+    "dateRange": { "start": "2026-09-24", "end": "2027-05-20" },
+    "theme": { "primary": "#FF6600", "accent": "#1B1B1B" },
+    "officialBall": "Adidas UEL Pro Ball (TBC)",
+    "slogan": "Every Game Matters",
+    "defendingChampion": "TBC (2026 Final)",
+    "prizeMoney": {
+      "totalPool": "€500M (est.)",
+      "winner": "€10M+ (est.)",
+      "runnerUp": "€7M (est.)"
+    },
+    "history": {
+      "pastWinners": [
+        { "year": "2025-26", "winner": "TBC", "runnerUp": "TBC" },
+        { "year": "2024-25", "winner": "Atalanta", "runnerUp": "Bayer Leverkusen" },
+        { "year": "2023-24", "winner": "Atalanta", "runnerUp": "Bayer Leverkusen" },
+        { "year": "2022-23", "winner": "Sevilla", "runnerUp": "Roma" },
+        { "year": "2021-22", "winner": "Eintracht Frankfurt", "runnerUp": "Rangers" }
+      ],
+      "allTimeTopScorer": "Henrik Larsson (40 goals)",
+      "mostTitles": "Sevilla (7 titles)"
+    },
+    "formatRules": {
+      "leaguePhaseMatches": 8,
+      "advancementRule": "Top 8 to R16; 9th–24th to knockout playoffs",
+      "knockoutBracket": "Knockout playoffs → Round of 16 → QF → SF → Final",
+      "extraTimeRule": "30 min ET + penalties if still tied (knockout only)",
+      "substitutionRule": "5 subs per match (3 windows + HT)"
+    },
+    "qualification": {
+      "slotsByConfederation": { "UEFA": 36 },
+      "totalSlots": 36,
+      "method": "UEFA club coefficients + domestic league performance + UCL drop-down",
+      "windowStart": "2026-07-01",
+      "windowEnd": "2026-08-31"
+    }
+  },
+  {
+    "id": "caf-afcon-2027",
+    "name": "CAF Africa Cup of Nations PAMOJA 2027",
+    "shortName": "AFCON",
+    "edition": 36,
+    "status": "UPCOMING",
+    "confederation": "CAF",
+    "gender": "MEN",
+    "format": "GROUP_KNOCKOUT",
+    "formatDescription": "6 groups of 4, top 2 + 4 best 3rd-placed advance to Round of 16 → knockout to Final",
+    "teamCount": 24,
+    "squadSize": 27,
+    "hosts": ["Kenya", "Uganda", "Tanzania"],
+    "dateRange": { "start": "2027-06-19", "end": "2027-07-17" },
+    "theme": { "primary": "#006B3F", "accent": "#FFB800" },
+    "officialBall": "TBC",
+    "slogan": "PAMOJA — Together",
+    "defendingChampion": "Côte d'Ivoire (2023)",
+    "prizeMoney": {
+      "totalPool": "TBC",
+      "winner": "TBC",
+      "runnerUp": "TBC"
+    },
+    "history": {
+      "pastWinners": [
+        { "year": 2023, "winner": "Côte d'Ivoire", "runnerUp": "Nigeria", "host": "Côte d'Ivoire" },
+        { "year": 2021, "winner": "Senegal", "runnerUp": "Egypt", "host": "Cameroon" },
+        { "year": 2019, "winner": "Algeria", "runnerUp": "Senegal", "host": "Egypt" },
+        { "year": 2017, "winner": "Cameroon", "runnerUp": "Egypt", "host": "Gabon" },
+        { "year": 2015, "winner": "Côte d'Ivoire", "runnerUp": "Ghana", "host": "Equatorial Guinea" }
+      ],
+      "allTimeTopScorer": "Samuel Eto'o (18 goals)",
+      "mostTitles": "Egypt (7 titles)"
+    },
+    "formatRules": {
+      "groupSize": 4,
+      "advancementRule": "Top 2 + 4 best 3rd-placed",
+      "knockoutBracket": "Round of 16 → QF → SF → Final",
+      "extraTimeRule": "30 min ET + penalties if still tied",
+      "substitutionRule": "5 subs per match (3 windows + HT)"
+    },
+    "qualification": {
+      "slotsByConfederation": { "CAF": 24 },
+      "totalSlots": 24,
+      "method": "48 teams in 12 groups of 4, top 2 advance (over 3 windows)",
+      "windowStart": "2026-09-01",
+      "windowEnd": "2027-03-31",
+      "confirmedTeamIds": []
+    }
+  },
+  {
+    "id": "fifa-wwc-2027",
+    "name": "FIFA Women's World Cup Brazil 2027",
+    "shortName": "WWC27",
+    "edition": 10,
+    "status": "UPCOMING",
+    "confederation": "FIFA",
+    "gender": "WOMEN",
+    "format": "GROUP_KNOCKOUT",
+    "formatDescription": "8 groups of 4, top 2 advance to Round of 16 → knockout to Final",
+    "teamCount": 32,
+    "squadSize": 26,
+    "hosts": ["Brazil"],
+    "dateRange": { "start": "2027-06-24", "end": "2027-07-25" },
+    "theme": { "primary": "#009C3B", "accent": "#FFDF00" },
+    "officialBall": "TBC",
+    "slogan": "BraZil 2027 — O Jogo é Delas",
+    "defendingChampion": "Spain (2023)",
+    "prizeMoney": {
+      "totalPool": "TBC (approx. $150M)",
+      "winner": "TBC",
+      "runnerUp": "TBC"
+    },
+    "history": {
+      "pastWinners": [
+        { "year": 2023, "winner": "Spain", "runnerUp": "England", "host": "Australia/New Zealand" },
+        { "year": 2019, "winner": "USA", "runnerUp": "Netherlands", "host": "France" },
+        { "year": 2015, "winner": "USA", "runnerUp": "Japan", "host": "Canada" },
+        { "year": 2011, "winner": "Japan", "runnerUp": "USA", "host": "Germany" },
+        { "year": 2007, "winner": "Germany", "runnerUp": "Brazil", "host": "China" }
+      ],
+      "allTimeTopScorer": "Marta (17 goals)",
+      "mostTitles": "USA (4 titles)"
+    },
+    "formatRules": {
+      "groupSize": 4,
+      "advancementRule": "Top 2 from each group",
+      "knockoutBracket": "Round of 16 → QF → SF → Final",
+      "extraTimeRule": "30 min ET + penalties if still tied",
+      "substitutionRule": "5 subs per match (3 windows + HT)"
+    },
+    "qualification": {
+      "slotsByConfederation": { "UEFA": 11, "CAF": 4, "AFC": 6, "CONMEBOL": 3, "CONCACAF": 4, "OFC": 1, "Hosts (auto)": 1, "Intercontinental playoffs": 3 },
+      "totalSlots": 32,
+      "windowStart": "2025-09-01",
+      "windowEnd": "2027-03-31",
+      "confirmedTeamIds": []
+    }
+  },
+  {
+    "id": "conmebol-copa-america-2028",
+    "name": "Copa América 2028",
+    "shortName": "COPA28",
+    "edition": 48,
+    "status": "INTERNAL",
+    "confederation": "CONMEBOL",
+    "gender": "MEN",
+    "format": "GROUP_KNOCKOUT",
+    "formatDescription": "4 groups of 4, top 2 advance to QF → knockout to Final",
+    "teamCount": 16,
+    "squadSize": 26,
+    "hosts": ["TBC"],
+    "dateRange": { "start": null, "end": null },
+    "theme": { "primary": "#7A1FA2", "accent": "#FFFFFF" },
+    "officialBall": "TBC",
+    "slogan": "TBC",
+    "defendingChampion": "Argentina (2024)",
+    "prizeMoney": {
+      "totalPool": "TBC",
+      "winner": "TBC",
+      "runnerUp": "TBC"
+    },
+    "history": {
+      "pastWinners": [
+        { "year": 2024, "winner": "Argentina", "runnerUp": "Colombia", "host": "USA" },
+        { "year": 2021, "winner": "Argentina", "runnerUp": "Brazil", "host": "Brazil" },
+        { "year": 2019, "winner": "Brazil", "runnerUp": "Peru", "host": "Brazil" },
+        { "year": 2016, "winner": "Chile", "runnerUp": "Argentina", "host": "USA" },
+        { "year": 2015, "winner": "Chile", "runnerUp": "Argentina", "host": "Chile" }
+      ],
+      "allTimeTopScorer": "Norberto Méndez, Zizinho (17 goals)",
+      "mostTitles": "Argentina (16 titles)"
+    },
+    "formatRules": {
+      "groupSize": 4,
+      "advancementRule": "Top 2 from each group",
+      "knockoutBracket": "QF → SF → Final",
+      "extraTimeRule": "30 min ET + penalties if still tied",
+      "substitutionRule": "5 subs per match (3 windows + HT)"
+    },
+    "qualification": {
+      "slotsByConfederation": { "CONMEBOL": 10, "CONCACAF": 6 },
+      "totalSlots": 16,
+      "windowStart": null,
+      "windowEnd": null,
+      "confirmedTeamIds": []
+    }
+  }
+]

@@ -1,0 +1,30 @@
+{
+  "compilerOptions": {
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "strictBindCallApply": true,
+    "strictPropertyInitialization": true,
+    "noImplicitThis": true,
+    "alwaysStrict": true,
+    "noUncheckedIndexedAccess": true,
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "forceConsistentCasingInFileNames": true,
+    "outDir": "./dist",
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "allowJs": true,
+    "checkJs": false,
+    "skipLibCheck": true,
+    "useUnknownInCatchVariables": false
+  },
+  "include": ["src/**/*.ts", "instrument.ts"],
+  "exclude": ["node_modules", "dist", "**/*.test.*", "scripts"]
+}

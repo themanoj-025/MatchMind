@@ -1,0 +1,106 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main, master]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ─── Backend: Build Docker image → Push to GHCR ─────
+  backend:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      attestations: write
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}/backend
+          tags: |
+            type=sha,prefix=,suffix=,format=short
+            type=ref,event=branch
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push Docker image
+        id: push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./backend/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Generate artifact attestation
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-name: ghcr.io/${{ github.repository }}/backend
+          subject-digest: ${{ steps.push.outputs.digest }}
+          push-to-registry: true
+
+      - name: Deploy to Railway (via CLI)
+        run: |
+          npx @railway/cli service update \
+            --service-id matchmind-api \
+            --image ghcr.io/${{ github.repository }}/backend@${{ steps.push.outputs.digest }} \
+            2>&1 || echo "⚠️ Railway deploy skipped — set RAILWAY_TOKEN secret and ensure service exists"
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+
+  # ─── Frontend: Deploy to Vercel ──────────────────────
+  frontend:
+    runs-on: ubuntu-latest
+    env:
+      # secrets context is not allowed in `if:` — expose via env so the guard works
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: Build frontend
+        working-directory: ./frontend
+        run: npm run build
+        env:
+          VITE_SENTRY_DSN: ${{ secrets.VITE_SENTRY_DSN }}
+          VITE_API_URL: ${{ secrets.VITE_API_URL || 'https://matchmind-api.railway.app' }}
+
+      - name: Deploy to Vercel
+        if: ${{ env.VERCEL_TOKEN != '' }}
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-args: --prod
+          working-directory: ./frontend

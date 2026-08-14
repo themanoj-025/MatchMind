@@ -1,0 +1,649 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+generator erd {
+  provider = "prisma-erd-generator"
+  output   = "../docs/schema-baseline.md"
+  theme    = "forest"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = "postgresql://matchmind:matchmind_test_password@localhost:5433/matchmind_test"
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum UserTier {
+  BRONZE
+  SILVER
+  GOLD
+  PLATINUM
+}
+
+enum TournamentStatus {
+  UPCOMING
+  ACTIVE
+  COMPLETED
+}
+
+enum PlayerPosition {
+  GK
+  DEF
+  MID
+  FWD
+}
+
+enum RoomStatus {
+  LOBBY
+  DRAFTING
+  ACTIVE
+  FINISHED
+}
+
+enum RoomMemberRole {
+  member
+  host
+}
+
+enum AuctionPhase {
+  IDLE
+  NOMINATING
+  BIDDING
+  RESOLVED
+  PLAYER_LIVE
+  SOLD
+  UNSOLD
+  RE_AUCTION
+  FINISHED
+}
+
+enum FixtureStatus {
+  SCHEDULED
+  IN_PLAY
+  PAUSED
+  FINISHED
+}
+
+enum PredictionStatus {
+  PENDING
+  CORRECT
+  INCORRECT
+}
+
+enum ChatMessageType {
+  user
+  system
+}
+
+enum ReportStatus {
+  PENDING
+  REVIEWED
+  RESOLVED
+}
+
+enum DraftTicketStatus {
+  AVAILABLE
+  USED
+}
+
+enum DraftSessionStatus {
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum DraftRunResultStatus {
+  IN_PROGRESS
+  COMPLETED
+  ELIMINATED
+}
+
+model User {
+  id                 String                @id @default(uuid(7))
+  username           String                @unique
+  email              String                @unique
+  emailVerified      Boolean               @default(false)
+  passwordHash       String?
+  displayName        String?
+  avatar             String?
+  bannerImage        String?
+  bio                String?
+  countryCode        String?
+  role               UserRole              @default(USER)
+  tier               UserTier              @default(BRONZE)
+  totalPoints        Int                   @default(0)
+  weeklyPoints       Int                   @default(0)
+  globalRank         Int?
+  predAccuracy       Float                 @default(0)
+  totalPredictions   Int                   @default(0)
+  correctPredictions Int                   @default(0)
+  streakCurrent      Int                   @default(0)
+  streakBest         Int                   @default(0)
+  isPro              Boolean               @default(false)
+  proExpiresAt       DateTime?
+  tokenVersion       Int                   @default(0)
+  createdAt          DateTime              @default(now())
+  updatedAt          DateTime              @updatedAt
+  deletedAt          DateTime?
+  lastActiveAt       DateTime?
+  bids               Bid[]
+  chatMessages       ChatMessage[]
+  draftRunResults    DraftRunResult[]
+  draftSessions      DraftSession[]
+  fantasyPoints      FantasyPointsLedger[]
+  following          Follow[]              @relation("FollowerToFollow")
+  followers          Follow[]              @relation("FollowingToFollow")
+  notifications      Notification[]
+  predictions        Prediction[]
+  reports            Report[]
+  roomMembers        RoomMember[]
+  rosters            Roster[]
+  sessions           Session[]
+  starredPlayers     StarredPlayer[]
+  subscriptions      Subscription[]
+  userAchievements   UserAchievement[]
+
+  @@index([deletedAt])
+}
+
+model Tournament {
+  id              String           @id @default(uuid(7))
+  name            String
+  shortName       String
+  status          String
+  confederation   String
+  gender          String
+  format          String
+  teamCount       Int
+  squadSize       Int
+  launchPhase     Int
+  startDate       DateTime?
+  endDate         DateTime?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  deletedAt       DateTime?
+  draftRunResults DraftRunResult[]
+  draftSessions   DraftSession[]
+  fixtures        Fixture[]
+  players         Player[]
+  rooms           Room[]
+
+  @@index([deletedAt])
+}
+
+model Player {
+  id                String            @id @default(uuid(7))
+  tournamentId      String
+  name              String
+  club              String
+  nationality       String
+  position          String
+  basePrice         Float             @default(0)
+  photoUrl          String?
+  rarityTier        String?
+  isEligibleForIcon Boolean           @default(false)
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  deletedAt         DateTime?
+  tournament        Tournament        @relation(fields: [tournamentId], references: [id])
+  playerMatchStats  PlayerMatchStat[]
+  rosters           Roster[]
+  starredBy         StarredPlayer[]
+
+  @@index([tournamentId])
+  @@index([deletedAt])
+}
+
+model Room {
+  id            String                @id @default(uuid(7))
+  tournamentId  String
+  hostId        String
+  name          String
+  inviteCode    String                @unique
+  totalBudget   Float
+  status        RoomStatus            @default(LOBBY)
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+  deletedAt     DateTime?
+  auctionState  AuctionState?
+  bids          Bid[]
+  chatMessages  ChatMessage[]
+  fantasyPoints FantasyPointsLedger[]
+  tournament    Tournament            @relation(fields: [tournamentId], references: [id])
+  members       RoomMember[]
+  rosters       Roster[]
+
+  @@index([tournamentId, deletedAt])
+}
+
+model RoomMember {
+  id              String         @id @default(uuid(7))
+  roomId          String
+  userId          String
+  role            RoomMemberRole @default(member)
+  remainingBudget Float
+  isReady         Boolean        @default(false)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  room            Room           @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([roomId, userId])
+  @@index([roomId])
+  @@index([userId])
+}
+
+model Bid {
+  id        String   @id @default(uuid(7))
+  roomId    String
+  playerId  String
+  userId    String
+  amount    Float
+  timestamp DateTime @default(now())
+  version   Int      @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  room      Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([roomId])
+}
+
+model Roster {
+  id            String   @id @default(uuid(7))
+  roomId        String
+  userId        String
+  playerId      String
+  soldPrice     Float
+  acquiredAt    DateTime @default(now())
+  isCaptain     Boolean  @default(false)
+  isViceCaptain Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  player        Player   @relation(fields: [playerId], references: [id])
+  room          Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([roomId, userId, playerId])
+  @@index([roomId])
+  @@index([userId])
+}
+
+model AuctionState {
+  id              String       @id @default(uuid(7))
+  roomId          String       @unique
+  phase           AuctionPhase @default(IDLE)
+  currentPlayerId String?
+  currentBid      Float        @default(0)
+  currentBidderId String?
+  timerEndsAt     DateTime?
+  version         Int          @default(1)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  room            Room         @relation(fields: [roomId], references: [id], onDelete: Cascade)
+}
+
+model Fixture {
+  id               String                @id @default(uuid(7))
+  tournamentId     String
+  stage            String
+  round            Int?
+  homeTeamId       String
+  awayTeamId       String
+  homeTeam         String
+  awayTeam         String
+  venueId          String?
+  homeScore        Int?
+  awayScore        Int?
+  status           FixtureStatus         @default(SCHEDULED)
+  scheduledAt      DateTime
+  kickoffAt        DateTime?
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+  deletedAt        DateTime?
+  fantasyPoints    FantasyPointsLedger[]
+  tournament       Tournament            @relation(fields: [tournamentId], references: [id])
+  playerMatchStats PlayerMatchStat[]
+  predictions      Prediction[]
+
+  @@index([tournamentId])
+  @@index([deletedAt])
+}
+
+model PlayerMatchStat {
+  id              String   @id @default(uuid(7))
+  fixtureId       String
+  playerId        String
+  minutesPlayed   Int      @default(0)
+  goals           Int      @default(0)
+  assists         Int      @default(0)
+  cleanSheet      Boolean  @default(false)
+  saves           Int      @default(0)
+  penaltiesSaved  Int      @default(0)
+  yellowCards     Int      @default(0)
+  redCards        Int      @default(0)
+  penaltiesMissed Int      @default(0)
+  ownGoals        Int      @default(0)
+  goalsConceded   Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  fixture         Fixture  @relation(fields: [fixtureId], references: [id], onDelete: Cascade)
+  player          Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@index([fixtureId])
+  @@index([playerId])
+}
+
+model Prediction {
+  id              String    @id @default(uuid(7))
+  userId          String
+  matchId         String
+  homeGoals       Int
+  awayGoals       Int
+  status          String    @default("PENDING")
+  pointsEarned    Float?
+  pointsBreakdown Json?
+  lockedAt        DateTime?
+  scoredAt        DateTime?
+  btts            Boolean?
+  totalGoalsOU    String?
+  totalGoalsLine  Float?
+  firstScorerId   String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  fixture         Fixture   @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, matchId])
+  @@index([userId])
+  @@index([matchId])
+  @@index([status])
+  @@index([userId, status])
+  @@index([matchId, status])
+  @@index([pointsBreakdown], type: Gin)
+}
+
+model Follow {
+  id          String   @id @default(uuid(7))
+  followerId  String
+  followingId String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  follower    User     @relation("FollowerToFollow", fields: [followerId], references: [id], onDelete: Cascade)
+  following   User     @relation("FollowingToFollow", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId])
+  @@index([followerId])
+  @@index([followingId])
+}
+
+model ChatMessage {
+  id        String          @id @default(uuid(7))
+  userId    String
+  roomId    String
+  text      String
+  timestamp DateTime        @default(now())
+  gifUrl    String?
+  type      ChatMessageType @default(user)
+  reactions Json?
+  isPinned  Boolean         @default(false)
+  isDeleted Boolean         @default(false)
+  isSystem  Boolean         @default(false)
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+  deletedAt DateTime?
+  room      Room            @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reports   Report[]
+
+  @@index([roomId, deletedAt])
+  @@index([reactions], type: Gin)
+}
+
+model Notification {
+  id        String   @id @default(uuid(7))
+  userId    String
+  type      String
+  title     String
+  message   String
+  isRead    Boolean  @default(false)
+  data      Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([data], type: Gin)
+}
+
+model Report {
+  id         String      @id @default(uuid(7))
+  reporterId String
+  messageId  String
+  reason     String
+  status     String      @default("PENDING")
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+  message    ChatMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  reporter   User        @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+
+  @@index([reporterId])
+}
+
+model AdminLog {
+  id         String   @id @default(uuid(7))
+  adminId    String
+  action     String
+  targetId   String?
+  targetType String?
+  detail     Json?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([detail], type: Gin)
+}
+
+model Subscription {
+  id        String    @id @default(uuid(7))
+  userId    String
+  status    String
+  plan      String
+  expiresAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Session {
+  id        String   @id @default(uuid(7))
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model StarredPlayer {
+  id        String   @id @default(uuid(7))
+  userId    String
+  playerId  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  player    Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, playerId])
+  @@index([userId])
+}
+
+model LeaderboardSnapshot {
+  id        String   @id @default(uuid(7))
+  period    String
+  data      Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([data], type: Gin)
+}
+
+model Achievement {
+  id               String            @id @default(uuid(7))
+  name             String            @unique
+  description      String
+  icon             String
+  points           Int               @default(0)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  userAchievements UserAchievement[]
+}
+
+model UserAchievement {
+  id            String      @id @default(uuid(7))
+  userId        String
+  achievementId String
+  earnedAt      DateTime    @default(now())
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  achievement   Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, achievementId])
+  @@index([userId])
+}
+
+model DraftSession {
+  id                    String          @id @default(uuid(7))
+  userId                String
+  tournamentId          String
+  formation             String
+  status                String
+  ticketConsumedId      String
+  synergyScore          Float           @default(0)
+  formationBonusApplied Boolean         @default(false)
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+  deletedAt             DateTime?
+  draftPicks            DraftPick[]
+  draftRunResult        DraftRunResult?
+  tournament            Tournament      @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  user                  User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([deletedAt])
+}
+
+model DraftPick {
+  id               String       @id @default(uuid(7))
+  draftSessionId   String
+  slotIndex        Int
+  position         String
+  offeredPlayerIds Json         @default("[]")
+  offeredRarities  Json         @default("[]")
+  pickedPlayerId   String?
+  autoPicked       Boolean      @default(false)
+  pickedAt         DateTime?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  draftSession     DraftSession @relation(fields: [draftSessionId], references: [id], onDelete: Cascade)
+
+  @@index([draftSessionId])
+  @@index([offeredPlayerIds], type: Gin)
+  @@index([offeredRarities], type: Gin)
+}
+
+model DraftRunResult {
+  id             String       @id @default(uuid(7))
+  draftSessionId String       @unique
+  userId         String
+  tournamentId   String
+  currentRound   Int          @default(1)
+  totalWins      Int          @default(0)
+  totalLosses    Int          @default(0)
+  totalTies      Int          @default(0)
+  status         String
+  rewards        Json         @default("[]")
+  rounds         Json         @default("[]")
+  eliminatedAt   DateTime?
+  clearedAt      DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  draftSession   DraftSession @relation(fields: [draftSessionId], references: [id], onDelete: Cascade)
+  tournament     Tournament   @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([rewards], type: Gin)
+  @@index([rounds], type: Gin)
+}
+
+model DraftTicket {
+  id        String            @id @default(uuid(7))
+  userId    String
+  status    DraftTicketStatus @default(AVAILABLE)
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+
+  @@index([userId])
+}
+
+model DraftRewardsCatalog {
+  id                String   @id @default(uuid(7))
+  winCountThreshold Int
+  cosmeticId        String
+  name              String
+  description       String
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model PlayerRarityCache {
+  id         String   @id @default(uuid(7))
+  playerId   String   @unique
+  rarityTier String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model RoomTemplate {
+  id          String   @id @default(uuid(7))
+  name        String
+  rosterRules Json
+  totalBudget Float
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([rosterRules], type: Gin)
+}
+
+model FantasyPointsLedger {
+  id                String   @id @default(uuid(7))
+  userId            String
+  roomId            String
+  fixtureId         String
+  playerId          String
+  basePoints        Float    @default(0)
+  captainMultiplier Float    @default(1)
+  totalPoints       Float    @default(0)
+  breakdown         Json?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  fixture           Fixture  @relation(fields: [fixtureId], references: [id], onDelete: Cascade)
+  room              Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roomId, fixtureId, playerId])
+  @@index([userId])
+  @@index([roomId])
+  @@index([breakdown], type: Gin)
+}

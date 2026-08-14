@@ -1,0 +1,40 @@
+# ── Match-Mind — .dockerignore ─────────────────────────────────────────
+
+# VCS metadata
+.git
+.gitignore
+.gitattributes
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+dist/
+build/
+.next/
+coverage/
+
+# Environment & secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# IDE / editor config
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# CI / agent config
+.github/
+.gemini/
+.cursorrules
+AGENTS.md
+PROJECT_ANALYSIS.md
+
+# Logs & scratch
+*.log
+logs/

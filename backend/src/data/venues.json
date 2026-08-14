@@ -1,0 +1,24 @@
+[
+  { "id": "v1_01", "tournamentId": "fifa-wc-2026", "name": "MetLife Stadium", "city": "New York/New Jersey", "country": "USA", "capacity": 82500, "stages": ["Group", "Round of 32", "Round of 16", "Final"] },
+  { "id": "v1_02", "tournamentId": "fifa-wc-2026", "name": "SoFi Stadium", "city": "Los Angeles", "country": "USA", "capacity": 70240, "stages": ["Group", "Round of 32"] },
+  { "id": "v1_03", "tournamentId": "fifa-wc-2026", "name": "AT&T Stadium", "city": "Dallas", "country": "USA", "capacity": 80000, "stages": ["Group", "Round of 32", "Quarter-final"] },
+  { "id": "v1_04", "tournamentId": "fifa-wc-2026", "name": "BC Place", "city": "Vancouver", "country": "Canada", "capacity": 54500, "stages": ["Group", "Round of 32"] },
+  { "id": "v1_05", "tournamentId": "fifa-wc-2026", "name": "Estadio Azteca", "city": "Mexico City", "country": "Mexico", "capacity": 87523, "stages": ["Group", "Round of 16", "Semi-final"] },
+
+  { "id": "v2_01", "tournamentId": "uefa-ucl-2026-27", "name": "Wembley Stadium", "city": "London", "country": "England", "capacity": 90000, "stages": ["Final"] },
+  { "id": "v2_02", "tournamentId": "uefa-ucl-2026-27", "name": "Santiago Bernabéu", "city": "Madrid", "country": "Spain", "capacity": 81044, "stages": ["League Phase", "Knockout"] },
+  { "id": "v2_03", "tournamentId": "uefa-ucl-2026-27", "name": "San Siro", "city": "Milan", "country": "Italy", "capacity": 75923, "stages": ["League Phase", "Knockout"] },
+  { "id": "v2_04", "tournamentId": "uefa-ucl-2026-27", "name": "Allianz Arena", "city": "Munich", "country": "Germany", "capacity": 75024, "stages": ["League Phase", "Knockout"] },
+
+  { "id": "v3_01", "tournamentId": "uefa-uel-2026-27", "name": "Stadio Olimpico", "city": "Rome", "country": "Italy", "capacity": 70634, "stages": ["League Phase", "Knockout"] },
+  { "id": "v3_02", "tournamentId": "uefa-uel-2026-27", "name": "Johan Cruijff ArenA", "city": "Amsterdam", "country": "Netherlands", "capacity": 55000, "stages": ["League Phase", "Knockout"] },
+
+  { "id": "v4_01", "tournamentId": "caf-afcon-2027", "name": "Moi International Sports Centre", "city": "Nairobi", "country": "Kenya", "capacity": 60000, "stages": ["Group", "Round of 16", "Quarter-final"] },
+  { "id": "v4_02", "tournamentId": "caf-afcon-2027", "name": "Mandela National Stadium", "city": "Kampala", "country": "Uganda", "capacity": 45000, "stages": ["Group", "Round of 16"] },
+  { "id": "v4_03", "tournamentId": "caf-afcon-2027", "name": "Benjamin Mkapa Stadium", "city": "Dar es Salaam", "country": "Tanzania", "capacity": 60000, "stages": ["Group", "Round of 16", "Semi-final", "Final"] },
+
+  { "id": "v5_01", "tournamentId": "fifa-wwc-2027", "name": "Maracanã", "city": "Rio de Janeiro", "country": "Brazil", "capacity": 78838, "stages": ["Group", "Round of 16", "Final"] },
+  { "id": "v5_02", "tournamentId": "fifa-wwc-2027", "name": "Arena Corinthians", "city": "São Paulo", "country": "Brazil", "capacity": 49205, "stages": ["Group", "Round of 16", "Semi-final"] },
+  { "id": "v5_03", "tournamentId": "fifa-wwc-2027", "name": "Estádio Nacional", "city": "Brasília", "country": "Brazil", "capacity": 72288, "stages": ["Group", "Round of 16", "Quarter-final"] },
+  { "id": "v5_04", "tournamentId": "fifa-wwc-2027", "name": "Arena Fonte Nova", "city": "Salvador", "country": "Brazil", "capacity": 48000, "stages": ["Group", "Round of 16"] }
+]

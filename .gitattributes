@@ -1,0 +1,6 @@
+# Shell scripts must have LF line endings (Unix compatibility)
+scripts/*.sh text eol=lf
+.husky/* text eol=lf
+
+# Auto-detect text files
+* text=auto

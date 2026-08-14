@@ -1,0 +1,25 @@
+# Auto-label PRs based on changed paths
+
+backend:
+  - changed-files:
+      - any-glob-to-any-file: ['backend/**']
+
+frontend:
+  - changed-files:
+      - any-glob-to-any-file: ['frontend/**']
+
+database:
+  - changed-files:
+      - any-glob-to-any-file: ['backend/prisma/**', 'backend/scripts/*db*']
+
+docker:
+  - changed-files:
+      - any-glob-to-any-file: ['docker-compose*']
+
+ci:
+  - changed-files:
+      - any-glob-to-any-file: ['.github/**']
+
+documentation:
+  - changed-files:
+      - any-glob-to-any-file: ['*.md', 'docs/**']

@@ -1,0 +1,161 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: matchmind-backend
+  namespace: default
+  labels:
+    app: matchmind-backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: matchmind-backend
+  template:
+    metadata:
+      labels:
+        app: matchmind-backend
+    spec:
+      containers:
+        - name: backend
+          image: matchmind-backend:latest
+          ports:
+            - containerPort: 5000
+          env:
+            - name: NODE_ENV
+              value: "production"
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: db-credentials
+                  key: database-url
+            - name: REDIS_URL
+              value: "redis://redis-service:6379"
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: auth-secrets
+                  key: jwt-secret
+            - name: JWT_REFRESH_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: auth-secrets
+                  key: jwt-refresh-secret
+            - name: JWT_RESET_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: auth-secrets
+                  key: jwt-reset-secret
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "512Mi"
+            limits:
+              cpu: "1000m"
+              memory: "1024Mi"
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: 5000
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 5000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 2
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: matchmind-backend-service
+  namespace: default
+spec:
+  type: ClusterIP
+  selector:
+    app: matchmind-backend
+  ports:
+    - protocol: TCP
+      port: 5000
+      targetPort: 5000
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: matchmind-backend-hpa
+  namespace: default
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: matchmind-backend
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 75
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: matchmind-frontend
+  namespace: default
+  labels:
+    app: matchmind-frontend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: matchmind-frontend
+  template:
+    metadata:
+      labels:
+        app: matchmind-frontend
+    spec:
+      containers:
+        - name: frontend
+          image: matchmind-frontend:latest
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "256Mi"
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: matchmind-frontend-service
+  namespace: default
+spec:
+  type: ClusterIP
+  selector:
+    app: matchmind-frontend
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80

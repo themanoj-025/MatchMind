@@ -1,0 +1,35 @@
+[
+  {
+    "tournamentId": "fifa-wc-2026",
+    "slotsByConfederation": { "UEFA": 16, "CAF": 9, "AFC": 8, "CONMEBOL": 6, "CONCACAF": 6, "OFC": 1, "Hosts (auto)": 3 },
+    "totalSlots": 48,
+    "windowStart": "2023-09-01",
+    "windowEnd": "2026-03-31",
+    "confirmedTeamIds": ["t1_team_01", "t1_team_02", "t1_team_03", "t1_team_04", "t1_team_05", "t1_team_06", "t1_team_07", "t1_team_08", "t1_team_09", "t1_team_10"],
+    "pendingSlots": 38
+  },
+  {
+    "tournamentId": "caf-afcon-2027",
+    "slotsByConfederation": { "CAF": 24 },
+    "totalSlots": 24,
+    "method": "48 teams in 12 groups of 4, top 2 advance",
+    "windows": [
+      { "window": 1, "start": "2026-09-01", "end": "2026-10-15" },
+      { "window": 2, "start": "2026-11-01", "end": "2026-11-20" },
+      { "window": 3, "start": "2027-03-01", "end": "2027-03-31" }
+    ],
+    "confirmedTeamIds": ["t4_team_07", "t4_team_08", "t4_team_09"],
+    "pendingSlots": 21,
+    "note": "Hosts Kenya, Uganda, Tanzania auto-qualified. Remaining 21 slots decided across 3 windows."
+  },
+  {
+    "tournamentId": "fifa-wwc-2027",
+    "slotsByConfederation": { "UEFA": 11, "CAF": 4, "AFC": 6, "CONMEBOL": 3, "CONCACAF": 4, "OFC": 1, "Hosts (auto)": 1, "Intercontinental playoffs": 3 },
+    "totalSlots": 32,
+    "windowStart": "2025-09-01",
+    "windowEnd": "2027-03-31",
+    "confirmedTeamIds": ["t5_team_03"],
+    "pendingSlots": 31,
+    "note": "Brazil auto-qualified as host. Full qualification underway across confederations."
+  }
+]
