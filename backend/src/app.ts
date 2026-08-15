@@ -188,7 +188,7 @@ app.use((err: unknown, req: express.Request, res: express.Response, next: expres
   }
 
   // Generic 500 for unhandled errors
-  res.status(500).json({
+  return res.status(500).json({
     error: { code: 'INTERNAL_SERVER_ERROR', message: 'An unexpected error occurred.' },
   })
 })

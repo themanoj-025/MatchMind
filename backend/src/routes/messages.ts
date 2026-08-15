@@ -93,7 +93,7 @@ router.get('/:userId', authenticateToken, async (req: AuthenticatedRequest, res)
     return res.status(404).json({ error: { code: 'USER_NOT_FOUND', message: 'User not found' } })
   }
   const messages = await messageService.getDMs(roomId)
-  res.json({ messages, otherUser })
+  return res.json({ messages, otherUser })
 })
 /**
  * POST /api/messages/:userId
@@ -130,7 +130,7 @@ router.post('/:userId', authenticateToken, validate(sendMessageSchema), async (r
       fromUserId: req.userId,
     })
   }
-  res.status(201).json(message)
+  return res.status(201).json(message)
 })
 /**
  * PATCH /api/messages/read/:userId

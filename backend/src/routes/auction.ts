@@ -57,7 +57,7 @@ router.get('/:roomId/state', authenticateToken, async (req: AuthenticatedRequest
   if (!state) {
     return res.status(404).json({ error: { code: 'STATE_NOT_FOUND', message: 'Auction state not found' } })
   }
-  res.json(state)
+  return res.json(state)
 })
 // ─── Host Controls ──────────────────────────────────────
 // POST /api/rooms/:roomId/auction/start — host starts auction
@@ -117,7 +117,7 @@ router.post('/:roomId/start', auctionActionLimiter, authenticateToken, async (re
     await scheduleAuctionTimer(room.id, timerEndsAt)
   }
   logger.info({ event: 'auction.started', roomId: room.id })
-  res.json({ message: 'Auction started', state })
+  return res.json({ message: 'Auction started', state })
 })
 // POST /api/rooms/:roomId/auction/next-player
 openapiRegistry.registerPath({
@@ -150,7 +150,7 @@ router.post('/:roomId/next-player', auctionActionLimiter, authenticateToken, asy
   if (newState.phase === 'PLAYER_LIVE' && newState.timerEndsAt) {
     await scheduleAuctionTimer(room.id, newState.timerEndsAt)
   }
-  res.json({ state: newState })
+  return res.json({ state: newState })
 })
 // POST /api/rooms/:roomId/auction/force-sold
 openapiRegistry.registerPath({
@@ -206,7 +206,7 @@ router.post('/:roomId/force-sold', auctionActionLimiter, authenticateToken, asyn
       price: state.currentBid,
     })
   }
-  res.json({ message: 'Player sold' })
+  return res.json({ message: 'Player sold' })
 })
 // POST /api/rooms/:roomId/auction/force-unsold
 openapiRegistry.registerPath({
@@ -240,7 +240,7 @@ router.post(
     if (io) {
       io.to(`room:${room.id}`).emit('PLAYER_UNSOLD', { roomId: room.id })
     }
-    res.json({ message: 'Player marked unsold', state: newState })
+    return res.json({ message: 'Player marked unsold', state: newState })
   },
 )
 // POST /api/rooms/:roomId/auction/re-auction
@@ -274,7 +274,7 @@ router.post('/:roomId/re-auction', auctionActionLimiter, authenticateToken, asyn
   if (newState.phase === 'PLAYER_LIVE' && newState.timerEndsAt) {
     await scheduleAuctionTimer(room.id, newState.timerEndsAt)
   }
-  res.json({ message: 'Re-auction started', state: newState })
+  return res.json({ message: 'Re-auction started', state: newState })
 })
 // POST /api/rooms/:roomId/auction/pause — host pauses auction
 openapiRegistry.registerPath({
@@ -303,7 +303,7 @@ router.post('/:roomId/pause', auctionActionLimiter, authenticateToken, async (re
     io.to(`room:${room.id}`).emit('AUCTION_PAUSED', { roomId: room.id })
   }
   logger.info({ event: 'auction.paused', roomId: room.id })
-  res.json({ message: 'Auction paused' })
+  return res.json({ message: 'Auction paused' })
 })
 // POST /api/rooms/:roomId/auction/resume — host resumes auction
 openapiRegistry.registerPath({
@@ -332,7 +332,7 @@ router.post('/:roomId/resume', auctionActionLimiter, authenticateToken, async (r
     io.to(`room:${room.id}`).emit('AUCTION_RESUMED', { roomId: room.id })
   }
   logger.info({ event: 'auction.resumed', roomId: room.id })
-  res.json({ message: 'Auction resumed' })
+  return res.json({ message: 'Auction resumed' })
 })
 // POST /api/rooms/:roomId/auction/end
 openapiRegistry.registerPath({
@@ -362,6 +362,6 @@ router.post('/:roomId/end', auctionActionLimiter, authenticateToken, async (req:
     io.to(`room:${room.id}`).emit('AUCTION_FINISHED', { roomId: room.id })
   }
   logger.info({ event: 'auction.ended', roomId: room.id })
-  res.json({ message: 'Auction ended' })
+  return res.json({ message: 'Auction ended' })
 })
 export default router

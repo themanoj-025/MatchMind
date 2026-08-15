@@ -57,5 +57,5 @@ export function requireDraftEnabled(req: Request, _res: Response, next: NextFunc
     )
   }
 
-  next()
+  return next()
 }

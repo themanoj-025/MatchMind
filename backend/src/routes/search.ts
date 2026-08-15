@@ -50,7 +50,7 @@ router.get('/', async (req, res) => {
     }),
   ])
 
-  res.json({ users, players })
+  return res.json({ users, players })
 })
 
 export default router

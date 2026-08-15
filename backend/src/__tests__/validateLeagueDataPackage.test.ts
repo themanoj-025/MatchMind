@@ -24,12 +24,15 @@ function validateDataPackage(
   tournamentId: string,
   registryTeamCount: number,
   registrySquadSize: number,
-  teams: Record<string, unknown>[],
-  players: Record<string, unknown>[],
-  fixtures: Record<string, unknown>[],
-  venues: Record<string, unknown>[],
-  history: Record<string, unknown>[],
+  data: {
+    teams: Record<string, unknown>[]
+    players: Record<string, unknown>[]
+    fixtures: Record<string, unknown>[]
+    venues: Record<string, unknown>[]
+    history: Record<string, unknown>[]
+  },
 ): ValidationResult {
+  const { teams, players, fixtures, venues, history } = data
   const errors: string[] = []
   const warnings: string[] = []
 
@@ -90,96 +93,83 @@ describe('validateLeagueDataPackage', () => {
       'test-tournament',
       4, // teamCount
       23, // squadSize
-      [{ id: 'team-1' }, { id: 'team-2' }, { id: 'team-3' }, { id: 'team-4' }],
-      Array.from({ length: 23 }, (_, i) => ({ id: `p${i}` })),
-      [
-        { ...baseFixture, id: 'f1' },
-        { ...baseFixture, id: 'f2', venueId: 'venue-1' },
-      ],
-      [{ id: 'venue-1' }],
-      [{ pastWinners: [{ year: 2022 }, { year: 2018 }, { year: 2014 }] }],
+      {
+        teams: [{ id: 'team-1' }, { id: 'team-2' }, { id: 'team-3' }, { id: 'team-4' }],
+        players: Array.from({ length: 23 }, (_, i) => ({ id: `p${i}` })),
+        fixtures: [
+          { ...baseFixture, id: 'f1' },
+          { ...baseFixture, id: 'f2', venueId: 'venue-1' },
+        ],
+        venues: [{ id: 'venue-1' }],
+        history: [{ pastWinners: [{ year: 2022 }, { year: 2018 }, { year: 2014 }] }],
+      },
     )
     expect(result.passed).toBe(true)
     expect(result.errors).toHaveLength(0)
   })
 
   it('fails with no teams', () => {
-    const result = validateDataPackage('test', 4, 23, [], [], [], [], [])
+    const result = validateDataPackage('test', 4, 23, { teams: [], players: [], fixtures: [], venues: [], history: [] })
     expect(result.passed).toBe(false)
     expect(result.errors).toContain('No teams found for tournament "test"')
   })
 
   it('fails with insufficient players', () => {
-    const result = validateDataPackage(
-      'test',
-      4,
-      23,
-      [{ id: 'team-1' }],
-      Array.from({ length: 5 }, (_, i) => ({ id: `p${i}` })),
-      [],
-      [],
-      [],
-    )
+    const result = validateDataPackage('test', 4, 23, {
+      teams: [{ id: 'team-1' }],
+      players: Array.from({ length: 5 }, (_, i) => ({ id: `p${i}` })),
+      fixtures: [],
+      venues: [],
+      history: [],
+    })
     expect(result.passed).toBe(false)
     expect(result.errors[0]).toContain('Expected at least 20 players')
   })
 
   it('fails when fixture references unknown team', () => {
-    const result = validateDataPackage(
-      'test',
-      2,
-      23,
-      [{ id: 'team-1' }], // only 1 team
-      Array.from({ length: 23 }, (_, i) => ({ id: `p${i}` })),
-      [{ ...baseFixture, id: 'f1', homeTeamId: 'team-1', awayTeamId: 'unknown-team' }],
-      [],
-      [{ pastWinners: [{ year: 2022 }, { year: 2018 }, { year: 2014 }] }],
-    )
+    const result = validateDataPackage('test', 2, 23, {
+      teams: [{ id: 'team-1' }], // only 1 team
+      players: Array.from({ length: 23 }, (_, i) => ({ id: `p${i}` })),
+      fixtures: [{ ...baseFixture, id: 'f1', homeTeamId: 'team-1', awayTeamId: 'unknown-team' }],
+      venues: [],
+      history: [{ pastWinners: [{ year: 2022 }, { year: 2018 }, { year: 2014 }] }],
+    })
     expect(result.passed).toBe(false)
     expect(result.errors[0]).toContain('unknown-team')
   })
 
   it('warns when fixture references unknown venue', () => {
-    const result = validateDataPackage(
-      'test',
-      2,
-      23,
-      [{ id: 'team-1' }, { id: 'team-2' }],
-      Array.from({ length: 23 }, (_, i) => ({ id: `p${i}` })),
-      [{ ...baseFixture, id: 'f1', venueId: 'unknown-venue' }],
-      [{ id: 'real-venue' }],
-      [{ pastWinners: [{ year: 2022 }, { year: 2018 }, { year: 2014 }] }],
-    )
+    const result = validateDataPackage('test', 2, 23, {
+      teams: [{ id: 'team-1' }, { id: 'team-2' }],
+      players: Array.from({ length: 23 }, (_, i) => ({ id: `p${i}` })),
+      fixtures: [{ ...baseFixture, id: 'f1', venueId: 'unknown-venue' }],
+      venues: [{ id: 'real-venue' }],
+      history: [{ pastWinners: [{ year: 2022 }, { year: 2018 }, { year: 2014 }] }],
+    })
     expect(result.passed).toBe(true) // venue ref is only a warning
     expect(result.warnings[0]).toContain('unknown-venue')
   })
 
   it('warns with less than 3 past winners', () => {
-    const result = validateDataPackage(
-      'test',
-      2,
-      23,
-      [{ id: 'team-1' }, { id: 'team-2' }],
-      Array.from({ length: 23 }, (_, i) => ({ id: `p${i}` })),
-      [],
-      [],
-      [{ pastWinners: [{ year: 2022 }] }], // only 1
-    )
+    const result = validateDataPackage('test', 2, 23, {
+      teams: [{ id: 'team-1' }, { id: 'team-2' }],
+      players: Array.from({ length: 23 }, (_, i) => ({ id: `p${i}` })),
+      fixtures: [],
+      venues: [],
+      history: [{ pastWinners: [{ year: 2022 }] }], // only 1
+    })
     expect(result.passed).toBe(true) // history is a warning, not a failure
     expect(result.warnings[0]).toContain('Expected at least 3 past winners')
   })
 
   it('warns when team count is below registry count', () => {
-    const result = validateDataPackage(
-      'test',
-      10, // registry says 10 teams
-      23,
-      [{ id: 'team-1' }], // only 1 loaded
-      Array.from({ length: 23 }, (_, i) => ({ id: `p${i}` })),
-      [],
-      [],
-      [{ pastWinners: [{ year: 2022 }, { year: 2018 }, { year: 2014 }] }],
-    )
+    const result = validateDataPackage('test', 10, 23, {
+      teams: [{ id: 'team-1' }], // only 1 loaded
+      players: Array.from({ length: 23 }, (_, i) => ({ id: `p${i}` })),
+      fixtures: [],
+      venues: [],
+      history: [{ pastWinners: [{ year: 2022 }, { year: 2018 }, { year: 2014 }] }],
+    })
     expect(result.passed).toBe(true) // team count is a warning, not a failure
     expect(result.warnings[0]).toContain('Expected 10 teams')
   })

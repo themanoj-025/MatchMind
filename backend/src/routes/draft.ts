@@ -61,7 +61,7 @@ router.post('/start', draftLimiter, validate(draftStartSchema), async (req: Auth
       error: { code: 'DRAFT_START_FAILED', message: result.error || 'Failed to start draft' },
     })
   }
-  res.status(201).json({
+  return res.status(201).json({
     session: result.session,
     nextRound: result.nextRound,
   })
@@ -156,7 +156,7 @@ router.get('/:sessionId', async (req: AuthenticatedRequest, res) => {
         : null,
     }
   })
-  res.json({
+  return res.json({
     session: result.session,
     picks: result.picks.map((p) => ({
       ...p,
@@ -181,7 +181,7 @@ router.get('/:sessionId/next-round', async (req: AuthenticatedRequest, res) => {
   if (result.complete && !result.round) {
     return res.json({ complete: true, session: result.session, round: null })
   }
-  res.json({
+  return res.json({
     round: result.round,
     session: result.session,
     complete: false,
@@ -203,7 +203,7 @@ router.post('/:sessionId/pick', validate(draftPickSchema), async (req: Authentic
       error: { code: 'PICK_REJECTED', message: result.error || 'Pick rejected' },
     })
   }
-  res.json({
+  return res.json({
     success: true,
     nextRound: result.nextRound,
     session: result.session,
@@ -231,7 +231,7 @@ router.post('/:sessionId/commit', async (req: AuthenticatedRequest, res) => {
     synergyScore: result.synergyScore,
     formationBonus: result.formationBonus,
   })
-  res.json({
+  return res.json({
     success: true,
     session: result.session,
     synergyScore: result.synergyScore,
@@ -258,7 +258,7 @@ router.post('/:sessionId/enter-run', async (req: AuthenticatedRequest, res) => {
     sessionId: req.params.sessionId,
     userId: req.userId,
   })
-  res.status(201).json({
+  return res.status(201).json({
     success: true,
     result: result.result,
   })
@@ -278,7 +278,7 @@ router.get('/:sessionId/run-status', async (req: AuthenticatedRequest, res) => {
       error: { code: 'RUN_STATUS_ERROR', message: result.error || 'Failed to get run status' },
     })
   }
-  res.json(result.state)
+  return res.json(result.state)
 })
 // ─── POST /api/draft/:sessionId/resolve-matchday (§2.2) ──
 openapiRegistry.registerPath({
@@ -301,7 +301,7 @@ router.post('/:sessionId/resolve-matchday', async (req: AuthenticatedRequest, re
     roundNumber: result.round?.roundNumber,
     outcome: result.round?.outcome,
   })
-  res.json({
+  return res.json({
     success: true,
     round: result.round,
     state: result.state,

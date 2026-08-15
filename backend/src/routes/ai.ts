@@ -146,7 +146,7 @@ router.post('/auction-advice', authenticateToken, aiPredictionLimiter, async (re
       return freshAdvice
     })
   }
-  res.json({
+  return res.json({
     isProFeature: false,
     advice: finalAdvice,
     cacheHit,

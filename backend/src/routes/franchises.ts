@@ -108,7 +108,7 @@ router.patch('/:roomId/franchises/me/captain', authenticateToken, async (req: Au
     include: { player: { select: { id: true, name: true, position: true } } },
   })
 
-  res.json(updated)
+  return res.json(updated)
 })
 
 export default router

@@ -25,7 +25,7 @@ router.get('/:id', async (req, res) => {
   const userService = req.container.cradle.userService
   const user = await userService.getUserProfile(req.params.id)
   if (!user) {return res.status(404).json({ error: { code: 'USER_NOT_FOUND', message: 'User not found' } })}
-  res.json(user)
+  return res.json(user)
 })
 openapiRegistry.registerPath({
   method: 'patch',

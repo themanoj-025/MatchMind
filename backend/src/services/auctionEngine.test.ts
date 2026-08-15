@@ -108,14 +108,13 @@ describe('requiredIncrement()', () => {
 
 describe('validateBudgetForRemainingSlots()', () => {
   it('accepts a bid when enough budget and slots remain', () => {
-    const result = validateBudgetForRemainingSlots(
-      500, // remainingBudget
-      50, // bidAmount
-      'MID', // playerPosition
-      DEFAULT_ROSTER_RULES,
-      [], // currentRoster (empty — all slots open)
-      [], // playerPool
-    )
+    const result = validateBudgetForRemainingSlots({
+      remainingBudget: 500,
+      bidAmount: 50,
+      playerPosition: 'MID',
+      rosterRules: DEFAULT_ROSTER_RULES,
+      currentRoster: [], // empty — all slots open
+    })
     expect(result.valid).toBe(true)
   })
 
@@ -126,7 +125,13 @@ describe('validateBudgetForRemainingSlots()', () => {
       soldPrice: 20 + i * 5,
     }))
 
-    const result = validateBudgetForRemainingSlots(500, 50, 'MID', DEFAULT_ROSTER_RULES, roster, [])
+    const result = validateBudgetForRemainingSlots({
+      remainingBudget: 500,
+      bidAmount: 50,
+      playerPosition: 'MID',
+      rosterRules: DEFAULT_ROSTER_RULES,
+      currentRoster: roster,
+    })
     expect(result.valid).toBe(false)
     expect(result.reason).toContain('ROSTER_SLOT_FULL')
     expect(result.reason).toContain('MID')
@@ -134,15 +139,14 @@ describe('validateBudgetForRemainingSlots()', () => {
 
   it('rejects a bid that would leave insufficient budget for remaining slots', () => {
     // User has 70 budget, bids 60, leaving 10 — but needs 50 for remaining 10 slots at 5 each
-    const result = validateBudgetForRemainingSlots(
-      70, // remainingBudget (can afford 60+10=70)
-      60, // bidAmount (leaves 10)
-      'FWD', // playerPosition
-      DEFAULT_ROSTER_RULES,
-      [], // empty roster — 15 slots total, 1 being filled = 14 remaining
-      [],
-      5, // minPlayerPrice
-    )
+    const result = validateBudgetForRemainingSlots({
+      remainingBudget: 70, // can afford 60+10=70
+      bidAmount: 60, // leaves 10
+      playerPosition: 'FWD',
+      rosterRules: DEFAULT_ROSTER_RULES,
+      currentRoster: [], // empty roster — 15 slots total, 1 being filled = 14 remaining
+      minPlayerPrice: 5,
+    })
     expect(result.valid).toBe(false)
     expect(result.reason).toContain('INSUFFICIENT_BUDGET')
     // After bidding 60, 10 remains. Need 14 * 5 = 70 reserve. 10 < 70
@@ -151,7 +155,14 @@ describe('validateBudgetForRemainingSlots()', () => {
 
   it('accepts a bid when exactly enough budget for remaining slots', () => {
     // User has 135, bids 50, leaving 85. Need 17 remaining slots * 5 = 85. 85 >= 85 ✓
-    const result = validateBudgetForRemainingSlots(135, 50, 'MID', DEFAULT_ROSTER_RULES, [], [], 5)
+    const result = validateBudgetForRemainingSlots({
+      remainingBudget: 135,
+      bidAmount: 50,
+      playerPosition: 'MID',
+      rosterRules: DEFAULT_ROSTER_RULES,
+      currentRoster: [],
+      minPlayerPrice: 5,
+    })
     expect(result.valid).toBe(true)
   })
 
@@ -165,19 +176,38 @@ describe('validateBudgetForRemainingSlots()', () => {
       ...Array.from({ length: 3 }, (_, i) => ({ position: 'FWD' as const, soldPrice: 10 + i * 5 })),
     ]
     // 1 DEF slot remains. Bidding full budget: 90 - 90 = 0. No reserve needed since 0 remaining slots after this bid.
-    const result = validateBudgetForRemainingSlots(90, 90, 'DEF', DEFAULT_ROSTER_RULES, roster, [], 5)
+    const result = validateBudgetForRemainingSlots({
+      remainingBudget: 90,
+      bidAmount: 90,
+      playerPosition: 'DEF',
+      rosterRules: DEFAULT_ROSTER_RULES,
+      currentRoster: roster,
+      minPlayerPrice: 5,
+    })
     expect(result.valid).toBe(true)
   })
 
   it('handles GK position correctly', () => {
     const roster = [{ position: 'GK' as const, soldPrice: 10 }]
     // 2 GK slots total, 1 filled, can add another
-    const result = validateBudgetForRemainingSlots(500, 30, 'GK', DEFAULT_ROSTER_RULES, roster, [])
+    const result = validateBudgetForRemainingSlots({
+      remainingBudget: 500,
+      bidAmount: 30,
+      playerPosition: 'GK',
+      rosterRules: DEFAULT_ROSTER_RULES,
+      currentRoster: roster,
+    })
     expect(result.valid).toBe(true)
 
     // Now fill both GK slots
     const fullRoster = [...roster, { position: 'GK' as const, soldPrice: 15 }]
-    const result2 = validateBudgetForRemainingSlots(500, 30, 'GK', DEFAULT_ROSTER_RULES, fullRoster, [])
+    const result2 = validateBudgetForRemainingSlots({
+      remainingBudget: 500,
+      bidAmount: 30,
+      playerPosition: 'GK',
+      rosterRules: DEFAULT_ROSTER_RULES,
+      currentRoster: fullRoster,
+    })
     expect(result2.valid).toBe(false)
     expect(result2.reason).toContain('ROSTER_SLOT_FULL')
   })
@@ -204,17 +234,16 @@ describe('processBid() — unit tests with mocked DB accessors', () => {
     const mockSaveBid = vi.fn().mockResolvedValue(undefined)
     const mockGetPool = vi.fn().mockResolvedValue([])
 
-    const result = await processBid(
-      { roomId: 'room-1', playerId: 'player-1', amount: 10, userId: 'user-1', expectedVersion: 1 },
-      mockGetRoom,
-      mockGetPlayer,
-      mockGetMember,
-      mockGetRoster,
-      mockGetAuctionState,
-      mockSaveState,
-      mockSaveBid,
-      mockGetPool,
-    )
+    const result = await processBid({ roomId: 'room-1', playerId: 'player-1', amount: 10, userId: 'user-1', expectedVersion: 1 }, {
+      getRoom: mockGetRoom,
+      getPlayer: mockGetPlayer,
+      getRoomMember: mockGetMember,
+      getRoster: mockGetRoster,
+      getAuctionState: mockGetAuctionState,
+      saveAuctionState: mockSaveState,
+      saveBid: mockSaveBid,
+      getPlayerPool: mockGetPool,
+    })
 
     expect(result.accepted).toBe(true)
     expect(result.newState).toBeDefined()
@@ -228,17 +257,16 @@ describe('processBid() — unit tests with mocked DB accessors', () => {
   it('rejects bid when state version mismatch', async () => {
     const { processBid } = await import('./auctionEngine')
 
-    const result = await processBid(
-      { roomId: 'room-1', playerId: 'player-1', amount: 10, userId: 'user-1', expectedVersion: 999 },
-      vi.fn(),
-      vi.fn(),
-      vi.fn(),
-      vi.fn(),
-      vi.fn().mockResolvedValue(state),
-      vi.fn(),
-      vi.fn(),
-      vi.fn(),
-    )
+    const result = await processBid({ roomId: 'room-1', playerId: 'player-1', amount: 10, userId: 'user-1', expectedVersion: 999 }, {
+      getRoom: vi.fn(),
+      getPlayer: vi.fn(),
+      getRoomMember: vi.fn(),
+      getRoster: vi.fn(),
+      getAuctionState: vi.fn().mockResolvedValue(state),
+      saveAuctionState: vi.fn(),
+      saveBid: vi.fn(),
+      getPlayerPool: vi.fn(),
+    })
     expect(result.accepted).toBe(false)
     expect(result.reason).toBe('BID_STALE_STATE')
   })
@@ -246,17 +274,16 @@ describe('processBid() — unit tests with mocked DB accessors', () => {
   it('rejects bid when room is not DRAFTING', async () => {
     const { processBid } = await import('./auctionEngine')
 
-    const result = await processBid(
-      { roomId: 'room-1', playerId: 'player-1', amount: 10, userId: 'user-1', expectedVersion: 1 },
-      vi.fn().mockResolvedValue(createMockRoom({ status: 'LOBBY' })),
-      vi.fn(),
-      vi.fn(),
-      vi.fn(),
-      vi.fn().mockResolvedValue(state),
-      vi.fn(),
-      vi.fn(),
-      vi.fn(),
-    )
+    const result = await processBid({ roomId: 'room-1', playerId: 'player-1', amount: 10, userId: 'user-1', expectedVersion: 1 }, {
+      getRoom: vi.fn().mockResolvedValue(createMockRoom({ status: 'LOBBY' })),
+      getPlayer: vi.fn(),
+      getRoomMember: vi.fn(),
+      getRoster: vi.fn(),
+      getAuctionState: vi.fn().mockResolvedValue(state),
+      saveAuctionState: vi.fn(),
+      saveBid: vi.fn(),
+      getPlayerPool: vi.fn(),
+    })
     expect(result.accepted).toBe(false)
     expect(result.reason).toBe('ROOM_NOT_ACTIVE')
   })
@@ -265,17 +292,16 @@ describe('processBid() — unit tests with mocked DB accessors', () => {
     const { processBid } = await import('./auctionEngine')
 
     const idleState = createMockState({ phase: 'IDLE', currentPlayerId: null })
-    const result = await processBid(
-      { roomId: 'room-1', playerId: 'player-1', amount: 10, userId: 'user-1', expectedVersion: 1 },
-      vi.fn().mockResolvedValue(createMockRoom()),
-      vi.fn(),
-      vi.fn(),
-      vi.fn(),
-      vi.fn().mockResolvedValue(idleState),
-      vi.fn(),
-      vi.fn(),
-      vi.fn(),
-    )
+    const result = await processBid({ roomId: 'room-1', playerId: 'player-1', amount: 10, userId: 'user-1', expectedVersion: 1 }, {
+      getRoom: vi.fn().mockResolvedValue(createMockRoom()),
+      getPlayer: vi.fn(),
+      getRoomMember: vi.fn(),
+      getRoster: vi.fn(),
+      getAuctionState: vi.fn().mockResolvedValue(idleState),
+      saveAuctionState: vi.fn(),
+      saveBid: vi.fn(),
+      getPlayerPool: vi.fn(),
+    })
     expect(result.accepted).toBe(false)
     expect(result.reason).toBe('NO_PLAYER_LIVE')
   })
@@ -283,17 +309,16 @@ describe('processBid() — unit tests with mocked DB accessors', () => {
   it('rejects bid for wrong player under hammer', async () => {
     const { processBid } = await import('./auctionEngine')
 
-    const result = await processBid(
-      { roomId: 'room-1', playerId: 'player-999', amount: 10, userId: 'user-1', expectedVersion: 1 },
-      vi.fn().mockResolvedValue(createMockRoom()),
-      vi.fn(),
-      vi.fn(),
-      vi.fn(),
-      vi.fn().mockResolvedValue(state),
-      vi.fn(),
-      vi.fn(),
-      vi.fn(),
-    )
+    const result = await processBid({ roomId: 'room-1', playerId: 'player-999', amount: 10, userId: 'user-1', expectedVersion: 1 }, {
+      getRoom: vi.fn().mockResolvedValue(createMockRoom()),
+      getPlayer: vi.fn(),
+      getRoomMember: vi.fn(),
+      getRoster: vi.fn(),
+      getAuctionState: vi.fn().mockResolvedValue(state),
+      saveAuctionState: vi.fn(),
+      saveBid: vi.fn(),
+      getPlayerPool: vi.fn(),
+    })
     expect(result.accepted).toBe(false)
     expect(result.reason).toBe('WRONG_PLAYER_UNDER_HAMMER')
   })
@@ -301,17 +326,17 @@ describe('processBid() — unit tests with mocked DB accessors', () => {
   it('rejects bid when bidder is not a room member', async () => {
     const { processBid } = await import('./auctionEngine')
 
-    const result = await processBid(
-      { roomId: 'room-1', playerId: 'player-1', amount: 10, userId: 'non-member', expectedVersion: 1 },
-      vi.fn().mockResolvedValue(createMockRoom()),
+    const result = await processBid({ roomId: 'room-1', playerId: 'player-1', amount: 10, userId: 'non-member', expectedVersion: 1 }, {
+      getRoom: vi.fn().mockResolvedValue(createMockRoom()),
+      getPlayer: vi.fn(),
+      getRoomMember: vi.fn().mockResolvedValue(null),
+      getRoster: // member not found,
       vi.fn(),
-      vi.fn().mockResolvedValue(null), // member not found
-      vi.fn(),
-      vi.fn().mockResolvedValue(state),
-      vi.fn(),
-      vi.fn(),
-      vi.fn(),
-    )
+      getAuctionState: vi.fn().mockResolvedValue(state),
+      saveAuctionState: vi.fn(),
+      saveBid: vi.fn(),
+      getPlayerPool: vi.fn(),
+    })
     expect(result.accepted).toBe(false)
     expect(result.reason).toBe('NOT_ROOM_MEMBER')
   })
@@ -321,17 +346,16 @@ describe('processBid() — unit tests with mocked DB accessors', () => {
 
     // Current bid is 0, min increment is 5, so min bid is 5
     // Bidder tries 3 which is below min
-    const result = await processBid(
-      { roomId: 'room-1', playerId: 'player-1', amount: 3, userId: 'user-1', expectedVersion: 1 },
-      vi.fn().mockResolvedValue(createMockRoom()),
-      vi.fn().mockResolvedValue(createMockPlayer()),
-      vi.fn().mockResolvedValue(createMockMember()),
-      vi.fn().mockResolvedValue([]),
-      vi.fn().mockResolvedValue(state),
-      vi.fn(),
-      vi.fn(),
-      vi.fn(),
-    )
+    const result = await processBid({ roomId: 'room-1', playerId: 'player-1', amount: 3, userId: 'user-1', expectedVersion: 1 }, {
+      getRoom: vi.fn().mockResolvedValue(createMockRoom()),
+      getPlayer: vi.fn().mockResolvedValue(createMockPlayer()),
+      getRoomMember: vi.fn().mockResolvedValue(createMockMember()),
+      getRoster: vi.fn().mockResolvedValue([]),
+      getAuctionState: vi.fn().mockResolvedValue(state),
+      saveAuctionState: vi.fn(),
+      saveBid: vi.fn(),
+      getPlayerPool: vi.fn(),
+    })
     expect(result.accepted).toBe(false)
     expect(result.reason).toContain('BID_TOO_LOW')
   })
@@ -339,17 +363,17 @@ describe('processBid() — unit tests with mocked DB accessors', () => {
   it('rejects bid when player not found', async () => {
     const { processBid } = await import('./auctionEngine')
 
-    const result = await processBid(
-      { roomId: 'room-1', playerId: 'player-1', amount: 10, userId: 'user-1', expectedVersion: 1 },
-      vi.fn().mockResolvedValue(createMockRoom()),
-      vi.fn().mockResolvedValue(null), // player not found
+    const result = await processBid({ roomId: 'room-1', playerId: 'player-1', amount: 10, userId: 'user-1', expectedVersion: 1 }, {
+      getRoom: vi.fn().mockResolvedValue(createMockRoom()),
+      getPlayer: vi.fn().mockResolvedValue(null),
+      getRoomMember: // player not found,
       vi.fn().mockResolvedValue(createMockMember()),
-      vi.fn().mockResolvedValue([]),
-      vi.fn().mockResolvedValue(state),
-      vi.fn(),
-      vi.fn(),
-      vi.fn(),
-    )
+      getRoster: vi.fn().mockResolvedValue([]),
+      getAuctionState: vi.fn().mockResolvedValue(state),
+      saveAuctionState: vi.fn(),
+      saveBid: vi.fn(),
+      getPlayerPool: vi.fn(),
+    })
     expect(result.accepted).toBe(false)
     expect(result.reason).toBe('PLAYER_NOT_FOUND')
   })
@@ -370,17 +394,16 @@ describe('processBid() — unit tests with mocked DB accessors', () => {
     const mockSaveBid = vi.fn().mockResolvedValue(undefined)
     const mockGetPool = vi.fn().mockResolvedValue([])
 
-    const result = await processBid(
-      { roomId: 'room-1', playerId: 'player-1', amount: 10, userId: 'user-1', expectedVersion: 1 },
-      mockGetRoom,
-      mockGetPlayer,
-      mockGetMember,
-      mockGetRoster,
-      mockGetAuctionState,
-      mockSaveState,
-      mockSaveBid,
-      mockGetPool,
-    )
+    const result = await processBid({ roomId: 'room-1', playerId: 'player-1', amount: 10, userId: 'user-1', expectedVersion: 1 }, {
+      getRoom: mockGetRoom,
+      getPlayer: mockGetPlayer,
+      getRoomMember: mockGetMember,
+      getRoster: mockGetRoster,
+      getAuctionState: mockGetAuctionState,
+      saveAuctionState: mockSaveState,
+      saveBid: mockSaveBid,
+      getPlayerPool: mockGetPool,
+    })
 
     expect(result.accepted).toBe(true)
     expect(result.newState).toBeDefined()

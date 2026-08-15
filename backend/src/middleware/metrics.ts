@@ -85,7 +85,7 @@ export function metricsMiddleware(req: Request, res: Response, next: NextFunctio
     return originalEnd(...args)
   } as typeof res.end
 
-  next()
+  return next()
 }
 
 // ─── Metric Updaters (called from other modules) ───────

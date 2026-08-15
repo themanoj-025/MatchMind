@@ -29,7 +29,7 @@ router.get('/:id', async (req, res) => {
   if (!fixture) {
     return res.status(404).json({ error: { code: 'FIXTURE_NOT_FOUND', message: 'Fixture not found' } })
   }
-  res.json(fixture)
+  return res.json(fixture)
 })
 // POST /api/admin/fixtures — create fixture (admin only)
 openapiRegistry.registerPath({
