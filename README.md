@@ -4,7 +4,7 @@
 ![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-6-3178C6?logo=typescript&logoColor=white)
 ![Redis](https://img.shields.io/badge/Redis-7-DC382D?logo=redis&logoColor=white)
-[![CI](https://img.shields.io/github/actions/workflow/status/themanoj-025/Match-Mind/ci.yml?branch=main&label=CI&logo=github)](https://github.com/themanoj-025/Match-Mind/actions/workflows/ci.yml)
+[![CI](https://img.shields.io/github/actions/workflow/status/themanoj-025/MatchMind/ci.yml?branch=main&label=CI&logo=github)](https://github.com/themanoj-025/MatchMind/actions/workflows/ci.yml)
 
 **MatchMind** is a real-time, football-first social prediction and live auction draft platform. Built for fantasy sports enthusiasts, it combines the live-match experience with a Bloomberg-style trading terminal aesthetic. Users can watch games, bid in live player auctions, chat in real-time, and compete on global leaderboards.
 
@@ -136,8 +136,8 @@ graph TB
 
 ```bash
 # Clone the repository
-git clone https://github.com/themanoj-025/Match-Mind.git
-cd Match-Mind
+git clone https://github.com/themanoj-025/MatchMind.git
+cd MatchMind
 
 # Install all workspace dependencies and generate Prisma client
 npm run setup
@@ -187,5 +187,13 @@ Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md).
 ## ⭐ Show Your Support
 
 - ⭐ Star the repository if you love the product
-- 🐛 [Report a bug](https://github.com/themanoj-025/Match-Mind/issues)
-- 💡 [Request a feature](https://github.com/themanoj-025/Match-Mind/issues)
+- 🐛 [Report a bug](https://github.com/themanoj-025/MatchMind/issues)
+- 💡 [Request a feature](https://github.com/themanoj-025/MatchMind/issues)
+---
+
+## ⭐ Star History
+
+[![Last Commit](https://img.shields.io/github/last-commit/themanoj-025/MatchMind?style=flat-square)](https://github.com/themanoj-025/MatchMind)
+[![Contributors](https://img.shields.io/github/contributors/themanoj-025/MatchMind?style=flat-square)](https://github.com/themanoj-025/MatchMind/graphs/contributors)
+
+[![Star History Chart](https://api.star-history.com/svg?repos=themanoj-025/MatchMind&type=Date)](https://star-history.com/#MatchMind&Date)
