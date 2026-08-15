@@ -10,7 +10,20 @@
 
 ---
 
-## Core Features
+## 📋 Table of Contents
+
+- [⚽ Core Features](#-core-features)
+- [🏗 Engineering & Architecture](#-engineering--architecture)
+- [📊 Metrics](#-metrics)
+- [🔌 API & Integration Stack](#-api--integration-stack)
+- [🚀 Quick Start](#-quick-start)
+- [📄 License](#-license)
+- [🤝 Contributing](#-contributing)
+- [⭐ Show Your Support](#-show-your-support)
+
+---
+
+## ⚽ Core Features
 
 ### Live Drafts (Auction Room)
 
@@ -37,7 +50,7 @@ Post-draft, real-world performances map to MatchMind's fantasy points ledger.
 
 ---
 
-## Engineering & Architecture
+## 🏗 Engineering & Architecture
 
 ### Audit & Remediation
 
@@ -90,7 +103,7 @@ graph TB
 
 ---
 
-## Metrics
+## 📊 Metrics
 
 | Metric               | Value                                            |
 | -------------------- | ------------------------------------------------ |
@@ -102,19 +115,77 @@ graph TB
 
 ---
 
-## API & Integration Stack
+## 🔌 API & Integration Stack
 
 - **Authentication:** JWT + Refresh Tokens + Google OAuth
 - **Background Jobs:** BullMQ + Redis
 - **Security:** Helmet, CORS, CSRF Tokens, Rate Limiting, Gitleaks scanning
 - **Pro Features:** Stripe billing integration, AI draft insights
 
-# MatchMind
+---
 
-# MatchMind
+## 🚀 Quick Start
 
-# MatchMind
+### Prerequisites
 
-# MatchMind
+- Node.js 20+
+- npm
+- Docker & Docker Compose (for PostgreSQL + Redis)
 
-# MatchMind
+### Setup
+
+```bash
+# Clone the repository
+git clone https://github.com/themanoj-025/Match-Mind.git
+cd Match-Mind
+
+# Install all workspace dependencies and generate Prisma client
+npm run setup
+
+# Copy and edit the environment template
+cp .env.example .env
+cp docker-compose.override.yml.example docker-compose.override.yml
+```
+
+### Run
+
+```bash
+# Start PostgreSQL + Redis, apply migrations, and run API + web dev servers
+npm run dev:up
+
+# Or run the app against your own Postgres/Redis:
+# Terminal 1: API (http://localhost:4000)
+npm run dev:backend
+# Terminal 2: Web (http://localhost:5173)
+npm run dev:frontend
+```
+
+### Quality Gates
+
+```bash
+npm run lint        # ESLint on backend + frontend
+npm run typecheck   # tsc --noEmit on backend + frontend
+npm run test        # Vitest suites (backend + frontend)
+```
+
+> 📝 **Note:** the backend test suite spins up `docker-compose.test.yml` (Postgres + Redis) automatically.
+
+---
+
+## 📄 License
+
+MIT — see [LICENSE](LICENSE).
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md).
+
+---
+
+## ⭐ Show Your Support
+
+- ⭐ Star the repository if you love the product
+- 🐛 [Report a bug](https://github.com/themanoj-025/Match-Mind/issues)
+- 💡 [Request a feature](https://github.com/themanoj-025/Match-Mind/issues)
