@@ -1,11 +1,11 @@
 import { env } from '../config/env'
 import jwt from 'jsonwebtoken'
 import type { Request, Response, NextFunction } from 'express'
+import { DatabaseClient } from '../repositories'
 import logger from '../utils/logger'
 
 export interface AuthenticatedRequest extends Request {
   userId?: string
-  user?: any
 }
 
 /**
@@ -13,15 +13,15 @@ export interface AuthenticatedRequest extends Request {
  * version stored in the database. If they differ, the token has been
  * revoked (user logged out on another device).
  */
-async function checkTokenVersion(userId: string, tokenVersion: number, prisma: any): Promise<boolean> {
+async function checkTokenVersion(userId: string, tokenVersion: number, prisma: DatabaseClient): Promise<boolean> {
   try {
     const user = await prisma.user.findUnique({
       where: { id: userId },
       select: { tokenVersion: true },
     })
-    if (!user) return false
+    if (!user) {return false}
     return (user.tokenVersion ?? 0) === tokenVersion
-  } catch (err: any) {
+  } catch (err: unknown) {
     // Fail closed to prevent bypasses during database outages/transient errors
     logger.fatal(
       { event: 'auth.token_version_db_failure', userId, err: (err as Error).message },
@@ -66,7 +66,7 @@ export const authenticateToken = async (
     }
 
     next()
-  } catch (err: any) {
+  } catch (err: unknown) {
     res.status(403).json({ message: 'Invalid or expired token' })
   }
 }
@@ -91,7 +91,7 @@ export const optionalAuth = async (req: AuthenticatedRequest, _res: Response, ne
       } else {
         req.userId = decoded.userId
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       // Ignore invalid/expired tokens for optional auth
     }
   }

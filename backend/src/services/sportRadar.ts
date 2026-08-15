@@ -32,27 +32,43 @@ export class SportRadarService {
       if (!response.ok) {
         throw new Error(`SportRadar API error: ${response.statusText}`)
       }
-      const data = await response.json()
+      const data = (await response.json()) as {
+        sport_events?: Array<{
+          id: string
+          scheduled: string
+          status: string
+          competitors: Array<{ id: string; name: string; abbreviation: string }>
+        }>
+      }
 
       // Map/validate the data as needed
       return (
-        data.sport_events?.map((event: any) => ({
-          id: event.id,
-          scheduled: event.scheduled,
-          status: event.status,
-          home_team: {
-            id: event.competitors[0].id,
-            name: event.competitors[0].name,
-            alias: event.competitors[0].abbreviation,
-          },
-          away_team: {
-            id: event.competitors[1].id,
-            name: event.competitors[1].name,
-            alias: event.competitors[1].abbreviation,
-          },
-        })) || []
+        data.sport_events
+          ?.map((event) => {
+            const home = event.competitors[0]
+            const away = event.competitors[1]
+            if (!home || !away) {
+              return null
+            }
+            return {
+              id: event.id,
+              scheduled: event.scheduled,
+              status: event.status,
+              home_team: {
+                id: home.id,
+                name: home.name,
+                alias: home.abbreviation,
+              },
+              away_team: {
+                id: away.id,
+                name: away.name,
+                alias: away.abbreviation,
+              },
+            }
+          })
+          .filter((m): m is SportRadarMatch => m !== null) || []
       )
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error({ event: 'sportradar.fetch_failed', error }, 'Failed to fetch schedule from SportRadar')
       throw error
     }

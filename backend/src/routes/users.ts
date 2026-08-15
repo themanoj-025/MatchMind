@@ -1,14 +1,10 @@
 import express from 'express'
-import { authenticateToken } from '../middleware/auth'
+import { authenticateToken, type AuthenticatedRequest } from '../middleware/auth'
 import { validate } from '../middleware/validate'
 import { updateProfileSchema } from '../config/schemas'
-import type { AuthenticatedRequest } from '../middleware/auth'
 import { openapiRegistry } from '../config/openapi'
-
 const router = express.Router()
-
 // GET /api/users/check-username
-
 openapiRegistry.registerPath({
   method: 'get',
   path: '/check-username',
@@ -20,7 +16,6 @@ router.get('/check-username', async (req, res) => {
   const available = await userService.checkUsernameAvailable(username!)
   res.json({ available })
 })
-
 openapiRegistry.registerPath({
   method: 'get',
   path: '/:id',
@@ -29,10 +24,9 @@ openapiRegistry.registerPath({
 router.get('/:id', async (req, res) => {
   const userService = req.container.cradle.userService
   const user = await userService.getUserProfile(req.params.id)
-  if (!user) return res.status(404).json({ error: { code: 'USER_NOT_FOUND', message: 'User not found' } })
+  if (!user) {return res.status(404).json({ error: { code: 'USER_NOT_FOUND', message: 'User not found' } })}
   res.json(user)
 })
-
 openapiRegistry.registerPath({
   method: 'patch',
   path: '/me',
@@ -48,7 +42,6 @@ router.patch('/me', authenticateToken, validate(updateProfileSchema), async (req
     favouriteSports?: string[]
     favouriteTeams?: string[]
   }
-
   const user = await userService.updateProfile(req.userId!, {
     displayName,
     avatar,
@@ -56,10 +49,8 @@ router.patch('/me', authenticateToken, validate(updateProfileSchema), async (req
     favouriteSports,
     favouriteTeams,
   })
-
   res.json(user)
 })
-
 openapiRegistry.registerPath({
   method: 'post',
   path: '/:id/follow',
@@ -70,7 +61,6 @@ router.post('/:id/follow', authenticateToken, async (req: AuthenticatedRequest, 
   const follow = await userService.followUser(req.userId!, req.params.id as string)
   res.status(201).json(follow)
 })
-
 openapiRegistry.registerPath({
   method: 'delete',
   path: '/:id/follow',
@@ -81,7 +71,6 @@ router.delete('/:id/follow', authenticateToken, async (req: AuthenticatedRequest
   await userService.unfollowUser(req.userId!, req.params.id as string)
   res.json({ message: 'Unfollowed' })
 })
-
 openapiRegistry.registerPath({
   method: 'get',
   path: '/me/notifications',
@@ -92,7 +81,6 @@ router.get('/me/notifications', authenticateToken, async (req: AuthenticatedRequ
   const notifications = await userService.getNotifications(req.userId!)
   res.json(notifications)
 })
-
 openapiRegistry.registerPath({
   method: 'patch',
   path: '/me/notifications/read',
@@ -103,5 +91,4 @@ router.patch('/me/notifications/read', authenticateToken, async (req: Authentica
   await userService.markNotificationsRead(req.userId!)
   res.json({ message: 'All notifications marked as read' })
 })
-
 export default router

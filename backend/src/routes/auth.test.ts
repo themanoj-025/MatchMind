@@ -35,9 +35,16 @@ vi.mock('../services/authService', () => {
   }
 
   class MockAuthService {
-    private deps: any
+    private deps: {
+      userRepository: {
+        findByEmailOrUsername(email: string, username: string): Promise<unknown>
+        create(data: Record<string, unknown>): Promise<unknown>
+        findById(id: string): Promise<{ tokenVersion?: number } | null>
+        update(id: string, data: Record<string, unknown>): Promise<unknown>
+      }
+    }
 
-    constructor(deps: any) {
+    constructor(deps: MockAuthService['deps']) {
       this.deps = deps
     }
 
@@ -137,7 +144,7 @@ vi.mock('../services/authService', () => {
       const jwtMod = require('jsonwebtoken')
       let decoded: { userId: string; purpose: string; tokenVersion?: number }
       try {
-        decoded = jwtMod.verify(token, process.env.JWT_RESET_SECRET!) as any
+        decoded = jwtMod.verify(token, process.env.JWT_RESET_SECRET!) as unknown as typeof decoded
       } catch {
         throw new MockAuthError('This reset link is no longer valid', 'INVALID_TOKEN', 401)
       }
@@ -168,8 +175,8 @@ vi.mock('../services/authService', () => {
   }
 
   return {
-    AuthService: MockAuthService as any,
-    AuthError: MockAuthError as any,
+    AuthService: MockAuthService as unknown as typeof import('../services/authService').AuthService,
+    AuthError: MockAuthError as unknown as typeof import('../services/authService').AuthError,
     generateTokens: (userId: string) => {
       const jwtMod = require('jsonwebtoken') as typeof import('jsonwebtoken')
       return {
@@ -177,7 +184,7 @@ vi.mock('../services/authService', () => {
         refreshToken: jwtMod.sign({ userId }, process.env.JWT_REFRESH_SECRET, { expiresIn: '30d' }),
       }
     },
-    revokeTokens: async (userId: string, prisma: any) => {
+    revokeTokens: async (userId: string, prisma: { user: { update(opts: Record<string, unknown>): Promise<unknown> } }) => {
       const user = await prisma.user.findUnique({
         where: { id: userId },
         select: { tokenVersion: true },
@@ -195,8 +202,19 @@ vi.mock('../services/authService', () => {
 // ─── Also mock repositories/index.ts ───────────────────
 vi.mock('../repositories/index', () => {
   class MockUserRepository {
-    private prisma: any
-    constructor(prisma: any) {
+    private prisma: {
+      user: {
+        findUnique(opts: Record<string, unknown>): Promise<unknown>
+        findFirst(opts: Record<string, unknown>): Promise<unknown>
+        create(opts: Record<string, unknown>): Promise<unknown>
+        update(opts: Record<string, unknown>): Promise<unknown>
+        delete(opts: Record<string, unknown>): Promise<unknown>
+        findMany(opts: Record<string, unknown>): Promise<unknown[]>
+        count(opts: Record<string, unknown>): Promise<number>
+        updateMany(where: Record<string, unknown>, data: Record<string, unknown>): Promise<{ count: number }>
+      }
+    }
+    constructor(prisma: MockUserRepository['prisma']) {
       this.prisma = prisma
     }
 
@@ -228,32 +246,32 @@ vi.mock('../repositories/index', () => {
         return null
       }
     }
-    async create(data: any) {
+    async create(data: Record<string, unknown>) {
       return this.prisma.user.create({ data })
     }
-    async update(id: string, data: any) {
+    async update(id: string, data: Record<string, unknown>) {
       return this.prisma.user.update({ where: { id }, data })
     }
     async delete(id: string) {
       await this.prisma.user.delete({ where: { id } })
     }
-    async findMany(opts: any) {
+    async findMany(opts: Record<string, unknown>) {
       return this.prisma.user.findMany(opts)
     }
-    async count(where?: any) {
+    async count(where?: Record<string, unknown>) {
       return this.prisma.user.count({ where })
     }
-    async updateMany(where: any, data: any) {
+    async updateMany(where: Record<string, unknown>, data: Record<string, unknown>) {
       return this.prisma.user.updateMany({ where, data })
     }
   }
 
   return {
-    createRepositories: (prisma: any) => ({
-      userRepository: new MockUserRepository(prisma),
-      matchRepository: {} as any,
-      predictionRepository: {} as any,
-      leaderboardRepository: {} as any,
+    createRepositories: (prisma: unknown) => ({
+      userRepository: new MockUserRepository(prisma as never),
+      matchRepository: {},
+      predictionRepository: {},
+      leaderboardRepository: {},
       reportRepository: { count: async () => 0 },
       adminLogRepository: { create: async () => ({}), findMany: async () => [], count: async () => 0 },
     }),
@@ -264,13 +282,13 @@ vi.mock('../repositories/index', () => {
 
 interface MockPrisma {
   user: {
-    findUnique: (opts: { where: Record<string, any> }) => Promise<any>
-    findFirst: (opts: { where: Record<string, any> }) => Promise<any>
-    create: (opts: { data: Record<string, any> }) => Promise<any>
-    update: (opts: { where: Record<string, any>; data: Record<string, any> }) => Promise<any>
+    findUnique: (opts: { where: Record<string, unknown> }) => Promise<unknown>
+    findFirst: (opts: { where: Record<string, unknown> }) => Promise<unknown>
+    create: (opts: { data: Record<string, unknown> }) => Promise<unknown>
+    update: (opts: { where: Record<string, unknown>; data: Record<string, unknown> }) => Promise<unknown>
   }
   session: {
-    deleteMany: (opts: { where: Record<string, any> }) => Promise<{ count: number }>
+    deleteMany: (opts: { where: Record<string, unknown> }) => Promise<{ count: number }>
   }
 }
 
@@ -286,12 +304,12 @@ async function createTestApp(prismaMock: MockPrisma) {
 
   app.use((req, _res, next) => {
     req.app.get = (key: string) => {
-      if (key === 'prisma') return prismaMock
+      if (key === 'prisma') {return prismaMock}
       return null
     }
-    ;(req as any).container = {
+    ;req.container = {
       cradle: {
-        userRepository: (mockDeps as any).userRepository,
+        userRepository: (mockDeps as { userRepository: unknown }).userRepository,
         authService: new AuthService(mockDeps),
         prisma: prismaMock,
       },
@@ -304,43 +322,50 @@ async function createTestApp(prismaMock: MockPrisma) {
   app.use('/api/auth', authRoutes)
 
   // Error handler that mimics the real one
-  app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-    if (err.name === 'JsonWebTokenError' || err.name === 'TokenExpiredError') {
+  app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+    const httpErr = (typeof err === 'object' && err !== null ? err : {}) as {
+      name?: string
+      isAppError?: boolean
+      statusCode?: number
+      code?: string
+      message?: string
+    }
+    if (httpErr.name === 'JsonWebTokenError' || httpErr.name === 'TokenExpiredError') {
       return res.status(401).json({ error: { code: 'INVALID_TOKEN', message: 'Invalid or expired token' } })
     }
-    if (err.isAppError) {
-      return res.status(err.statusCode || 400).json({
-        error: { code: err.code || 'APP_ERROR', message: (err as Error).message },
+    if (httpErr.isAppError) {
+      return res.status(httpErr.statusCode || 400).json({
+        error: { code: httpErr.code || 'APP_ERROR', message: httpErr.message },
       })
     }
     console.error('TEST ERROR:', err)
-    res.status(500).json({ error: { code: 'TEST_ERROR', message: (err as Error).message } })
+    res.status(500).json({ error: { code: 'TEST_ERROR', message: httpErr.message } })
   })
 
   return app
 }
 
 function createMockPrisma(): MockPrisma {
-  const users: Record<string, any> = {}
+  const users: Record<string, { email?: string; [k: string]: unknown }> = {}
   let nextId = 1
 
   return {
     user: {
       findUnique: async ({ where }) => {
-        if (where.id) return users[where.id] || null
-        if (where.email) return Object.values(users).find((u: any) => u.email === where.email) || null
+        if (where.id) {return users[where.id] || null}
+        if (where.email) {return Object.values(users).find((u) => u.email === where.email) || null}
         return null
       },
       findFirst: async ({ where }) => {
         if (where.OR) {
           for (const condition of where.OR) {
-            const match = Object.values(users).find((u: any) => {
+            const match = Object.values(users).find((u) => {
               for (const [key, val] of Object.entries(condition)) {
-                if (u[key] === val) return true
+                if (u[key] === val) {return true}
               }
               return false
             })
-            if (match) return match
+            if (match) {return match}
           }
         }
         return null

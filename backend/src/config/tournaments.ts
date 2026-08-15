@@ -92,7 +92,7 @@ function loadRegistry(): Tournament[] {
     const parsed = JSON.parse(raw)
     const result = RegistrySchema.parse(parsed)
     return result.tournaments as Tournament[]
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('[TournamentRegistry] Failed to load or validate:', err)
     process.exit(1)
   }

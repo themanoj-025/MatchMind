@@ -1,17 +1,14 @@
 import { env } from '../config/env'
 import express from 'express'
-import { authenticateToken } from '../middleware/auth'
+import { authenticateToken, type AuthenticatedRequest } from '../middleware/auth'
 import { validate } from '../middleware/validate'
 import { createCheckoutSchema } from '../config/schemas'
 import { withBreaker } from '../middleware/circuitBreaker'
 import logger from '../utils/logger'
-import type { AuthenticatedRequest } from '../middleware/auth'
 import { idempotent } from '../middleware/idempotency'
 import { openapiRegistry } from '../config/openapi'
 import type Stripe from 'stripe'
-
 const router = express.Router()
-
 function loadStripe(): Stripe | null {
   try {
     return require('stripe')(env.STRIPE_SECRET_KEY) as Stripe
@@ -19,12 +16,10 @@ function loadStripe(): Stripe | null {
     return null
   }
 }
-
 /**
  * POST /api/stripe/create-checkout
  * Creates a Stripe Checkout Session for Pro subscription
  */
-
 openapiRegistry.registerPath({
   method: 'post',
   path: '/create-checkout',
@@ -40,13 +35,10 @@ router.post(
     const stripeService = req.container.cradle.stripeService
     const userService = req.container.cradle.userService
     const { plan } = req.body as { plan: string } // 'monthly' | 'annual'
-
     const user = await userService.getUser(req.userId!)
-    if (!user) return res.status(404).json({ error: { code: 'USER_NOT_FOUND', message: 'User not found' } })
-
+    if (!user) {return res.status(404).json({ error: { code: 'USER_NOT_FOUND', message: 'User not found' } })}
     // If user already has a Stripe customer, reuse it
     const existingSub = await stripeService.getSubscriptionByUserId(user.id)
-
     // Use circuit breaker for Stripe API calls
     const session = await withBreaker('stripe', async () => {
       const stripe = loadStripe()
@@ -57,17 +49,13 @@ router.post(
         )
         return null
       }
-
       const priceId = plan === 'annual' ? env.STRIPE_PRICE_ANNUAL : env.STRIPE_PRICE_MONTHLY
-
       if (!priceId) {
         throw new Error('Stripe price ID not configured')
       }
-
       const email = existingSub
         ? undefined
         : (await req.container.cradle.prisma.user.findUnique({ where: { id: user.id }, select: { email: true } }))?.email
-
       const checkoutSession = await stripe.checkout.sessions.create({
         customer: existingSub?.stripeCustomerId || undefined,
         customer_email: email,
@@ -82,10 +70,8 @@ router.post(
               customer_creation: 'always',
             }),
       })
-
       return checkoutSession
     })
-
     if (!session) {
       return res.status(503).json({
         error: {
@@ -94,16 +80,13 @@ router.post(
         },
       })
     }
-
     res.json({ url: session.url })
   },
 )
-
 /**
  * POST /api/stripe/webhook
  * Stripe webhook handler — listens for subscription lifecycle events
  */
-
 openapiRegistry.registerPath({
   method: 'post',
   path: '/webhook',
@@ -112,7 +95,6 @@ openapiRegistry.registerPath({
 router.post('/webhook', async (req, res) => {
   const sig = req.headers['stripe-signature'] as string | undefined
   let event: Stripe.Event
-
   try {
     const stripe = loadStripe()
     if (!stripe) {
@@ -133,28 +115,22 @@ router.post('/webhook', async (req, res) => {
     )
     return res.status(400).send(`Webhook Error: ${(err as Error).message}`)
   }
-
   const stripeService = req.container.cradle.stripeService
   const userService = req.container.cradle.userService
-
   switch (event.type) {
     case 'checkout.session.completed': {
       const session = event.data.object as Stripe.Checkout.Session
       const userId = session.metadata?.userId
-      if (!userId) break
-
+      if (!userId) {break}
       const subscriptionId = session.subscription
       const customerId = session.customer
-
       if (subscriptionId && customerId && typeof subscriptionId === 'string' && typeof customerId === 'string') {
         try {
           const stripe = loadStripe()
           const sub = stripe
             ? await stripe.subscriptions.retrieve(subscriptionId)
             : ({} as Stripe.Subscription)
-
           await stripeService.upsertSubscription(userId, customerId, subscriptionId, sub)
-
           const item = sub.items.data[0]
           await userService.updateUser(userId, {
             isPro: true,
@@ -169,17 +145,13 @@ router.post('/webhook', async (req, res) => {
       }
       break
     }
-
     case 'customer.subscription.updated': {
       const sub = event.data.object as Stripe.Subscription
       const subscriptionId = sub.id
-
       try {
         const existing = await stripeService.getSubscriptionByStripeId(subscriptionId)
-        if (!existing) break
-
+        if (!existing) {break}
         await stripeService.updateSubscriptionStatus(subscriptionId, sub)
-
         if (sub.status === 'active') {
           const item = sub.items.data[0]
           await userService.updateUser(existing.userId, {
@@ -200,17 +172,13 @@ router.post('/webhook', async (req, res) => {
       }
       break
     }
-
     case 'customer.subscription.deleted': {
       const sub = event.data.object as Stripe.Subscription
       const subscriptionId = sub.id
-
       try {
         const existing = await stripeService.getSubscriptionByStripeId(subscriptionId)
-        if (!existing) break
-
+        if (!existing) {break}
         await stripeService.cancelSubscription(subscriptionId)
-
         await userService.updateUser(existing.userId, {
           isPro: false,
           proExpiresAt: null,
@@ -223,19 +191,15 @@ router.post('/webhook', async (req, res) => {
       }
       break
     }
-
     default:
       logger.warn({ event: 'stripe.unhandled_event', eventType: event.type }, `Unhandled event type ${event.type}`)
   }
-
   res.json({ received: true })
 })
-
 /**
  * POST /api/stripe/create-portal-session
  * Creates a Stripe Customer Portal session for managing billing
  */
-
 openapiRegistry.registerPath({
   method: 'post',
   path: '/create-portal-session',
@@ -244,29 +208,23 @@ openapiRegistry.registerPath({
 router.post('/create-portal-session', authenticateToken, async (req: AuthenticatedRequest, res) => {
   const stripeService = req.container.cradle.stripeService
   const sub = await stripeService.getSubscriptionByUserId(req.userId!)
-
   if (!sub?.stripeCustomerId) {
     return res.status(400).json({ error: { code: 'NO_SUBSCRIPTION', message: 'No active subscription found' } })
   }
-
   const stripe = loadStripe()
   if (!stripe) {
     return res.json({ url: `${env.FRONTEND_URL || 'http://localhost:3000'}/pricing` })
   }
-
   const portalSession = await stripe.billingPortal.sessions.create({
     customer: sub.stripeCustomerId,
     return_url: `${env.FRONTEND_URL || 'http://localhost:3000'}/profile/me/settings`,
   })
-
   res.json({ url: portalSession.url })
 })
-
 /**
  * GET /api/stripe/status
  * Returns the current user's subscription status
  */
-
 openapiRegistry.registerPath({
   method: 'get',
   path: '/status',
@@ -275,12 +233,9 @@ openapiRegistry.registerPath({
 router.get('/status', authenticateToken, async (req: AuthenticatedRequest, res) => {
   const stripeService = req.container.cradle.stripeService
   const userService = req.container.cradle.userService
-
   const user = await userService.getUser(req.userId!)
   const sub = await stripeService.getSubscriptionByUserId(req.userId!)
-
-  if (!user) return res.status(404).json({ error: { code: 'USER_NOT_FOUND', message: 'User not found' } })
-
+  if (!user) {return res.status(404).json({ error: { code: 'USER_NOT_FOUND', message: 'User not found' } })}
   res.json({
     isPro: user.isPro,
     proExpiresAt: user.proExpiresAt,
@@ -294,5 +249,4 @@ router.get('/status', authenticateToken, async (req: AuthenticatedRequest, res) 
       : null,
   })
 })
-
 export default router

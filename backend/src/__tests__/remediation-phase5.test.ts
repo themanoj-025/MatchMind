@@ -63,7 +63,7 @@ describe('Remediation Phase 5 Tests — AI Hint Caching', () => {
       }),
     }
 
-    app.use((req: any, _res, next) => {
+    app.use((req: express.Request, _res: express.Response, next: express.NextFunction) => {
       req.container = {
         cradle: {
           prisma: prismaMock,
@@ -78,7 +78,7 @@ describe('Remediation Phase 5 Tests — AI Hint Caching', () => {
 
     // Bypass authenticateToken middleware in test
     vi.mock('../middleware/auth', () => ({
-      authenticateToken: (req: any, _res: any, next: any) => {
+      authenticateToken: (req: express.Request, _res: express.Response, next: express.NextFunction) => {
         req.userId = 'user-1'
         next()
       },

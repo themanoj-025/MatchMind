@@ -8,17 +8,14 @@ import { env } from '../config/env'
  *
  * Security: Requires authentication + Pro check + rate limiting.
  */
-
 import crypto from 'crypto'
 import express from 'express'
 import { openapiRegistry } from '../config/openapi'
-import { authenticateToken } from '../middleware/auth'
+import { authenticateToken, type AuthenticatedRequest } from '../middleware/auth'
 import { aiPredictionLimiter } from '../middleware/rateLimiter'
 import logger from '../utils/logger'
-import type { AuthenticatedRequest } from '../middleware/auth'
 import type { ExtendedPrismaClient } from '../lib/prisma'
 import CircuitBreaker from 'opossum'
-
 /** Shape of a roster entry with its joined player (as queried in the advice route). */
 interface RosterEntry {
   id: string
@@ -26,7 +23,6 @@ interface RosterEntry {
   soldPrice: number
   player: { id: string; name: string; position: string; basePrice: number; club: string } | null
 }
-
 /** Advice payload returned to the client. */
 interface AiAdvice {
   summary: string
@@ -35,20 +31,16 @@ interface AiAdvice {
   budgetAdvice: string
   warning: string
 }
-
 const aiBreaker = new CircuitBreaker(getAnthropicAdvice, {
   timeout: 10000, // If Anthropic takes >10s, trigger failure
   errorThresholdPercentage: 50, // When 50% of requests fail, trip breaker
   resetTimeout: 30000, // Try again after 30s
 })
-
 aiBreaker.fallback(() => {
   logger.warn({ event: 'ai.circuit_breaker_fallback' }, 'AI Circuit Breaker tripped, returning heuristic advice')
   return null
 })
-
 const router = express.Router()
-
 /**
  * POST /api/ai/auction-advice
  * Returns AI-powered draft strategy advice for a room/user
@@ -63,11 +55,9 @@ router.post('/auction-advice', authenticateToken, aiPredictionLimiter, async (re
   const prisma = req.container.cradle.prisma
   const cacheService = req.container.cradle.cacheService
   const { roomId } = req.body as { roomId: string }
-
   if (!roomId) {
     return res.status(400).json({ error: { code: 'MISSING_ROOM_ID', message: 'roomId is required' } })
   }
-
   // Verify room membership
   const member = await prisma.roomMember.findUnique({
     where: { roomId_userId: { roomId, userId: req.userId! } },
@@ -75,7 +65,6 @@ router.post('/auction-advice', authenticateToken, aiPredictionLimiter, async (re
   if (!member) {
     return res.status(403).json({ error: { code: 'NOT_MEMBER', message: 'You are not a member of this room' } })
   }
-
   // Pro check
   const isPro = await checkProStatus(prisma, req.userId!)
   if (!isPro) {
@@ -85,18 +74,15 @@ router.post('/auction-advice', authenticateToken, aiPredictionLimiter, async (re
       message: 'AI Auction Advisor is a Pro feature. Upgrade to unlock.',
     })
   }
-
   const room = await prisma.room.findUnique({ where: { id: roomId } })
   if (!room) {
     return res.status(404).json({ error: { code: 'ROOM_NOT_FOUND', message: 'Room not found' } })
   }
-
   // Gather context for the AI
   const roster = await prisma.roster.findMany({
     where: { roomId, userId: req.userId },
     include: { player: { select: { id: true, name: true, position: true, basePrice: true, club: true } } },
   })
-
   // Removed redis lrange. Instead, we query remaining pool players efficiently.
   // We can fetch players not in any roster for this tournament.
   const poolPlayers = await prisma.player.findMany({
@@ -107,14 +93,12 @@ router.post('/auction-advice', authenticateToken, aiPredictionLimiter, async (re
       },
     },
   })
-
   const rosterPositions: Record<string, number> = { GK: 0, DEF: 0, MID: 0, FWD: 0 }
   for (const entry of roster) {
     if (entry.player?.position) {
       rosterPositions[entry.player.position]!++
     }
   }
-
   const positionNeeds: Record<string, number> = {}
   const defaultRosterRules: Record<string, number> = { GK: 2, DEF: 5, MID: 5, FWD: 3, total: 15 }
   for (const [pos, limit] of Object.entries(defaultRosterRules)) {
@@ -127,24 +111,19 @@ router.post('/auction-advice', authenticateToken, aiPredictionLimiter, async (re
       positionNeeds[pos] = need
     }
   }
-
   // Try Anthropic SDK if configured (with Redis caching)
-
   const rosterStr = JSON.stringify(roster.map((r) => `${r.playerId}:${r.soldPrice}`))
   const poolStr = JSON.stringify(poolPlayers.map((p) => p.id).sort())
   const hashInput = `${rosterStr}:${member.remainingBudget}:${poolStr}`
   const hash = crypto.createHash('sha256').update(hashInput).digest('hex').substring(0, 16)
   const cacheKey = `ai:advice:${roomId}:${req.userId}:${hash}`
-
   let cacheHit = false
-
   let finalAdvice = await cacheService.get(cacheKey)
   if (finalAdvice) {
     cacheHit = true
   } else {
     finalAdvice = await cacheService.getOrFetch(cacheKey, 600, async () => {
       let freshAdvice: AiAdvice | null = null
-
       if (env.ANTHROPIC_API_KEY) {
         try {
           freshAdvice = await aiBreaker.fire(
@@ -161,22 +140,18 @@ router.post('/auction-advice', authenticateToken, aiPredictionLimiter, async (re
           )
         }
       }
-
       if (!freshAdvice) {
         freshAdvice = generateHeuristicAdvice(roster, member.remainingBudget, positionNeeds, poolPlayers)
       }
-
       return freshAdvice
     })
   }
-
   res.json({
     isProFeature: false,
     advice: finalAdvice,
     cacheHit,
   })
 })
-
 async function checkProStatus(prisma: ExtendedPrismaClient, userId: string): Promise<boolean> {
   const user = await prisma.user.findUnique({
     where: { id: userId },
@@ -193,7 +168,6 @@ async function checkProStatus(prisma: ExtendedPrismaClient, userId: string): Pro
   }
   return true
 }
-
 async function getAnthropicAdvice(
   roster: RosterEntry[],
   remainingBudget: number,
@@ -203,15 +177,12 @@ async function getAnthropicAdvice(
 ): Promise<AiAdvice | null> {
   const Anthropic = require('@anthropic-ai/sdk')
   const anthropic = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY })
-
   const currentRoster = roster
     .map((r) => `${r.player?.name} (${r.player?.position}, purchased for $${r.soldPrice})`)
     .join('\n')
-
   const availablePlayers = poolPlayers
     .map((p) => `${p.name} (${p.position}, base price $${p.basePrice}) - ${p.club}`)
     .join('\n')
-
   const msg = await anthropic.messages.create({
     model: 'claude-3-haiku-20240307',
     max_tokens: 500,
@@ -226,22 +197,15 @@ async function getAnthropicAdvice(
   "budgetAdvice": "<how to allocate remaining budget>",
   "warning": "<any risks like overpaying for a position>"
 }
-
 Current Roster:\n${currentRoster || 'Empty - no players yet'}
-
 Remaining Budget: $${remainingBudget}
-
 Position Needs: ${JSON.stringify(positionNeeds)}
-
 Available Players in Pool:\n${availablePlayers || 'No remaining players'}
-
 Roster Rules: ${JSON.stringify(rosterRules)}
-
 Only respond with valid JSON, no other text.`,
       },
     ],
   })
-
   try {
     const firstBlock = msg.content[0]
     const text = firstBlock && firstBlock.type === 'text' ? firstBlock.text : '{}'
@@ -250,7 +214,6 @@ Only respond with valid JSON, no other text.`,
     return null
   }
 }
-
 function generateHeuristicAdvice(
   roster: RosterEntry[],
   remainingBudget: number,
@@ -259,7 +222,6 @@ function generateHeuristicAdvice(
 ): AiAdvice {
   const totalNeeds = Object.values(positionNeeds).reduce((a: number, b: number) => a + b, 0)
   const budgetPerSlot = totalNeeds > 0 ? Math.floor(remainingBudget / totalNeeds) : remainingBudget
-
   // Sort pool players by value (basePrice vs position scarcity)
   const positionScarcity: Record<string, number> = { GK: 3, DEF: 4, MID: 4, FWD: 5 }
   const scored = poolPlayers
@@ -271,13 +233,10 @@ function generateHeuristicAdvice(
           : 0,
     }))
     .sort((a, b) => b.score - a.score)
-
   const targets = scored.slice(0, 5).map((p) => p.name)
-
   const positionSummary = Object.entries(positionNeeds)
     .map(([pos, count]) => `${count}x ${pos}`)
     .join(', ')
-
   return {
     summary:
       totalNeeds > 0
@@ -295,5 +254,4 @@ function generateHeuristicAdvice(
         : 'Budget is sufficient for remaining needs.',
   }
 }
-
 export default router

@@ -30,7 +30,7 @@ import logger from '../utils/logger'
 interface CachedResponse {
   statusCode: number
   headers: Record<string, string>
-  body: any
+  body: unknown
   createdAt: number
 }
 
@@ -113,7 +113,7 @@ export function idempotent(options: IdempotencyOptions = {}) {
 
     // Override res.json to cache the response
     const originalJson = res.json.bind(res)
-    res.json = function (body: any) {
+    res.json = function (body: unknown) {
       // Only cache successful responses (2xx)
       if (res.statusCode >= 200 && res.statusCode < 300) {
         store.set(scopedKey, {

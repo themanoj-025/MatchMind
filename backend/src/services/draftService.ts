@@ -12,14 +12,10 @@
  * All state is persisted through the JSON database (prisma adapter).
  * No WebSocket dependency — REST + polling/React Query is sufficient for Draft Mode.
  */
-
-import { DRAFT, RARITY_TIERS } from '../config/constants'
+import { DRAFT, RARITY_TIERS, type RarityTierName } from '../config/constants'
 import type { DatabaseClient } from '../repositories'
-import type { RarityTierName } from '../config/constants'
 import logger from '../utils/logger'
-
 // ─── Types ───────────────────────────────────────────────
-
 /** Shape of a player record from src/data/players.json or Prisma Player. */
 export interface PlayerRecord {
   id: string
@@ -31,21 +27,17 @@ export interface PlayerRecord {
   rarityTier?: string | null
   photoUrl?: string | null
 }
-
 export interface FormationSlot {
   position: 'GK' | 'DEF' | 'MID' | 'FWD'
   count: number
 }
-
 export interface Formation {
   id: string
   name: string
   slots: FormationSlot[]
   benchSlots: number
 }
-
 export type DraftSessionStatus = 'DRAFTING' | 'SQUAD_COMPLETE' | 'RUN_IN_PROGRESS' | 'RUN_COMPLETE' | 'ABANDONED'
-
 export interface DraftSession {
   id: string
   userId: string
@@ -58,7 +50,6 @@ export interface DraftSession {
   formationBonusApplied: boolean
   completedAt?: string
 }
-
 export interface DraftPick {
   id?: string
   draftSessionId: string
@@ -70,7 +61,6 @@ export interface DraftPick {
   autoPicked: boolean
   pickedAt: string | null
 }
-
 export interface ChoiceRound {
   slotIndex: number
   position: string
@@ -87,7 +77,6 @@ export interface ChoiceRound {
   }>
   expiresAt: string
 }
-
 export interface SquadPlayer {
   playerId: string
   position: string
@@ -95,13 +84,10 @@ export interface SquadPlayer {
   isAutoPicked: boolean
   rarityTier: string
 }
-
 // ─── Load Formations ────────────────────────────────────
-
 let _formations: Formation[] | null = null
-
 export function loadFormations(): Formation[] {
-  if (_formations) return _formations
+  if (_formations) {return _formations}
   try {
     const fs = require('fs')
     const path = require('path')
@@ -116,25 +102,20 @@ export function loadFormations(): Formation[] {
   }
   return _formations!
 }
-
 export function getFormation(id: string): Formation | undefined {
   return loadFormations().find((f) => f.id === id)
 }
-
 // ─── Rarity Roll (§1.4: weighted random from packWeight distribution) ──
-
 export function rollRarity(): RarityTierName {
   const roll = Math.random()
   let cumulative = 0
   for (const tier of RARITY_TIERS) {
     cumulative += tier.packWeight
-    if (roll <= cumulative) return tier.tier
+    if (roll <= cumulative) {return tier.tier}
   }
   return 'BRONZE'
 }
-
 // ─── Generate Choice Round (§1.4) ───────────────────────
-
 export function generateChoiceRound(
   position: string,
   excludePlayerIds: string[],
@@ -147,12 +128,10 @@ export function generateChoiceRound(
   const offeredPlayerIds: string[] = []
   const offeredRarities: string[] = []
   const players: ChoiceRound['players'] = []
-
   // Filter eligible players: must match position, not already picked
   const eligible = playersByTournament.filter(
     (p) => p.position === position && !excludePlayerIds.includes(p.id) && p.basePrice != null && p.rarityTier != null,
   )
-
   // If not enough eligible players, relax: allow any-position for bench flex
   let pool = eligible
   if (pool.length < DRAFT.OFFERED_PLAYERS_PER_ROUND) {
@@ -166,30 +145,24 @@ export function generateChoiceRound(
         p.rarityTier != null,
     )
   }
-
   if (pool.length === 0) {
     // Absolute fallback: return any player not already picked
     pool = playersByTournament.filter((p) => !excludePlayerIds.includes(p.id) && p.basePrice != null)
   }
-
   // Pick 3 distinct players, each with independently rolled rarity
   const usedIndices = new Set<number>()
   const maxAttempts = 50 // prevent infinite loop on tiny pools
   let attempts = 0
-
   while (offeredPlayerIds.length < DRAFT.OFFERED_PLAYERS_PER_ROUND && attempts < maxAttempts) {
     attempts++
-
     // Roll rarity first
     const targetRarity = rollRarity()
-
     // Find a player of that rarity from the pool who hasn't been offered
     const candidates = pool.filter((_, idx) => !usedIndices.has(idx) && pool[idx]!.rarityTier === targetRarity)
-
     if (candidates.length === 0) {
       // Rarity not available — fall back to any eligible player
       const anyCandidate = pool.find((_, idx) => !usedIndices.has(idx))
-      if (!anyCandidate) break
+      if (!anyCandidate) {break}
       const idx = pool.indexOf(anyCandidate)
       usedIndices.add(idx)
       offeredPlayerIds.push(anyCandidate.id)
@@ -222,13 +195,10 @@ export function generateChoiceRound(
       })
     }
   }
-
   // Deduplication check (§1.11): ensure no two identical 3-player sets
   // (This is checked at a higher level in the route handler)
-
   return { offeredPlayerIds, offeredRarities, players }
 }
-
 function getFlexPositions(position: string): string[] {
   switch (position) {
     case 'GK':
@@ -243,18 +213,14 @@ function getFlexPositions(position: string): string[] {
       return [position]
   }
 }
-
 // ─── Compute Synergy Score (§1.5) ───────────────────────
-
 export function computeSynergyScore(squadPlayers: SquadPlayer[], allPlayers: PlayerRecord[]): number {
   const playerMap = new Map(allPlayers.map((p) => [p.id, p]))
-
   const nationalityCounts: Record<string, number> = {}
   const clubCounts: Record<string, number> = {}
-
   for (const sp of squadPlayers) {
     const player = playerMap.get(sp.playerId)
-    if (!player) continue
+    if (!player) {continue}
     if (player.nationality) {
       nationalityCounts[player.nationality] = (nationalityCounts[player.nationality] || 0) + 1
     }
@@ -262,28 +228,22 @@ export function computeSynergyScore(squadPlayers: SquadPlayer[], allPlayers: Pla
       clubCounts[player.club] = (clubCounts[player.club] || 0) + 1
     }
   }
-
   let bonus = 0
-
   // Nationality: +1% per player beyond a 3-player cluster
   for (const count of Object.values(nationalityCounts)) {
     if (count >= DRAFT.SYNERGY_NATIONALITY_THRESHOLD) {
       bonus += (count - (DRAFT.SYNERGY_NATIONALITY_THRESHOLD - 1)) * DRAFT.SYNERGY_NATIONALITY_BONUS_PER
     }
   }
-
   // Club: +2% per player beyond a 2-player cluster
   for (const count of Object.values(clubCounts)) {
     if (count >= DRAFT.SYNERGY_CLUB_THRESHOLD) {
       bonus += (count - (DRAFT.SYNERGY_CLUB_THRESHOLD - 1)) * DRAFT.SYNERGY_CLUB_BONUS_PER
     }
   }
-
   return Math.min(bonus, DRAFT.SYNERGY_MAX_BONUS)
 }
-
 // ─── Check Formation Fill Bonus (§1.6) ──────────────────
-
 export function checkFormationFillBonus(picks: DraftPick[], formationSlots: FormationSlot[]): boolean {
   // Count how many positions have at least one non-bench pick
   for (const slot of formationSlots) {
@@ -294,14 +254,11 @@ export function checkFormationFillBonus(picks: DraftPick[], formationSlots: Form
   }
   return true
 }
-
 // ─── Start Draft (§1.2) ─────────────────────────────────
-
 export interface StartDraftResult {
   session: DraftSession
   nextRound: ChoiceRound | null
 }
-
 export async function startDraft(
   prisma: DatabaseClient,
   userId: string,
@@ -319,13 +276,11 @@ export async function startDraft(
         .join(', ')}`,
     }
   }
-
   // 2. Consume ticket
   const ticketResult = await consumeTicketFn()
   if (!ticketResult.success) {
     return { success: false, error: ticketResult.reason || 'No tickets remaining' }
   }
-
   // 3. Create draft session
   const session = (await prisma.draftSession.create({
     data: {
@@ -337,23 +292,19 @@ export async function startDraft(
       formationBonusApplied: false,
     },
   })) as unknown as DraftSession
-
   // 4. Generate the first choice round (GK first, per draft-show pacing)
   const allPlayers = await prisma.player.findMany({
     where: { tournamentId },
   })
-
   const firstSlot = formationDef.slots[0]!
   const firstRound = generateChoiceRound(
     firstSlot.position,
     [],
     allPlayers,
   )
-
   // 5. Create the first draft pick record
   const now = new Date()
   const expiresAt = new Date(now.getTime() + DRAFT.PICK_TIMER_SECONDS * 1000)
-
   const pickRecord = (await prisma.draftPick.create({
     data: {
       draftSessionId: session.id,
@@ -366,7 +317,6 @@ export async function startDraft(
       pickedAt: null,
     },
   })) as DraftPick
-
   // 6. Load full player objects for the choice round
   const playerObjects = firstRound.offeredPlayerIds
     .map((pid) => {
@@ -385,7 +335,6 @@ export async function startDraft(
         : null
     })
     .filter(Boolean)
-
   logger.info({
     event: 'draft.started',
     sessionId: session.id,
@@ -393,7 +342,6 @@ export async function startDraft(
     tournamentId,
     formation,
   })
-
   return {
     success: true,
     session,
@@ -406,32 +354,26 @@ export async function startDraft(
     },
   }
 }
-
 // ─── Get Next Choice Round ──────────────────────────────
-
 export async function getNextRound(
   prisma: DatabaseClient,
   sessionId: string,
   userId: string,
 ): Promise<{ round: ChoiceRound | null; session: DraftSession | null; complete: boolean; error?: string }> {
   const session = (await prisma.draftSession.findUnique({ where: { id: sessionId } })) as DraftSession | null
-  if (!session) return { round: null, session: null, complete: false, error: 'Session not found' }
-  if (session.userId !== userId) return { round: null, session: null, complete: false, error: 'Not your draft session' }
+  if (!session) {return { round: null, session: null, complete: false, error: 'Session not found' }}
+  if (session.userId !== userId) {return { round: null, session: null, complete: false, error: 'Not your draft session' }}
   if (session.status !== 'DRAFTING')
-    return { round: null, session, complete: session.status === 'SQUAD_COMPLETE', error: undefined }
-
+    {return { round: null, session, complete: session.status === 'SQUAD_COMPLETE', error: undefined }}
   const formationDef = getFormation(session.formation)
-  if (!formationDef) return { round: null, session, complete: false, error: 'Invalid formation' }
-
+  if (!formationDef) {return { round: null, session, complete: false, error: 'Invalid formation' }}
   // Get all picks for this session
   const picks = (await prisma.draftPick.findMany({
     where: { draftSessionId: sessionId },
     orderBy: { slotIndex: 'asc' },
   })) as DraftPick[]
-
   // Find the first unfilled slot
   const totalSlots = formationDef.slots.reduce((sum, s) => sum + s.count, 0) + formationDef.benchSlots
-
   let nextSlot: number | null = null
   for (let i = 0; i < totalSlots; i++) {
     const pick = picks.find((p) => p.slotIndex === i)
@@ -440,12 +382,10 @@ export async function getNextRound(
       break
     }
   }
-
   if (nextSlot === null) {
     // All slots filled — session is squad complete (but not yet committed)
     return { round: null, session, complete: true, error: undefined }
   }
-
   // Determine position for this slot
   let slotPosition = 'MID' // default
   let accumulatedSlots = 0
@@ -467,32 +407,26 @@ export async function getNextRound(
       positionNeeds[pos] = (positionNeeds[pos] || 0) + 1
     }
     for (const pos of usedInPosition) {
-      if (positionNeeds[pos]) positionNeeds[pos]--
+      if (positionNeeds[pos]) {positionNeeds[pos]--}
     }
     slotPosition = Object.entries(positionNeeds).sort((a, b) => b[1] - a[1])[0]?.[0] || 'MID'
   }
-
   // Get all players for this tournament
   const allPlayers = await prisma.player.findMany({
     where: { tournamentId: session.tournamentId },
   })
-
   // Build exclusion list (already picked in this session)
   const excludePlayerIds = picks.filter((p) => p.pickedPlayerId != null).map((p) => p.pickedPlayerId!)
-
   // Check if a pick record already exists for this slot (was started but not completed)
-  let pickRecord = picks.find((p) => p.slotIndex === nextSlot)
-
+  const pickRecord = picks.find((p) => p.slotIndex === nextSlot)
   if (pickRecord && pickRecord.pickedPlayerId == null && !pickRecord.autoPicked) {
     // This round was already generated — check if timer expired
     const roundCreatedAt = pickRecord.pickedAt ? new Date(pickRecord.pickedAt).getTime() : Date.now()
     const expiresAtTime = roundCreatedAt + DRAFT.PICK_TIMER_SECONDS * 1000
-
     if (Date.now() >= expiresAtTime) {
       // Auto-pick: choose the highest-rarity offered player
       const highestRarityIdx = findHighestRarityIndex(pickRecord.offeredRarities)
       const autoPickPlayerId = pickRecord.offeredPlayerIds[highestRarityIdx]
-
       await prisma.draftPick.update({
         where: { id: pickRecord.id },
         data: {
@@ -501,19 +435,16 @@ export async function getNextRound(
           pickedAt: new Date().toISOString(),
         },
       })
-
       // Return next round
       return getNextRound(prisma, sessionId, userId)
     }
-
     // Timer still running — return existing round
     const allPlayersForExisting = await prisma.player.findMany({
       where: { tournamentId: session.tournamentId },
     })
-
     const existingPlayers = pickRecord.offeredPlayerIds
       .map((pid) => {
-        const p = allPlayersForExisting.find((ap: any) => ap.id === pid)
+        const p = allPlayersForExisting.find((ap) => ap.id === pid)
         return p
           ? {
               id: p.id,
@@ -528,9 +459,7 @@ export async function getNextRound(
           : null
       })
       .filter(Boolean)
-
     const newExpiresAt = new Date(expiresAtTime).toISOString()
-
     return {
       round: {
         slotIndex: nextSlot,
@@ -543,10 +472,8 @@ export async function getNextRound(
       complete: false,
     }
   }
-
   // Generate new round
   const round = generateChoiceRound(slotPosition, excludePlayerIds, allPlayers)
-
   // Deduplication check (§1.11): ensure no identical 3-player set was already offered
   const previousPicks = picks.filter((p) => p.offeredPlayerIds.length === 3)
   const isDuplicate = previousPicks.some(
@@ -554,7 +481,6 @@ export async function getNextRound(
       p.offeredPlayerIds.every((id) => round.offeredPlayerIds.includes(id)) &&
       round.offeredPlayerIds.every((id) => p.offeredPlayerIds.includes(id)),
   )
-
   if (isDuplicate) {
     // Re-roll by swapping last offered player
     const replacement = allPlayers.find(
@@ -576,11 +502,9 @@ export async function getNextRound(
       }
     }
   }
-
   // Create or update the pick record
   const now = new Date()
   const expiresAt = new Date(now.getTime() + DRAFT.PICK_TIMER_SECONDS * 1000)
-
   if (pickRecord) {
     await prisma.draftPick.update({
       where: { id: pickRecord.id },
@@ -604,7 +528,6 @@ export async function getNextRound(
       },
     })
   }
-
   return {
     round: {
       slotIndex: nextSlot,
@@ -617,9 +540,7 @@ export async function getNextRound(
     complete: false,
   }
 }
-
 // ─── Process Pick (§1.4) ────────────────────────────────
-
 export async function processPick(
   prisma: DatabaseClient,
   sessionId: string,
@@ -634,24 +555,20 @@ export async function processPick(
   error?: string
 }> {
   const session = (await prisma.draftSession.findUnique({ where: { id: sessionId } })) as DraftSession | null
-  if (!session) return { success: false, error: 'Session not found' }
-  if (session.userId !== userId) return { success: false, error: 'Not your draft session' }
-  if (session.status !== 'DRAFTING') return { success: false, error: 'Session is not in DRAFTING status' }
-
+  if (!session) {return { success: false, error: 'Session not found' }}
+  if (session.userId !== userId) {return { success: false, error: 'Not your draft session' }}
+  if (session.status !== 'DRAFTING') {return { success: false, error: 'Session is not in DRAFTING status' }}
   // Find the pick record
   const picks = (await prisma.draftPick.findMany({
     where: { draftSessionId: sessionId },
   })) as DraftPick[]
-
   const pick = picks.find((p) => p.slotIndex === slotIndex)
-  if (!pick) return { success: false, error: `No round exists for slot ${slotIndex}` }
-  if (pick.pickedPlayerId != null) return { success: false, error: 'This slot has already been picked' }
-
+  if (!pick) {return { success: false, error: `No round exists for slot ${slotIndex}` }}
+  if (pick.pickedPlayerId != null) {return { success: false, error: 'This slot has already been picked' }}
   // Validate the picked player was offered
   if (!pick.offeredPlayerIds.includes(pickedPlayerId)) {
     return { success: false, error: 'Player was not offered in this round' }
   }
-
   // Check if the pick timer has expired (anti-cheat: always server-authoritative)
   if (pick.pickedAt) {
     const roundCreatedAt = new Date(pick.pickedAt).getTime()
@@ -660,7 +577,6 @@ export async function processPick(
       // Timer expired — auto-pick highest rarity
       const highestRarityIdx = findHighestRarityIndex(pick.offeredRarities)
       const autoPickPlayerId = pick.offeredPlayerIds[highestRarityIdx]
-
       await prisma.draftPick.update({
         where: { id: pick.id },
         data: {
@@ -669,7 +585,6 @@ export async function processPick(
           pickedAt: new Date().toISOString(),
         },
       })
-
       logger.info({
         event: 'draft.auto_pick_timeout',
         sessionId,
@@ -677,23 +592,18 @@ export async function processPick(
         autoPickPlayerId,
         reason: 'Timer expired before user picked',
       })
-
       // Check if all slots are now filled
       const formationDef = getFormation(session.formation)
-      if (!formationDef) return { success: false, error: 'Invalid formation' }
-
+      if (!formationDef) {return { success: false, error: 'Invalid formation' }}
       const totalSlots = formationDef.slots.reduce((sum, s) => sum + s.count, 0) + formationDef.benchSlots
       const updatedPicks = (await prisma.draftPick.findMany({
         where: { draftSessionId: sessionId },
       })) as DraftPick[]
-
       const filledSlots = updatedPicks.filter((p) => p.pickedPlayerId != null).length
       const allFilled = filledSlots >= totalSlots
-
       if (allFilled) {
         return { success: true, nextRound: null, session: session ?? undefined, complete: true }
       }
-
       const nextResult = await getNextRound(prisma, sessionId, userId)
       return {
         success: true,
@@ -703,7 +613,6 @@ export async function processPick(
       }
     }
   }
-
   // Update the pick record
   await prisma.draftPick.update({
     where: { id: pick.id },
@@ -713,7 +622,6 @@ export async function processPick(
       pickedAt: new Date().toISOString(),
     },
   })
-
   logger.info({
     event: 'draft.pick_made',
     sessionId,
@@ -722,19 +630,15 @@ export async function processPick(
     userId,
     autoPicked: false,
   })
-
   // Check if all slots are now filled
   const formationDef = getFormation(session.formation)
-  if (!formationDef) return { success: false, error: 'Invalid formation' }
-
+  if (!formationDef) {return { success: false, error: 'Invalid formation' }}
   const totalSlots = formationDef.slots.reduce((sum, s) => sum + s.count, 0) + formationDef.benchSlots
   const updatedPicks = (await prisma.draftPick.findMany({
     where: { draftSessionId: sessionId },
   })) as DraftPick[]
-
   const filledSlots = updatedPicks.filter((p) => p.pickedPlayerId != null).length
   const allFilled = filledSlots >= totalSlots
-
   if (allFilled) {
     // Don't auto-commit — user must manually commit
     return {
@@ -744,7 +648,6 @@ export async function processPick(
       complete: true,
     }
   }
-
   // Return next round
   const nextResult = await getNextRound(prisma, sessionId, userId)
   return {
@@ -754,9 +657,7 @@ export async function processPick(
     complete: nextResult.complete,
   }
 }
-
 // ─── Commit Squad (§1.2 step 5) ─────────────────────────
-
 export async function commitSquad(
   prisma: DatabaseClient,
   sessionId: string,
@@ -770,18 +671,15 @@ export async function commitSquad(
   error?: string
 }> {
   const session = (await prisma.draftSession.findUnique({ where: { id: sessionId } })) as DraftSession | null
-  if (!session) return { success: false, error: 'Session not found' }
-  if (session.userId !== userId) return { success: false, error: 'Not your draft session' }
-  if (session.status !== 'DRAFTING') return { success: false, error: 'Session is not in DRAFTING status' }
-
+  if (!session) {return { success: false, error: 'Session not found' }}
+  if (session.userId !== userId) {return { success: false, error: 'Not your draft session' }}
+  if (session.status !== 'DRAFTING') {return { success: false, error: 'Session is not in DRAFTING status' }}
   const formationDef = getFormation(session.formation)
-  if (!formationDef) return { success: false, error: 'Invalid formation' }
-
+  if (!formationDef) {return { success: false, error: 'Invalid formation' }}
   // Get all picks
   const picks = (await prisma.draftPick.findMany({
     where: { draftSessionId: sessionId },
   })) as DraftPick[]
-
   // Ensure all formation slots are filled
   const formationFilled = checkFormationFillBonus(picks, formationDef.slots)
   if (!formationFilled) {
@@ -790,7 +688,6 @@ export async function commitSquad(
       error: 'Not all formation slots are filled. Complete all required positions before committing.',
     }
   }
-
   // Build squad player list
   const squadPlayers: SquadPlayer[] = picks
     .filter((p) => p.pickedPlayerId != null)
@@ -801,18 +698,14 @@ export async function commitSquad(
       isAutoPicked: p.autoPicked,
       rarityTier: p.offeredRarities[p.offeredPlayerIds.indexOf(p.pickedPlayerId!)] || 'BRONZE',
     }))
-
   // Get all players for synergy computation
   const allPlayers = await prisma.player.findMany({
     where: { tournamentId: session.tournamentId },
   })
-
   // Compute synergy
   const synergyScore = computeSynergyScore(squadPlayers, allPlayers)
-
   // Compute formation fill bonus
   const formationBonus = formationFilled ? DRAFT.FORMATION_FILL_BONUS : 0
-
   // Update session
   await prisma.draftSession.update({
     where: { id: sessionId },
@@ -823,7 +716,6 @@ export async function commitSquad(
       completedAt: new Date().toISOString(),
     },
   })
-
   logger.info({
     event: 'draft.squad_committed',
     sessionId,
@@ -832,7 +724,6 @@ export async function commitSquad(
     formationBonus,
     playerCount: squadPlayers.length,
   })
-
   return {
     success: true,
     session: {
@@ -847,23 +738,19 @@ export async function commitSquad(
     squad: squadPlayers,
   }
 }
-
 // ─── Get Session State ──────────────────────────────────
-
 export async function getSessionState(
   prisma: DatabaseClient,
   sessionId: string,
   userId: string,
 ): Promise<{ session: DraftSession | null; picks: DraftPick[]; squad: SquadPlayer[]; error?: string }> {
   const session = (await prisma.draftSession.findUnique({ where: { id: sessionId } })) as DraftSession | null
-  if (!session) return { session: null, picks: [], squad: [], error: 'Session not found' }
-  if (session.userId !== userId) return { session: null, picks: [], squad: [], error: 'Not your draft session' }
-
+  if (!session) {return { session: null, picks: [], squad: [], error: 'Session not found' }}
+  if (session.userId !== userId) {return { session: null, picks: [], squad: [], error: 'Not your draft session' }}
   const picks = (await prisma.draftPick.findMany({
     where: { draftSessionId: sessionId },
     orderBy: { slotIndex: 'asc' },
   })) as DraftPick[]
-
   const squad: SquadPlayer[] = picks
     .filter((p) => p.pickedPlayerId != null)
     .map((p) => ({
@@ -873,12 +760,9 @@ export async function getSessionState(
       isAutoPicked: p.autoPicked,
       rarityTier: p.offeredRarities[p.offeredPlayerIds.indexOf(p.pickedPlayerId!)] || 'BRONZE',
     }))
-
   return { session, picks, squad, error: undefined }
 }
-
 // ─── List User's Draft Sessions ─────────────────────────
-
 export async function listUserDrafts(prisma: DatabaseClient, userId: string): Promise<DraftSession[]> {
   const sessions = await prisma.draftSession.findMany({
     where: { userId },
@@ -887,9 +771,7 @@ export async function listUserDrafts(prisma: DatabaseClient, userId: string): Pr
   })
   return sessions as unknown as DraftSession[]
 }
-
 // ─── Helpers ─────────────────────────────────────────────
-
 function findHighestRarityIndex(rarities: string[]): number {
   const tierOrder: Record<string, number> = { ICON: 0, GOLD: 1, SILVER: 2, BRONZE: 3 }
   let bestIdx = 0

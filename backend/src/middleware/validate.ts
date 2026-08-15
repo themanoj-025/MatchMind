@@ -34,7 +34,7 @@ export function validate(schema: z.ZodType, source: 'body' | 'query' | 'params' 
       return
     }
     // Replace original input with parsed/coerced data
-    ;(req as any)[source] = result.data
+    ;req[source] = result.data
     next()
   }
 }

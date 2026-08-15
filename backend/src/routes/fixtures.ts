@@ -1,15 +1,11 @@
 import express from 'express'
-import { authenticateToken } from '../middleware/auth'
+import { authenticateToken, type AuthenticatedRequest } from '../middleware/auth'
 import { requireAdmin } from '../middleware/requireAdmin'
 import { computeFantasyPoints } from '../services/fantasyPoints'
-import type { AuthenticatedRequest } from '../middleware/auth'
 import logger from '../utils/logger'
 import { openapiRegistry } from '../config/openapi'
-
 const router = express.Router()
-
 // GET /api/fixtures — list fixtures for a tournament
-
 openapiRegistry.registerPath({
   method: 'get',
   path: '/',
@@ -18,13 +14,10 @@ openapiRegistry.registerPath({
 router.get('/', async (req, res) => {
   const matchService = req.container.cradle.matchService
   const { tournamentId } = req.query as { tournamentId?: string }
-
   const fixtures = await matchService.getFixtures(tournamentId)
   res.json(fixtures)
 })
-
 // GET /api/fixtures/:id — single fixture with player stats
-
 openapiRegistry.registerPath({
   method: 'get',
   path: '/:id',
@@ -38,9 +31,7 @@ router.get('/:id', async (req, res) => {
   }
   res.json(fixture)
 })
-
 // POST /api/admin/fixtures — create fixture (admin only)
-
 openapiRegistry.registerPath({
   method: 'post',
   path: '/',
@@ -51,9 +42,7 @@ router.post('/', authenticateToken, requireAdmin, async (req: AuthenticatedReque
   const fixture = await matchService.createFixture(req.body)
   res.status(201).json(fixture)
 })
-
 // POST /api/admin/fixtures/:id/player-stats — enter player match stats (admin)
-
 openapiRegistry.registerPath({
   method: 'post',
   path: '/:id/player-stats',
@@ -77,15 +66,11 @@ router.post('/:id/player-stats', authenticateToken, requireAdmin, async (req: Au
       goalsConceded: number
     }>
   }
-
   const created = await matchService.enterPlayerStats(req.params.id as string, playerStats)
-
   logger.info({ event: 'admin.player_stats_entered', fixtureId: req.params.id, count: created.length })
   res.status(201).json(created)
 })
-
 // POST /api/admin/fixtures/:id/finalize — lock stats, compute fantasy points, update leaderboards (admin)
-
 openapiRegistry.registerPath({
   method: 'post',
   path: '/:id/finalize',
@@ -94,10 +79,7 @@ openapiRegistry.registerPath({
 router.post('/:id/finalize', authenticateToken, requireAdmin, async (req: AuthenticatedRequest, res) => {
   const matchService = req.container.cradle.matchService
   const io = req.app.get('io')
-
   const { roomsProcessed, fantasyEntries } = await matchService.finalizeFixture(req.params.id as string, req.userId!, io)
-
   res.json({ message: 'Fixture finalized', roomsProcessed, fantasyEntries })
 })
-
 export default router

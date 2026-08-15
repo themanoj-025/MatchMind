@@ -24,11 +24,11 @@ function validateDataPackage(
   tournamentId: string,
   registryTeamCount: number,
   registrySquadSize: number,
-  teams: any[],
-  players: any[],
-  fixtures: any[],
-  venues: any[],
-  history: any[],
+  teams: Record<string, unknown>[],
+  players: Record<string, unknown>[],
+  fixtures: Record<string, unknown>[],
+  venues: Record<string, unknown>[],
+  history: Record<string, unknown>[],
 ): ValidationResult {
   const errors: string[] = []
   const warnings: string[] = []
@@ -47,7 +47,7 @@ function validateDataPackage(
   }
 
   // 3. Fixture team refs
-  const teamIds = new Set(teams.map((t: any) => t.id))
+  const teamIds = new Set(teams.map((t) => t.id))
   for (const fixture of fixtures) {
     if (fixture.homeTeamId && !teamIds.has(fixture.homeTeamId)) {
       errors.push(`Fixture "${fixture.id}" references unknown homeTeamId "${fixture.homeTeamId}"`)
@@ -58,7 +58,7 @@ function validateDataPackage(
   }
 
   // 4. Venue refs
-  const venueIds = new Set(venues.map((v: any) => v.id))
+  const venueIds = new Set(venues.map((v) => v.id))
   for (const fixture of fixtures) {
     if (fixture.venueId && !venueIds.has(fixture.venueId)) {
       warnings.push(`Fixture "${fixture.id}" references unknown venueId "${fixture.venueId}"`)

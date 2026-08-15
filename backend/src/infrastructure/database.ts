@@ -8,7 +8,7 @@ export async function initDatabase(): Promise<void> {
     await prisma.$connect()
     dbInitialized = true
     logger.info({ event: 'database.initialized', dbType: 'postgres' }, 'MatchMind Postgres Database initialized')
-  } catch (err: any) {
+  } catch (err: unknown) {
     logger.error(
       { event: 'database.initialization_failed', err: err instanceof Error ? (err as Error).message : String(err) },
       'Failed to connect to Postgres Database',

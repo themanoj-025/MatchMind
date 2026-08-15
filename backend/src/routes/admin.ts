@@ -1,11 +1,10 @@
 import { env } from '../config/env'
 import express from 'express'
-import { authenticateToken } from '../middleware/auth'
+import { authenticateToken, type AuthenticatedRequest } from '../middleware/auth'
 import { requireAdmin } from '../middleware/requireAdmin'
 import { AdminService } from '../services/adminService'
 import { createRepositories } from '../repositories/index'
 import logger from '../utils/logger'
-import type { AuthenticatedRequest } from '../middleware/auth'
 import { validateTournamentDraftPool } from '../lib/validateDraftPool'
 import { openapiRegistry } from '../config/openapi'
 import { redis } from '../lib/redis'
@@ -13,9 +12,7 @@ import { z } from 'zod'
 import type { Prisma, UserRole, UserTier, FixtureStatus } from '@prisma/client'
 import type { Tournament } from '../config/tournaments'
 import { paginationSchema, PaginationParams, PaginatedResponse } from '@matchmind/shared-types'
-
 const router = express.Router()
-
 /** Shape of a player record in src/data/players.json (admin-managed draft pool). */
 interface PlayerRecord {
   id: string
@@ -29,7 +26,6 @@ interface PlayerRecord {
   isEligibleForIcon?: boolean
   photoUrl?: string
 }
-
 function readPlayers(): PlayerRecord[] {
   const fs = require('fs')
   const path = require('path')
@@ -39,7 +35,6 @@ function readPlayers(): PlayerRecord[] {
   }
   return JSON.parse(fs.readFileSync(playersPath, 'utf-8')) as PlayerRecord[]
 }
-
 function writePlayers(players: PlayerRecord[]): void {
   const fs = require('fs')
   const path = require('path')
@@ -48,7 +43,6 @@ function writePlayers(players: PlayerRecord[]): void {
   fs.writeFileSync(tmpPath, JSON.stringify(players, null, 2), 'utf-8')
   fs.renameSync(tmpPath, playersPath)
 }
-
 async function invalidatePlayerCache() {
   if (redis.status === 'ready' || redis.status === 'connect') {
     try {
@@ -65,10 +59,8 @@ async function invalidatePlayerCache() {
     }
   }
 }
-
 // All admin routes require auth + admin role
 router.use(authenticateToken, requireAdmin)
-
 // Audit Log Middleware for all mutations
 const auditLogMiddleware = (req: express.Request, res: express.Response, next: express.NextFunction) => {
   const method = req.method
@@ -78,7 +70,6 @@ const auditLogMiddleware = (req: express.Request, res: express.Response, next: e
       if (res.statusCode >= 200 && res.statusCode < 300) {
         const authenticatedReq = req as AuthenticatedRequest
         const actionStr = `API_MUTATION_${method}`
-
         try {
           const adminService = getAdminService(authenticatedReq)
           adminService
@@ -105,7 +96,6 @@ const auditLogMiddleware = (req: express.Request, res: express.Response, next: e
   next()
 }
 router.use(auditLogMiddleware)
-
 /** Create an AdminService instance from the Express app's prisma client */
 function getAdminService(req: AuthenticatedRequest) {
   const prisma = req.container.cradle.prisma
@@ -120,14 +110,11 @@ function getAdminService(req: AuthenticatedRequest) {
     },
   })
 }
-
 // ─── DASHBOARD STATS ─────────────────────────────────────
-
 /**
  * GET /api/admin/stats
  * Returns aggregated dashboard metrics via AdminService
  */
-
 openapiRegistry.registerPath({
   method: 'get',
   path: '/stats',
@@ -135,17 +122,13 @@ openapiRegistry.registerPath({
 })
 router.get('/stats', async (req: AuthenticatedRequest, res) => {
   const stats = await getAdminService(req).getDashboardStats()
-
   res.json(stats)
 })
-
 // ─── SYSTEM METRICS ──────────────────────────────────────
-
 /**
  * GET /api/admin/metrics
  * Returns server and background queue metrics
  */
-
 openapiRegistry.registerPath({
   method: 'get',
   path: '/metrics',
@@ -155,7 +138,6 @@ router.get('/metrics', async (req: AuthenticatedRequest, res) => {
   // Use memory usage
   const memoryUsage = process.memoryUsage()
   const uptime = process.uptime()
-
   // In a real app we might fetch bullmq queue metrics here
   // For the sake of the portfolio, we'll return the system stats.
   res.json({
@@ -167,14 +149,11 @@ router.get('/metrics', async (req: AuthenticatedRequest, res) => {
     },
   })
 })
-
 // ─── USER MANAGEMENT ─────────────────────────────────────
-
 /**
  * GET /api/admin/users
  * List users with pagination and search
  */
-
 openapiRegistry.registerPath({
   method: 'get',
   path: '/users',
@@ -184,7 +163,6 @@ router.get('/users', async (req: AuthenticatedRequest, res) => {
   const prisma = req.container.cradle.prisma
   const { page, limit } = paginationSchema.parse(req.query)
   const search = (req.query.search as string) || ''
-
   const where: Prisma.UserWhereInput = { deletedAt: null }
   if (search) {
     where.OR = [
@@ -193,7 +171,6 @@ router.get('/users', async (req: AuthenticatedRequest, res) => {
       { displayName: { contains: search, mode: 'insensitive' } },
     ]
   }
-
   const [users, total] = await Promise.all([
     prisma.user.findMany({
       where,
@@ -217,15 +194,12 @@ router.get('/users', async (req: AuthenticatedRequest, res) => {
     }),
     prisma.user.count({ where }),
   ])
-
   res.json({ users, total, page, totalPages: Math.ceil(total / limit) })
 })
-
 /**
  * GET /api/admin/users/:id
  * Get detailed user info
  */
-
 openapiRegistry.registerPath({
   method: 'get',
   path: '/users/:id',
@@ -246,15 +220,13 @@ router.get('/users/:id', async (req: AuthenticatedRequest, res) => {
       },
     },
   })
-  if (!user) return res.status(404).json({ error: { code: 'USER_NOT_FOUND', message: 'User not found' } })
+  if (!user) {return res.status(404).json({ error: { code: 'USER_NOT_FOUND', message: 'User not found' } })}
   res.json({ user })
 })
-
 /**
  * PATCH /api/admin/users/:id
  * Update user fields
  */
-
 openapiRegistry.registerPath({
   method: 'patch',
   path: '/users/:id',
@@ -269,28 +241,23 @@ router.patch('/users/:id', async (req: AuthenticatedRequest, res) => {
     email?: string
     displayName?: string
   }
-
   const data: Prisma.UserUpdateInput = {}
-  if (role) data.role = role as UserRole
-  if (tier) data.tier = tier as UserTier
-  if (username) data.username = username
-  if (email) data.email = email
-  if (displayName) data.displayName = displayName
-
+  if (role) {data.role = role as UserRole}
+  if (tier) {data.tier = tier as UserTier}
+  if (username) {data.username = username}
+  if (email) {data.email = email}
+  if (displayName) {data.displayName = displayName}
   const user = await prisma.user.update({
     where: { id: req.params.id as string },
     data,
     select: { id: true, username: true, email: true, role: true, tier: true },
   })
-
   res.json({ user })
 })
-
 /**
  * DELETE /api/admin/users/:id
  * Soft-delete user (sets isDeleted flag instead of permanent removal).
  */
-
 openapiRegistry.registerPath({
   method: 'delete',
   path: '/users/:id',
@@ -305,12 +272,10 @@ router.delete('/users/:id', async (req: AuthenticatedRequest, res) => {
   getAdminService(req).logAction(req.userId!, 'USER_SOFT_DELETED', String(req.params.id), 'user', {})
   res.json({ message: 'User soft-deleted' })
 })
-
 /**
  * POST /api/admin/users/:id/toggle-pro
  * Toggle Pro status for a user
  */
-
 openapiRegistry.registerPath({
   method: 'post',
   path: '/users/:id/toggle-pro',
@@ -319,8 +284,7 @@ openapiRegistry.registerPath({
 router.post('/users/:id/toggle-pro', async (req: AuthenticatedRequest, res) => {
   const prisma = req.container.cradle.prisma
   const user = await prisma.user.findUnique({ where: { id: req.params.id as string }, select: { isPro: true } })
-  if (!user) return res.status(404).json({ error: { code: 'USER_NOT_FOUND', message: 'User not found' } })
-
+  if (!user) {return res.status(404).json({ error: { code: 'USER_NOT_FOUND', message: 'User not found' } })}
   const updated = await prisma.user.update({
     where: { id: req.params.id as string },
     data: {
@@ -329,21 +293,17 @@ router.post('/users/:id/toggle-pro', async (req: AuthenticatedRequest, res) => {
     },
     select: { id: true, isPro: true, proExpiresAt: true },
   })
-
   getAdminService(req).logAction(req.userId!, 'PRO_TOGGLED', String(req.params.id), 'user', {
     wasPro: user.isPro,
     nowPro: !user.isPro,
   })
   res.json({ user: updated })
 })
-
 // ─── FIXTURE MANAGEMENT ─────────────────────────────────
-
 /**
  * GET /api/admin/fixtures
  * List all fixtures with pagination
  */
-
 openapiRegistry.registerPath({
   method: 'get',
   path: '/fixtures',
@@ -353,10 +313,8 @@ router.get('/fixtures', async (req: AuthenticatedRequest, res) => {
   const prisma = req.container.cradle.prisma
   const { page, limit } = paginationSchema.parse(req.query)
   const tournamentId = req.query.tournamentId as string | undefined
-
   const where: Prisma.FixtureWhereInput = {}
-  if (tournamentId) where.tournamentId = tournamentId
-
+  if (tournamentId) {where.tournamentId = tournamentId}
   const [fixtures, total] = await Promise.all([
     prisma.fixture.findMany({
       where,
@@ -366,15 +324,12 @@ router.get('/fixtures', async (req: AuthenticatedRequest, res) => {
     }),
     prisma.fixture.count({ where }),
   ])
-
   res.json({ fixtures, total, page, totalPages: Math.ceil(total / limit) })
 })
-
 /**
  * PATCH /api/admin/fixtures/:id
  * Update fixture details (score, status)
  */
-
 openapiRegistry.registerPath({
   method: 'patch',
   path: '/fixtures/:id',
@@ -387,28 +342,22 @@ router.patch('/fixtures/:id', async (req: AuthenticatedRequest, res) => {
     awayScore?: number
     status?: string
   }
-
   const data: Prisma.FixtureUpdateInput = {}
-  if (homeScore !== undefined) data.homeScore = homeScore
-  if (awayScore !== undefined) data.awayScore = awayScore
-  if (status) data.status = status as FixtureStatus
-
+  if (homeScore !== undefined) {data.homeScore = homeScore}
+  if (awayScore !== undefined) {data.awayScore = awayScore}
+  if (status) {data.status = status as FixtureStatus}
   const fixture = await prisma.fixture.update({
     where: { id: req.params.id as string },
     data,
   })
-
   getAdminService(req).logAction(req.userId!, 'FIXTURE_UPDATED', String(req.params.id), 'fixture', { ...data })
   res.json({ fixture })
 })
-
 // ─── REPORTS ─────────────────────────────────────────────
-
 /**
  * GET /api/admin/reports
  * List reports with pagination and status filter
  */
-
 openapiRegistry.registerPath({
   method: 'get',
   path: '/reports',
@@ -418,7 +367,6 @@ router.get('/reports', async (req: AuthenticatedRequest, res) => {
   const prisma = req.container.cradle.prisma
   const { page, limit } = paginationSchema.parse(req.query)
   const status = (req.query.status as string) || 'pending'
-
   const [reports, total] = await Promise.all([
     prisma.report.findMany({
       where: { status },
@@ -432,15 +380,12 @@ router.get('/reports', async (req: AuthenticatedRequest, res) => {
     }),
     prisma.report.count({ where: { status } }),
   ])
-
   res.json({ reports, total, page, totalPages: Math.ceil(total / limit) })
 })
-
 /**
  * PATCH /api/admin/reports/:id
  * Resolve or dismiss a report
  */
-
 openapiRegistry.registerPath({
   method: 'patch',
   path: '/reports/:id',
@@ -449,12 +394,10 @@ openapiRegistry.registerPath({
 router.patch('/reports/:id', async (req: AuthenticatedRequest, res) => {
   const prisma = req.container.cradle.prisma
   const { status } = req.body as { status?: string } // 'resolved' | 'dismissed'
-
   const report = await prisma.report.update({
     where: { id: req.params.id as string },
     data: { status: status || 'resolved' },
   })
-
   // If resolved and has a message, delete the message
   if (status === 'resolved' && report.messageId) {
     await prisma.chatMessage.update({
@@ -462,7 +405,6 @@ router.patch('/reports/:id', async (req: AuthenticatedRequest, res) => {
       data: { isDeleted: true },
     })
   }
-
   getAdminService(req).logAction(
     req.userId!,
     status === 'resolved' ? 'REPORT_RESOLVED' : 'REPORT_DISMISSED',
@@ -474,14 +416,11 @@ router.patch('/reports/:id', async (req: AuthenticatedRequest, res) => {
   )
   res.json({ report })
 })
-
 // ─── ACTIVITY LOG ────────────────────────────────────────────
-
 /**
  * GET /api/admin/activity-log
  * Returns recent admin actions with pagination
  */
-
 openapiRegistry.registerPath({
   method: 'get',
   path: '/activity-log',
@@ -490,7 +429,6 @@ openapiRegistry.registerPath({
 router.get('/activity-log', async (req: AuthenticatedRequest, res) => {
   const prisma = req.container.cradle.prisma
   const { page, limit } = paginationSchema.parse(req.query)
-
   const [logs, total] = await Promise.all([
     prisma.adminLog.findMany({
       orderBy: { createdAt: 'desc' },
@@ -499,17 +437,13 @@ router.get('/activity-log', async (req: AuthenticatedRequest, res) => {
     }),
     prisma.adminLog.count(),
   ])
-
   res.json({ logs, total, page, totalPages: Math.ceil(total / limit) })
 })
-
 // ─── FEATURE FLAGS ───────────────────────────────────────
-
 /**
  * GET /api/admin/settings
  * Get feature flags and system settings
  */
-
 openapiRegistry.registerPath({
   method: 'get',
   path: '/settings',
@@ -522,7 +456,6 @@ router.get('/settings', (_req, res) => {
     .split(',')
     .map((s) => s.trim())
     .filter(Boolean)
-
   res.json({
     settings: [
       { flag: 'AI Hints', key: 'FLAG_AI_HINTS', enabled: env.FLAG_AI_HINTS !== 'false' },
@@ -539,14 +472,12 @@ router.get('/settings', (_req, res) => {
     ],
   })
 })
-
 /**
  * POST /api/admin/settings/draft-mode/:tournamentId/:action
  * Enable or disable Draft Mode for a tournament.
  * Uses the shared validateDraftPoolLib module — no subprocess needed.
  * Refuses to enable if validation fails (§6.4).
  */
-
 openapiRegistry.registerPath({
   method: 'post',
   path: '/settings/draft-mode/:tournamentId/:action',
@@ -555,10 +486,8 @@ openapiRegistry.registerPath({
 router.post('/settings/draft-mode/:tournamentId/:action', async (req: AuthenticatedRequest, res) => {
   const tournamentId = String(req.params.tournamentId)
   const action = String(req.params.action)
-
   // Use default data dir (backend/src/data/) — the lib resolves this automatically
   const validationResult = validateTournamentDraftPool(tournamentId)
-
   if (action === 'enable') {
     if (!validationResult.passed) {
       return res.status(400).json({
@@ -569,7 +498,6 @@ router.post('/settings/draft-mode/:tournamentId/:action', async (req: Authentica
         },
       })
     }
-
     // Add to env-controlled list (in production this would update a DB/config store)
     const current = (env.DRAFT_ENABLED_TOURNAMENTS || '')
       .split(',')
@@ -579,11 +507,9 @@ router.post('/settings/draft-mode/:tournamentId/:action', async (req: Authentica
       current.push(tournamentId)
       env.DRAFT_ENABLED_TOURNAMENTS = current.join(',')
     }
-
     getAdminService(req).logAction(req.userId!, 'DRAFT_MODE_ENABLED', tournamentId, 'tournament', {
       validationPassed: true,
     })
-
     res.json({
       message: `Draft Mode enabled for ${tournamentId}`,
       tournamentId,
@@ -595,9 +521,7 @@ router.post('/settings/draft-mode/:tournamentId/:action', async (req: Authentica
       .map((s) => s.trim())
       .filter(Boolean)
     env.DRAFT_ENABLED_TOURNAMENTS = current.filter((id) => id !== tournamentId).join(',')
-
     getAdminService(req).logAction(req.userId!, 'DRAFT_MODE_DISABLED', tournamentId, 'tournament', {})
-
     res.json({ message: `Draft Mode disabled for ${tournamentId}` })
   } else if (action === 'validate') {
     res.json({
@@ -609,15 +533,12 @@ router.post('/settings/draft-mode/:tournamentId/:action', async (req: Authentica
     res.status(400).json({ error: { code: 'INVALID_ACTION', message: 'Action must be enable, disable, or validate' } })
   }
 })
-
 // ─── DRAFT MODE ADMIN — Pool Validation ────────────────────
-
 /**
  * GET /api/admin/draft/pool-validation
  * Validates Draft Mode readiness for all tournaments in the registry.
  * Runs the same validation logic as the CLI script.
  */
-
 openapiRegistry.registerPath({
   method: 'get',
   path: '/draft/pool-validation',
@@ -641,24 +562,19 @@ router.get('/draft/pool-validation', async (_req: AuthenticatedRequest, res) => 
         .includes(t.id),
     }
   })
-
   // Enrich with icon counts from player data
   const allPlayers = readPlayers()
   for (const r of results) {
     r.iconCount = allPlayers.filter((p) => p.tournamentId === r.tournamentId && p.rarityTier === 'ICON').length
     r.playerCount = allPlayers.filter((p) => p.tournamentId === r.tournamentId).length
   }
-
   res.json({ tournaments: results })
 })
-
 // ─── DRAFT MODE ADMIN — ICON Management ────────────────────
-
 /**
  * GET /api/admin/draft/icons
  * Lists all ICON-rarity players across all tournaments.
  */
-
 openapiRegistry.registerPath({
   method: 'get',
   path: '/draft/icons',
@@ -684,16 +600,13 @@ router.get('/draft/icons', async (_req: AuthenticatedRequest, res) => {
       photoUrl: p.photoUrl,
     }))
     .sort((a, b) => a.tournamentId.localeCompare(b.tournamentId) || (b.basePrice ?? 0) - (a.basePrice ?? 0))
-
   res.json({ players: icons })
 })
-
 /**
  * POST /api/admin/draft/icons/:playerId/toggle
  * Toggle the isEligibleForIcon flag on a player.
  * After toggling, rarity tiers must be recomputed via revalidate.
  */
-
 openapiRegistry.registerPath({
   method: 'post',
   path: '/draft/icons/:playerId/toggle',
@@ -704,35 +617,26 @@ router.post('/draft/icons/:playerId/toggle', async (req: AuthenticatedRequest, r
   if (allPlayers.length === 0) {
     return res.status(404).json({ error: { code: 'PLAYERS_NOT_FOUND', message: 'players.json not found' } })
   }
-
   const playerIndex = allPlayers.findIndex((p) => p.id === req.params.playerId)
-
   if (playerIndex === -1) {
     return res.status(404).json({ error: { code: 'PLAYER_NOT_FOUND', message: 'Player not found in players.json' } })
   }
-
   const player = allPlayers[playerIndex]
   if (!player) {
     return res.status(404).json({ error: { code: 'PLAYER_NOT_FOUND', message: 'Player not found in players.json' } })
   }
   const newValue = !player.isEligibleForIcon
-
   allPlayers[playerIndex] = {
     ...player,
     isEligibleForIcon: newValue,
   }
-
   // Write back atomically
   writePlayers(allPlayers)
-
   getAdminService(req).logAction(req.userId!, 'ICON_ELIGIBILITY_TOGGLED', String(req.params.playerId), 'player', {
     wasEligible: !newValue,
   })
-
   await invalidatePlayerCache()
-
   res.json({ success: true, player: allPlayers[playerIndex] })
-
   logger.info({
     event: 'admin.icon_toggled',
     adminId: req.userId,
@@ -740,7 +644,6 @@ router.post('/draft/icons/:playerId/toggle', async (req: AuthenticatedRequest, r
     playerName: player.name,
     nowEligible: newValue,
   })
-
   res.json({
     success: true,
     player: {
@@ -750,13 +653,11 @@ router.post('/draft/icons/:playerId/toggle', async (req: AuthenticatedRequest, r
     },
   })
 })
-
 /**
  * POST /api/admin/draft/revalidate
  * Re-validates the pool and re-computes rarity tiers for a single tournament or all.
  * Calls the same logic as computeRarityTiers.ts then validateDraftPool.ts.
  */
-
 openapiRegistry.registerPath({
   method: 'post',
   path: '/draft/revalidate',
@@ -764,14 +665,12 @@ openapiRegistry.registerPath({
 })
 router.post('/draft/revalidate', async (req: AuthenticatedRequest, res) => {
   const tournamentId = req.body.tournamentId as string | undefined
-
   // 1. Re-compute rarity tiers
   let allPlayers = readPlayers()
   if (allPlayers.length === 0) {
     return res.status(404).json({ error: { code: 'PLAYERS_NOT_FOUND', message: 'players.json not found' } })
   }
   const tournamentIds = tournamentId ? [tournamentId] : [...new Set(allPlayers.map((p) => p.tournamentId))]
-
   // Re-assign rarity tiers
   // Sort each tournament's players by basePrice descending, assign BRONZE/SILVER/GOLD/ICON per percentiles
   const RARITY_TIERS_FN = [
@@ -780,22 +679,18 @@ router.post('/draft/revalidate', async (req: AuthenticatedRequest, res) => {
     { tier: 'GOLD', maxPercentile: 97 },
     { tier: 'ICON', maxPercentile: 100 },
   ]
-
   for (const tid of tournamentIds) {
     const tournamentPlayers = allPlayers.filter((p) => p.tournamentId === tid)
-    if (tournamentPlayers.length === 0) continue
-
+    if (tournamentPlayers.length === 0) {continue}
     const sorted = [...tournamentPlayers].sort((a, b) => (b.basePrice ?? 0) - (a.basePrice ?? 0))
     const total = sorted.length
-
     // Build a map of { playerId: rarityTier }
     const rarityMap = new Map<string, string>()
     for (let i = 0; i < total; i++) {
       const player = sorted[i]
-      if (!player) continue
+      if (!player) {continue}
       const percentile = ((i + 1) / total) * 100
       const bottomPct = 100 - percentile
-
       let assignedTier: string = 'BRONZE'
       for (const t of RARITY_TIERS_FN) {
         if (bottomPct <= t.maxPercentile) {
@@ -803,24 +698,19 @@ router.post('/draft/revalidate', async (req: AuthenticatedRequest, res) => {
           break
         }
       }
-
       // ICON requires isEligibleForIcon flag
       if (assignedTier === 'ICON' && !player.isEligibleForIcon) {
         assignedTier = 'GOLD'
       }
-
       rarityMap.set(player.id, assignedTier)
     }
-
     // Apply to allPlayers
     allPlayers = allPlayers.map((p) =>
       p.tournamentId === tid && rarityMap.has(p.id) ? { ...p, rarityTier: rarityMap.get(p.id) as string } : p,
     )
   }
-
   // Write back atomically
   writePlayers(allPlayers)
-
   // 2. Re-validate
   const tidArray = Array.from(tournamentIds) as string[]
   const results = tidArray.map((tid: string) => {
@@ -829,14 +719,11 @@ router.post('/draft/revalidate', async (req: AuthenticatedRequest, res) => {
       ...result,
     }
   })
-
   getAdminService(req).logAction(req.userId!, 'DRAFT_POOL_REVALIDATED', '', 'draft', {
     tournamentIds,
     allPassed: results.every((r: { passed: boolean }) => r.passed),
   })
-
   await invalidatePlayerCache()
-
   res.json({
     success: true,
     message: `Re-validated ${results.length} tournament(s)`,
@@ -844,5 +731,4 @@ router.post('/draft/revalidate', async (req: AuthenticatedRequest, res) => {
     allPassed: results.every((r: { passed: boolean }) => r.passed),
   })
 })
-
 export default router

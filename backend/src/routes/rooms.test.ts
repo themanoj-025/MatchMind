@@ -13,7 +13,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 // ─── Test helpers ───────────────────────────────────────
 
-function createMockUser(overrides: any = {}) {
+function createMockUser(overrides: Record<string, unknown> = {}) {
   return {
     id: 'user-1',
     username: 'testuser',
@@ -25,7 +25,7 @@ function createMockUser(overrides: any = {}) {
   }
 }
 
-function createMockRoom(overrides: any = {}) {
+function createMockRoom(overrides: Record<string, unknown> = {}) {
   return {
     id: 'room-1',
     tournamentId: 'fifa-wc-2026',
@@ -40,7 +40,7 @@ function createMockRoom(overrides: any = {}) {
   }
 }
 
-function createMockMember(overrides: any = {}) {
+function createMockMember(overrides: Record<string, unknown> = {}) {
   return {
     roomId: 'room-1',
     userId: 'user-1',
@@ -52,7 +52,7 @@ function createMockMember(overrides: any = {}) {
   }
 }
 
-function createMockState(overrides: any = {}) {
+function createMockState(overrides: Record<string, unknown> = {}) {
   return {
     roomId: 'room-1',
     phase: 'IDLE',
@@ -318,7 +318,7 @@ describe('Ready-Check', () => {
   })
 
   it('reports not all ready when there are no members', () => {
-    const members: any[] = []
+    const members: Array<{ isReady?: boolean }> = []
     const allReady = members.length > 0 && members.every((m) => m.isReady)
     expect(allReady).toBe(false)
   })

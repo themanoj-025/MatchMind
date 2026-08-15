@@ -44,7 +44,7 @@ interface PlayerRecord {
 
 function loadJSON(filename: string, dataDir: string): PlayerRecord[] {
   const filePath = path.join(dataDir, filename)
-  if (!fs.existsSync(filePath)) return []
+  if (!fs.existsSync(filePath)) {return []}
   return JSON.parse(fs.readFileSync(filePath, 'utf-8')) as PlayerRecord[]
 }
 

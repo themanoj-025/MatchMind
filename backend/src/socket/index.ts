@@ -18,13 +18,15 @@ import {
   unsoldCurrentPlayer,
   moveToNextPlayer,
   startReAuction,
+  type AuctionState,
+  type BidRequest,
 } from '../services/auctionEngine'
-import type { AuctionState, BidRequest } from '../services/auctionEngine'
 import logger from '../utils/logger'
 
 const ALLOWED_ROOM_TYPES = ['match', 'squad', 'sport', 'room', 'dm']
 
 import { redis } from '../lib/redis'
+import type { DatabaseClient } from '../repositories'
 import { scheduleAuctionTimer } from '../lib/queue'
 import { ConcurrencyError } from '../errors/DomainError'
 
@@ -43,7 +45,7 @@ async function checkRateLimitRedis(key: string, limit: number, windowSec: number
       await redis.expire(key, windowSec)
     }
     return current <= limit
-  } catch (err: any) {
+  } catch (err: unknown) {
     logger.error(
       { event: 'redis.rate_limit_error', key, err: (err as Error).message },
       'Failed to check rate limit in Redis',
@@ -94,7 +96,7 @@ interface AuthenticatedSocket extends Socket {
   userId?: string
 }
 
-function makeAuctionHelpers(prisma: any) {
+function makeAuctionHelpers(prisma: DatabaseClient) {
   return {
     getAuctionState: async (roomId: string) => {
       const state = await prisma.auctionState.findUnique({ where: { roomId } })
@@ -116,11 +118,13 @@ function makeAuctionHelpers(prisma: any) {
       prisma.roomMember.findUnique({ where: { roomId_userId: { roomId, userId } } }),
     getRoster: async (roomId: string, userId: string) => prisma.roster.findMany({ where: { roomId, userId } }),
     getPlayerPool: async (_roomId: string) => [], // Filled from auction state
-    saveBid: async (bid: any) => prisma.bid.create({ data: bid }),
+    saveBid: async (bid: { roomId: string; playerId: string; userId: string; amount: number; timestamp: string; version: number }) => {
+      await prisma.bid.create({ data: bid })
+    },
   }
 }
 
-export const setupSocket = (io: Server, prisma: any): void => {
+export const setupSocket = (io: Server, prisma: DatabaseClient): void => {
   // ─── Auth middleware for socket connections ───────────────
   // Verifies JWT, checks tokenVersion for revocation, and rate-limits per IP
   io.use(async (socket: AuthenticatedSocket, next) => {
@@ -151,7 +155,7 @@ export const setupSocket = (io: Server, prisma: any): void => {
       }
 
       next()
-    } catch (err: any) {
+    } catch (err: unknown) {
       return next(new Error('Invalid or expired token'))
     }
   })
@@ -207,7 +211,7 @@ export const setupSocket = (io: Server, prisma: any): void => {
         const actualRoomId = roomId.replace('room:', '')
         prisma.auctionState
           .findUnique({ where: { roomId: actualRoomId } })
-          .then((state: any) => {
+          .then((state) => {
             if (state) {
               socket.emit('ROOM_STATE_SYNC', { auctionState: state })
             }
@@ -254,7 +258,7 @@ export const setupSocket = (io: Server, prisma: any): void => {
         if (state) {
           socket.emit('ROOM_STATE_SYNC', { auctionState: state })
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         logger.error(
           { event: 'socket.sync_state_error', roomId, err: (err as Error).message },
           'Failed to sync state on reconnect',
@@ -327,7 +331,7 @@ export const setupSocket = (io: Server, prisma: any): void => {
               message: result.reason || 'Bid rejected',
             })
           }
-        } catch (err: any) {
+        } catch (err: unknown) {
           logger.error(
             { event: 'socket.bid_error', userId: socket.userId, err: (err as Error).message },
             'PLACE_BID error',
@@ -337,7 +341,7 @@ export const setupSocket = (io: Server, prisma: any): void => {
       },
     )
 
-    socket.on('HOST_ACTION', async (data: { roomId: string; action: string; payload?: any }) => {
+    socket.on('HOST_ACTION', async (data: { roomId: string; action: string; payload?: Record<string, unknown> }) => {
       try {
         if (!socket.userId) {
           return
@@ -427,7 +431,7 @@ export const setupSocket = (io: Server, prisma: any): void => {
             await scheduleAuctionTimer(data.roomId, newState.timerEndsAt)
           }
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         logger.error(
           { event: 'socket.host_action_error', userId: socket.userId, err: (err as Error).message },
           'HOST_ACTION error',
@@ -449,7 +453,7 @@ export const setupSocket = (io: Server, prisma: any): void => {
         } else {
           await prisma.starredPlayer.create({ data: { userId: socket.userId, roomId, playerId } })
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         logger.error({ event: 'socket.toggle_star_error', userId: socket.userId, err: (err as Error).message })
       }
     })
@@ -483,7 +487,7 @@ export const setupSocket = (io: Server, prisma: any): void => {
 
     socket.on('SEND_MESSAGE', async ({ roomId, text, gifUrl }: { roomId?: string; text?: string; gifUrl?: string }) => {
       try {
-        if (!roomId || typeof roomId !== 'string') {
+        if (!roomId || typeof roomId !== 'string' || !socket.userId) {
           return
         }
         const cleanText = typeof text === 'string' ? sanitizeText(text) : ''
@@ -514,7 +518,7 @@ export const setupSocket = (io: Server, prisma: any): void => {
         })
 
         io.to(roomId).emit('CHAT_MESSAGE', message)
-      } catch (err: any) {
+      } catch (err: unknown) {
         logger.error(
           { event: 'socket.send_message_error', userId: socket.userId, err: (err as Error).message },
           'SEND_MESSAGE error',

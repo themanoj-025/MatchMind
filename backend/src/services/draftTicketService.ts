@@ -10,6 +10,7 @@
  * a Pro-tier gate, consistent with the existing Stripe subscription check.
  */
 
+import { DatabaseClient } from '../repositories'
 import logger from '../utils/logger'
 import { DRAFT } from '../config/constants'
 
@@ -45,7 +46,7 @@ function nextDayFromNow(): string {
 // ─── Get or Create Ticket Record ────────────────────────
 
 export async function getOrCreateTicketRecord(
-  prisma: any,
+  prisma: DatabaseClient,
   userId: string,
   tournamentId: string,
   isPro: boolean,
@@ -55,7 +56,7 @@ export async function getOrCreateTicketRecord(
   })
 
   if (existing) {
-    return checkAndResetTickets(existing, isPro)
+    return checkAndResetTickets(existing as unknown as TicketRecord, isPro)
   }
 
   // Create new record
@@ -73,7 +74,7 @@ export async function getOrCreateTicketRecord(
     },
   })
 
-  return record as TicketRecord
+  return record as unknown as TicketRecord
 }
 
 // ─── Check and Reset Tickets if Window Expired ──────────
@@ -99,7 +100,7 @@ function checkAndResetTickets(record: TicketRecord, isPro: boolean): TicketRecor
 // ─── Consume a Ticket ───────────────────────────────────
 
 export async function consumeTicket(
-  prisma: any,
+  prisma: DatabaseClient,
   userId: string,
   tournamentId: string,
   isPro: boolean,
@@ -150,7 +151,7 @@ export async function consumeTicket(
 // ─── Get Ticket Balance ─────────────────────────────────
 
 export async function getTicketBalance(
-  prisma: any,
+  prisma: DatabaseClient,
   userId: string,
   tournamentId: string,
   isPro: boolean,

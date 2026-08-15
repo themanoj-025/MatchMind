@@ -32,7 +32,7 @@ function createBreaker(options: BreakerOptions): CircuitBreaker {
   // The breaker wraps a generic action executor.
   // The actual action function is passed as the first argument to fire().
   const breaker = new CircuitBreaker(
-    async (actionFn: () => any) => {
+    async (actionFn: () => unknown) => {
       return actionFn()
     },
     {
@@ -107,7 +107,7 @@ export async function withBreaker<T>(serviceName: string, action: () => Promise<
   try {
     const result = await breaker.fire(action)
     return result as T
-  } catch (err: any) {
+  } catch (err: unknown) {
     logger.warn(
       {
         event: 'circuit_breaker.fallback',
@@ -155,10 +155,10 @@ createBreaker({
  * Returns the current state of all circuit breakers.
  */
 export function getBreakerStatus(): Record<string, { state: string; failures: number; successes: number }> {
-  const status: Record<string, any> = {}
+  const status: Record<string, { state: string; failures: number; successes: number }> = {}
   for (const [name, breaker] of breakers) {
     status[name] = {
-      state: breaker.status,
+      state: breaker.opened ? 'open' : breaker.halfOpen ? 'half-open' : 'closed',
       failures: breaker.stats.failures,
       successes: breaker.stats.successes,
     }

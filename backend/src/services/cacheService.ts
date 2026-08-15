@@ -13,7 +13,7 @@ export class CacheService {
   }
 
   async get<T>(key: string): Promise<T | null> {
-    if (!this.isConnected()) return null
+    if (!this.isConnected()) {return null}
 
     try {
       const data = await this.redis.get(key)
@@ -22,18 +22,18 @@ export class CacheService {
         return JSON.parse(data) as T
       }
       return null
-    } catch (err: any) {
+    } catch (err: unknown) {
       logger.error({ event: 'cache.get_error', key, err: (err as Error).message }, 'Failed to read from cache')
       return null
     }
   }
 
   async set<T>(key: string, value: T, ttlSeconds: number): Promise<void> {
-    if (!this.isConnected() || value === undefined || value === null) return
+    if (!this.isConnected() || value === undefined || value === null) {return}
 
     try {
       await this.redis.set(key, JSON.stringify(value), 'EX', ttlSeconds)
-    } catch (err: any) {
+    } catch (err: unknown) {
       logger.error({ event: 'cache.set_error', key, err: (err as Error).message }, 'Failed to set cache')
     }
   }
@@ -52,7 +52,7 @@ export class CacheService {
   }
 
   async invalidateByPattern(pattern: string): Promise<void> {
-    if (!this.isConnected()) return
+    if (!this.isConnected()) {return}
 
     try {
       let cursor = '0'
@@ -68,7 +68,7 @@ export class CacheService {
         await this.redis.del(...keysToDelete)
         logger.info({ event: 'cache.invalidated', pattern, count: keysToDelete.length }, 'Invalidated cache keys')
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       logger.error(
         { event: 'cache.invalidate_error', pattern, err: (err as Error).message },
         'Failed to invalidate cache by pattern',
@@ -77,11 +77,11 @@ export class CacheService {
   }
 
   async delete(key: string): Promise<void> {
-    if (!this.isConnected()) return
+    if (!this.isConnected()) {return}
 
     try {
       await this.redis.del(key)
-    } catch (err: any) {
+    } catch (err: unknown) {
       logger.error({ event: 'cache.delete_error', key, err: (err as Error).message }, 'Failed to delete cache key')
     }
   }

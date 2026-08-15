@@ -23,8 +23,8 @@ const TEST_USER_ID = 'test-user-1'
 const OTHER_USER_ID = 'other-user-2'
 const TEST_AUTH_TOKEN = jwt.sign({ userId: TEST_USER_ID }, process.env.JWT_SECRET, { expiresIn: '1h' })
 
-let app: any
-let prisma: any
+let app: import('express').Express
+let prisma: import('@prisma/client').PrismaClient
 let dataDir: string
 let server: Server
 let baseUrl: string
@@ -37,7 +37,7 @@ const shared = {
 
 // ─── fetch wrapper ──────────────────────────────────────
 
-async function api(method: string, path: string, opts: { body?: any; auth?: boolean } = {}) {
+async function api(method: string, path: string, opts: { body?: unknown; auth?: boolean } = {}) {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' }
   if (opts.auth !== false) {
     headers['Authorization'] = `Bearer ${TEST_AUTH_TOKEN}`
@@ -331,7 +331,7 @@ describe('Franchise Captain/VC', () => {
       body: { playerId, isViceCaptain: false },
     })
     expect(captainRes.status).toBe(200)
-    const captainEntry = captainRes.body.find((r: any) => r.playerId === playerId)
+    const captainEntry = captainRes.body.find((r) => r.playerId === playerId)
     expect(captainEntry).toBeDefined()
     expect(captainEntry.isCaptain).toBe(true)
 
@@ -342,7 +342,7 @@ describe('Franchise Captain/VC', () => {
         body: { playerId: vcPlayerId, isViceCaptain: true },
       })
       expect(vcRes.status).toBe(200)
-      const vcEntry = vcRes.body.find((r: any) => r.playerId === vcPlayerId)
+      const vcEntry = vcRes.body.find((r) => r.playerId === vcPlayerId)
       expect(vcEntry?.isViceCaptain).toBe(true)
     }
   })
