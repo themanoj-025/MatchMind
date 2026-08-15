@@ -42,7 +42,7 @@ function createMockState(overrides: Partial<AuctionState> = {}): AuctionState {
   }
 }
 
-function createMockRoom(overrides: any = {}) {
+function createMockRoom(overrides: Record<string, unknown> = {}) {
   return {
     id: 'room-1',
     tournamentId: 'fifa-wc-2026',
@@ -55,7 +55,7 @@ function createMockRoom(overrides: any = {}) {
   }
 }
 
-function createMockPlayer(overrides: any = {}) {
+function createMockPlayer(overrides: Record<string, unknown> = {}) {
   return {
     id: 'player-1',
     tournamentId: 'fifa-wc-2026',
@@ -66,7 +66,7 @@ function createMockPlayer(overrides: any = {}) {
   }
 }
 
-function createMockMember(overrides: any = {}) {
+function createMockMember(overrides: Record<string, unknown> = {}) {
   return {
     roomId: 'room-1',
     userId: 'user-1',

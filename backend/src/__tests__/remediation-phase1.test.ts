@@ -21,7 +21,7 @@ describe('Remediation Phase 1 Tests', () => {
         },
       }
 
-      app.use((req: any, _res, next) => {
+      app.use((req: express.Request, _res: express.Response, next: express.NextFunction) => {
         req.container = {
           cradle: {
             prisma: prismaMock,

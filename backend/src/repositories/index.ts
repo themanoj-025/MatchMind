@@ -253,7 +253,7 @@ export class PrismaLeaderboardRepository implements ILeaderboardRepository {
       take,
     })
 
-    return users.map((u: any, i: number) => ({
+    return users.map((u, i: number) => ({
       id: u.id,
       username: u.username,
       name: u.displayName || u.username,
@@ -284,7 +284,7 @@ export class PrismaLeaderboardRepository implements ILeaderboardRepository {
       take,
     })
 
-    return users.map((u: any, i: number) => ({
+    return users.map((u, i: number) => ({
       id: u.id,
       username: u.username,
       name: u.displayName || u.username,
@@ -334,7 +334,7 @@ export class PrismaAdminLogRepository implements IAdminLogRepository {
   }
 
   async create(data: Record<string, unknown>): Promise<unknown> {
-    return (this.prisma as any).adminLog.create({
+    return this.prisma.adminLog.create({
       data: {
         adminId: data.adminId as string,
         action: data.action as string,
@@ -346,11 +346,11 @@ export class PrismaAdminLogRepository implements IAdminLogRepository {
   }
 
   async findMany(opts: { orderBy?: Record<string, 'asc' | 'desc'>; take?: number; skip?: number }): Promise<unknown[]> {
-    return (this.prisma as any).adminLog.findMany(opts)
+    return this.prisma.adminLog.findMany(opts)
   }
 
   async count(where?: Record<string, unknown>): Promise<number> {
-    return (this.prisma as any).adminLog.count({ where })
+    return this.prisma.adminLog.count({ where })
   }
 }
 

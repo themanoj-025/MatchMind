@@ -9,6 +9,7 @@ import { env } from '../config/env'
 import * as argon2 from 'argon2'
 import jwt from 'jsonwebtoken'
 import type { IUserRepository } from '../repositories/types'
+import type { DatabaseClient } from '../repositories'
 import logger from '../utils/logger'
 import { sendVerificationEmail, sendPasswordResetEmail } from './emailService'
 
@@ -46,14 +47,11 @@ export function generateTokens(userId: string, tokenVersion?: number): TokenPair
 /**
  * Get the current tokenVersion for a user.
  */
-export async function getTokenVersion(userId: string, prisma: any): Promise<number> {
+export async function getTokenVersion(userId: string, userRepository: IUserRepository): Promise<number> {
   try {
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { tokenVersion: true },
-    })
+    const user = await userRepository.findById(userId)
     return user?.tokenVersion ?? 0
-  } catch (err: any) {
+  } catch (err: unknown) {
     logger.error(
       { event: 'auth.token_version_error', userId, err: String(err) },
       'Failed to get token version — denying access',
@@ -66,16 +64,10 @@ export async function getTokenVersion(userId: string, prisma: any): Promise<numb
  * Invalidate all tokens for a user by incrementing tokenVersion.
  * Returns the new version number.
  */
-export async function revokeTokens(userId: string, prisma: any): Promise<number> {
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { tokenVersion: true },
-  })
+export async function revokeTokens(userId: string, userRepository: IUserRepository): Promise<number> {
+  const user = await userRepository.findById(userId)
   const newVersion = (user?.tokenVersion ?? 0) + 1
-  await prisma.user.update({
-    where: { id: userId },
-    data: { tokenVersion: newVersion },
-  })
+  await userRepository.update(userId, { tokenVersion: newVersion })
   return newVersion
 }
 

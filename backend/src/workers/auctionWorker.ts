@@ -25,7 +25,7 @@ export const auctionWorker = new Worker(
           const state = await prisma.auctionState.findUnique({ where: { roomId: id } })
           return state ? (state as AuctionState) : null
         },
-        async (id: string, state: any) => {
+        async (id: string, state: AuctionState) => {
           const expectedVersion = state.version - 1
           const updateRes = await prisma.auctionState.updateMany({
             where: { roomId: id, version: expectedVersion },
@@ -55,14 +55,14 @@ export const auctionWorker = new Worker(
 
       if (result) {
         // Retrieve socket.io instance
-        const io_instance: any = app.get('io')
+        const io_instance = app.get('io') as import('socket.io').Server | undefined
         if (!io_instance) {
           logger.error({ event: 'worker.auction.no_io', roomId }, 'Socket.io instance not found on app')
           return
         }
 
         const room = await prisma.room.findUnique({ where: { id: roomId } })
-        if (!room) return
+        if (!room) {return}
 
         const stateBefore = await prisma.auctionState.findUnique({ where: { roomId } })
 
@@ -102,8 +102,11 @@ export const auctionWorker = new Worker(
       }
 
       return { success: true }
-    } catch (err: any) {
-      if (err instanceof ConcurrencyError || err.code === 'CONCURRENCY_ERROR') {
+    } catch (err: unknown) {
+      const isConcurrency =
+        err instanceof ConcurrencyError ||
+        (typeof err === 'object' && err !== null && 'code' in err && (err as { code?: unknown }).code === 'CONCURRENCY_ERROR')
+      if (isConcurrency) {
         logger.warn({ event: 'worker.auction.concurrency', roomId }, 'Concurrency conflict in worker, ignoring')
       } else {
         logger.error({ event: 'worker.auction.error', roomId, err: (err as Error).message }, 'Auction worker error')

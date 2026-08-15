@@ -1,11 +1,7 @@
-import { OpenAPIRegistry, OpenApiGeneratorV31 } from '@asteasolutions/zod-to-openapi'
+import { OpenAPIRegistry, OpenApiGeneratorV31, extendZodWithOpenApi } from '@asteasolutions/zod-to-openapi'
 import { z } from 'zod'
-import { extendZodWithOpenApi } from '@asteasolutions/zod-to-openapi'
-
 extendZodWithOpenApi(z)
-
 export const openapiRegistry = new OpenAPIRegistry()
-
 export function generateOpenAPI() {
   const generator = new OpenApiGeneratorV31(openapiRegistry.definitions)
   return generator.generateDocument({

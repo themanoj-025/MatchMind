@@ -14,7 +14,12 @@ import { consumeTicket, getTicketBalance } from './draftTicketService'
 export class DraftAppService {
   constructor(private opts: { prisma: DatabaseClient }) {}
 
-  async startDraft(userId: string, tournamentId: string, formation: string, consumeTicketCb: () => Promise<any>) {
+  async startDraft(
+    userId: string,
+    tournamentId: string,
+    formation: string,
+    consumeTicketCb: () => Promise<{ success: boolean; remaining: number; reason?: string }>,
+  ) {
     return startDraft(this.opts.prisma, userId, tournamentId, formation, consumeTicketCb)
   }
 

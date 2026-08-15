@@ -19,7 +19,7 @@ export async function requireAdmin(req: AuthenticatedRequest, res: Response, nex
       return
     }
     next()
-  } catch (err: any) {
+  } catch (err: unknown) {
     next(err)
   }
 }

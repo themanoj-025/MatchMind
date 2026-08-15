@@ -123,8 +123,8 @@ export const DEFAULT_RULESET: Ruleset = {
 // ─── Helpers ─────────────────────────────────────────────
 
 function getMatchResult(homeScore: number, awayScore: number): 'home' | 'away' | 'draw' {
-  if (homeScore > awayScore) return 'home'
-  if (awayScore > homeScore) return 'away'
+  if (homeScore > awayScore) {return 'home'}
+  if (awayScore > homeScore) {return 'away'}
   return 'draw'
 }
 
@@ -377,8 +377,8 @@ export function rebuildLeaderboard(
     }))
     .sort((a, b) => {
       // Sort by total points descending, then accuracy descending, then streak descending
-      if (b.totalPoints !== a.totalPoints) return b.totalPoints - a.totalPoints
-      if (b.accuracy !== a.accuracy) return b.accuracy - a.accuracy
+      if (b.totalPoints !== a.totalPoints) {return b.totalPoints - a.totalPoints}
+      if (b.accuracy !== a.accuracy) {return b.accuracy - a.accuracy}
       return b.streakCurrent - a.streakCurrent
     })
 

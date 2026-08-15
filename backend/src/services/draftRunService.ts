@@ -18,6 +18,7 @@
  */
 
 import { DRAFT, RUN_REWARD_TIERS } from '../config/constants'
+import { DatabaseClient } from '../repositories'
 import type { DraftSession, DraftPick, SquadPlayer } from './draftService'
 import logger from '../utils/logger'
 
@@ -70,7 +71,7 @@ const BENCHMARK_VARIANCE = 15 // ± random variance
 // ─── Enter Run (§2.1) ───────────────────────────────────
 
 export async function enterRun(
-  prisma: any,
+  prisma: DatabaseClient,
   sessionId: string,
   userId: string,
 ): Promise<{ success: boolean; result?: DraftRunResult; error?: string }> {
@@ -91,7 +92,7 @@ export async function enterRun(
   // Check if a run already exists for this session
   const existingRun = (await prisma.draftRunResult.findFirst({
     where: { draftSessionId: sessionId },
-  })) as DraftRunResult | null
+  })) as unknown as DraftRunResult | null
 
   if (existingRun) {
     return { success: false, error: 'A Draft Run already exists for this session. Check run-status to continue.' }
@@ -116,7 +117,7 @@ export async function enterRun(
       createdAt: now,
       updatedAt: now,
     },
-  })) as DraftRunResult
+  })) as unknown as DraftRunResult
 
   // Update session status
   await prisma.draftSession.update({
@@ -137,7 +138,7 @@ export async function enterRun(
 // ─── Get Run Status (§2.3) — PURE read-only ────────────
 
 export async function getRunStatus(
-  prisma: any,
+  prisma: DatabaseClient,
   sessionId: string,
   userId: string,
 ): Promise<{ success: boolean; state?: DraftRunState; error?: string }> {
@@ -215,7 +216,7 @@ export async function getRunStatus(
 // ─── Resolve Next Matchday (§2.2) — EXPLICIT POST ──────
 
 export async function resolveNextMatchday(
-  prisma: any,
+  prisma: DatabaseClient,
   sessionId: string,
   userId: string,
 ): Promise<{
@@ -270,7 +271,14 @@ export async function resolveNextMatchday(
   }
 
   // Process the next matchday round
-  const outcome = await resolveNextRound(prisma, result, squad, sessionId, unresolvedFixtures[0])
+  const nextFixture = unresolvedFixtures[0]
+  if (!nextFixture) {
+    return {
+      success: false,
+      error: 'No completed fixtures available to resolve. Waiting for matchday data.',
+    }
+  }
+  const outcome = await resolveNextRound(prisma, result, squad, sessionId, nextFixture)
 
   if (!outcome) {
     return {
@@ -282,7 +290,7 @@ export async function resolveNextMatchday(
   // Read the updated result from DB
   const updatedResult = (await prisma.draftRunResult.findFirst({
     where: { draftSessionId: sessionId },
-  })) as DraftRunResult | null
+  })) as unknown as DraftRunResult | null
 
   if (!updatedResult) {
     return { success: false, error: 'Run result lost after resolution — unexpected.' }
@@ -290,8 +298,8 @@ export async function resolveNextMatchday(
 
   const resolvedRound: DraftRunRound = {
     roundNumber: outcome.roundNumber,
-    matchdayId: unresolvedFixtures[0].id,
-    matchdayName: unresolvedFixtures[0].name || `Matchday ${outcome.roundNumber}`,
+    matchdayId: nextFixture.id,
+    matchdayName: `Matchday ${outcome.roundNumber}`,
     outcome: outcome.newWins > result.totalWins ? 'WIN' : outcome.newLosses > result.totalLosses ? 'LOSS' : 'TIE',
     userPoints: outcome.userPoints ?? 0,
     benchmarkPoints: outcome.benchmarkPoints ?? 0,
@@ -321,7 +329,7 @@ export async function resolveNextMatchday(
 
 // ─── Find Unresolved Fixtures ────────────────────────────
 
-async function findUnresolvedFixtures(prisma: any, tournamentId: string, processedRoundCount: number): Promise<any[]> {
+async function findUnresolvedFixtures(prisma: DatabaseClient, tournamentId: string, processedRoundCount: number) {
   // Find FINISHED fixtures for this tournament that haven't been resolved yet
   const fixtures = await prisma.fixture.findMany({
     where: { tournamentId, status: 'FINISHED' },
@@ -336,11 +344,11 @@ async function findUnresolvedFixtures(prisma: any, tournamentId: string, process
 // ─── Resolve Next Round ─────────────────────────────────
 
 async function resolveNextRound(
-  prisma: any,
+  prisma: DatabaseClient,
   result: DraftRunResult,
   squad: SquadPlayer[],
   sessionId: string,
-  fixture: any,
+  fixture: { id: string; tournamentId: string },
 ): Promise<{
   roundNumber: number
   newWins: number
@@ -373,10 +381,10 @@ async function resolveNextRound(
     const allPlayers = await prisma.player.findMany({
       where: { tournamentId: result.tournamentId },
     })
-    const playerMap = new Map(allPlayers.map((p: any) => [p.id, p]))
+    const playerMap = new Map(allPlayers.map((p) => [p.id, p]))
 
     // Compute fantasy points for each squad player using real match stats
-    const statsMap = new Map(playerStats.map((s: any) => [s.playerId, s]))
+    const statsMap = new Map(playerStats.map((s) => [s.playerId, s]))
 
     // Also fetch fantasy points from the ledger if available
     let userSquadPoints = 0
@@ -396,12 +404,12 @@ async function resolveNextRound(
       })
 
       if (ledgerEntries && ledgerEntries.length > 0) {
-        const points = ledgerEntries.reduce((sum: number, e: any) => sum + e.totalPoints, 0)
+        const points = ledgerEntries.reduce((sum: number, e) => sum + e.totalPoints, 0)
         userSquadPoints += points
         breakdown[sp.playerId] = points
       } else {
         // Fallback: compute approximate fantasy points from raw stats
-        const player = playerMap.get(sp.playerId) as any | undefined
+        const player = playerMap.get(sp.playerId)
         const position = player?.position || sp.position
         const points = computeApproximatePoints(stats, position)
         userSquadPoints += points
@@ -458,7 +466,7 @@ async function resolveNextRound(
     const roundEntry = {
       roundNumber,
       matchdayId: fixture.id,
-      matchdayName: fixture.name || `Matchday ${roundNumber}`,
+      matchdayName: `Matchday ${roundNumber}`,
       outcome,
       userPoints: userSquadPoints,
       benchmarkPoints,
@@ -519,7 +527,7 @@ async function resolveNextRound(
       benchmarkPoints,
       breakdown,
     }
-  } catch (err: any) {
+  } catch (err: unknown) {
     logger.error({
       event: 'draft_run.resolve_error',
       sessionId,
@@ -532,13 +540,29 @@ async function resolveNextRound(
 
 // ─── Approximate Fantasy Points (fallback) ──────────────
 
-function computeApproximatePoints(stats: any, position: string): number {
+function computeApproximatePoints(
+  stats: {
+    goals?: number
+    assists?: number
+    minutesPlayed?: number
+    cleanSheet?: boolean
+    saves?: number
+    penaltiesSaved?: number
+    yellowCards?: number
+    redCards?: number
+    penaltiesMissed?: number
+    ownGoals?: number
+    goalsConceded?: number
+  },
+  position: string,
+): number {
   let points = 0
+  const minutesPlayed = stats.minutesPlayed ?? 0
 
   // Minutes
-  if (stats.minutesPlayed >= 60) {
+  if (minutesPlayed >= 60) {
     points += 2
-  } else if (stats.minutesPlayed > 0) {
+  } else if (minutesPlayed > 0) {
     points += 1
   }
 
@@ -550,13 +574,13 @@ function computeApproximatePoints(stats: any, position: string): number {
   points += (stats.assists || 0) * 3
 
   // Clean sheet (DEF/GK only, played 60+)
-  if (stats.cleanSheet && stats.minutesPlayed >= 60) {
+  if (stats.cleanSheet && minutesPlayed >= 60) {
     points += position === 'DEF' || position === 'GK' ? 4 : 1
   }
 
   // Saves (GK)
-  if (stats.saves >= 3) {
-    points += Math.floor(stats.saves / 3)
+  if ((stats.saves ?? 0) >= 3) {
+    points += Math.floor((stats.saves ?? 0) / 3)
   }
 
   // Penalty saves
@@ -571,8 +595,8 @@ function computeApproximatePoints(stats: any, position: string): number {
   points -= (stats.ownGoals || 0) * 2
 
   // Goals conceded (DEF/GK)
-  if ((position === 'DEF' || position === 'GK') && stats.minutesPlayed > 0 && stats.goalsConceded >= 2) {
-    points -= Math.floor(stats.goalsConceded / 2)
+  if ((position === 'DEF' || position === 'GK') && minutesPlayed > 0 && (stats.goalsConceded ?? 0) >= 2) {
+    points -= Math.floor((stats.goalsConceded ?? 0) / 2)
   }
 
   return Math.max(points, 0)

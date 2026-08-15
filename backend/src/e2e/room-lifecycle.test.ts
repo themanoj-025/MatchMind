@@ -35,15 +35,15 @@ const shared = {
   bidId: '' as string,
 }
 
-let app: any
-let prisma: any
+let app: import('express').Express
+let prisma: import('@prisma/client').PrismaClient
 let dataDir: string
 let server: Server
 let baseUrl: string
 
 // ─── API Helper ──────────────────────────────────────────
 
-async function api(method: string, path: string, opts: { body?: any; auth?: boolean; token?: string } = {}) {
+async function api(method: string, path: string, opts: { body?: unknown; auth?: boolean; token?: string } = {}) {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' }
   if (opts.auth !== false) {
     headers['Authorization'] = `Bearer ${opts.token || HOST_TOKEN}`
@@ -275,7 +275,7 @@ describe('Phase 1: Room Creation', () => {
     expect(status).toBe(200)
     expect(Array.isArray(body)).toBe(true)
     expect(body.length).toBeGreaterThanOrEqual(1)
-    const room = body.find((r: any) => r.id === shared.roomId)
+    const room = body.find((r) => r.id === shared.roomId)
     expect(room).toBeDefined()
     expect(room.membership.role).toBe('host')
     expect(room.membership.remainingBudget).toBe(500)
@@ -327,8 +327,8 @@ describe('Phase 2: Join Room with Invite Code', () => {
     expect(status).toBe(200)
     expect(body.members).toHaveLength(2)
 
-    const host = body.members.find((m: any) => m.userId === HOST_USER.id)
-    const bidder = body.members.find((m: any) => m.userId === BIDDER_USER.id)
+    const host = body.members.find((m) => m.userId === HOST_USER.id)
+    const bidder = body.members.find((m) => m.userId === BIDDER_USER.id)
     expect(host).toBeDefined()
     expect(host.isReady).toBe(true)
     expect(bidder).toBeDefined()
@@ -370,7 +370,7 @@ describe('Phase 3: Ready Check', () => {
 
     expect(status).toBe(200)
     expect(body.allReady).toBe(true)
-    expect(body.members.every((m: any) => m.isReady)).toBe(true)
+    expect(body.members.every((m: { isReady?: boolean }) => m.isReady)).toBe(true)
   })
 })
 
@@ -598,7 +598,7 @@ describe('Phase 7: Captain/VC Selection', () => {
     }
     expect(status).toBe(200)
     expect(Array.isArray(body)).toBe(true)
-    const entry = body.find((r: any) => r.playerId === shared.firstPlayerId)
+    const entry = body.find((r) => r.playerId === shared.firstPlayerId)
     expect(entry).toBeDefined()
     expect(entry.isCaptain).toBe(true)
   })
@@ -626,7 +626,7 @@ describe('Phase 7: Captain/VC Selection', () => {
       token: BIDDER_TOKEN,
     })
 
-    const captains = body.filter((r: any) => r.isCaptain)
+    const captains = body.filter((r) => r.isCaptain)
     expect(captains.length).toBe(1)
     expect(captains[0].playerId).toBe(shared.firstPlayerId)
   })
@@ -677,7 +677,7 @@ describe('Phase 8: Error Handling', () => {
 
     // Clean up extra rooms — explicitly filter to avoid slice ordering fragility
     const rooms = await prisma.room.findMany({ where: { hostId: HOST_USER.id } })
-    const extraRooms = rooms.filter((r: any) => r.id !== shared.roomId)
+    const extraRooms = rooms.filter((r) => r.id !== shared.roomId)
     for (const room of extraRooms) {
       await prisma.roomMember.deleteMany({ where: { roomId: room.id } })
       await prisma.auctionState.deleteMany({ where: { roomId: room.id } })

@@ -12,11 +12,11 @@ import { env } from '../config/env'
 
 import logger from '../utils/logger'
 
-let resendClient: any = null
+let resendClient: { emails: { send: (opts: Record<string, unknown>) => Promise<unknown> } } | null = null
 try {
   const { Resend } = require('resend')
   if (env.RESEND_API_KEY) {
-    resendClient = new Resend(env.RESEND_API_KEY)
+    resendClient = new Resend(env.RESEND_API_KEY) as typeof resendClient
   }
 } catch {
   // resend not installed — fall back to logging
@@ -64,7 +64,7 @@ export async function sendVerificationEmail(to: string, verificationToken: strin
       `,
     })
     logger.info({ event: 'email.verification_sent', to }, 'Verification email sent')
-  } catch (err: any) {
+  } catch (err: unknown) {
     logger.error({ event: 'email.verification_failed', to, err: String(err) }, 'Failed to send verification email')
   }
 }
@@ -110,7 +110,7 @@ export async function sendPasswordResetEmail(to: string, resetToken: string): Pr
       `,
     })
     logger.info({ event: 'email.password_reset_sent', to }, 'Password reset email sent')
-  } catch (err: any) {
+  } catch (err: unknown) {
     logger.error({ event: 'email.password_reset_failed', to, err: String(err) }, 'Failed to send password reset email')
   }
 }

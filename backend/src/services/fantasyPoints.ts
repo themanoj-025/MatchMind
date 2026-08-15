@@ -193,7 +193,7 @@ export async function computeFantasyPoints(
     const stats = playerStats[roster.playerId]?.stats
     const position = playerStats[roster.playerId]?.position || 'MID'
 
-    if (!stats) continue
+    if (!stats) {continue}
 
     const breakdown = calculatePlayerPoints(stats, position, roster.isCaptain, roster.isViceCaptain, captainPlayed)
 

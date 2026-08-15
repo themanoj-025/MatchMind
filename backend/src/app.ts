@@ -113,7 +113,7 @@ app.use(
     customProps: (req: express.Request) => ({
       requestId: req.id,
     }),
-  } as any),
+  } as never),
 )
 
 // Stripe webhook needs raw body BEFORE express.json() consumes it
@@ -170,9 +170,10 @@ app.get('/api/metrics', async (_req: express.Request, res: express.Response) => 
 // ─── Global Error Handler ─────────────────────────────────────────────
 import { DomainError } from './errors/DomainError'
 
-app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+app.use((err: unknown, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  const httpErr = (typeof err === 'object' && err !== null ? err : {}) as { message?: string; stack?: string }
   logger.error(
-    { event: 'app.unhandled_error', err: (err as Error).message, stack: err.stack, path: req.path },
+    { event: 'app.unhandled_error', err: httpErr.message, stack: httpErr.stack, path: req.path },
     'Unhandled exception',
   )
 
