@@ -29,7 +29,7 @@ export interface RoomLeaderboard {
 // ─── Compute Room Leaderboard ────────────────────────────
 
 export function computeRoomLeaderboard(
-  ledger: FantasyPointsResult[],
+  ledger: Array<Pick<FantasyPointsResult, 'userId' | 'totalPoints'>>,
   roomId: string,
   rosters?: Array<{ userId: string; soldPrice: number }>,
 ): LeaderboardEntry[] {

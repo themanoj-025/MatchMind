@@ -10,9 +10,44 @@ import { validateTournamentDraftPool } from '../lib/validateDraftPool'
 import { openapiRegistry } from '../config/openapi'
 import { redis } from '../lib/redis'
 import { z } from 'zod'
+import type { Prisma, UserRole, UserTier, FixtureStatus } from '@prisma/client'
+import type { Tournament } from '../config/tournaments'
 import { paginationSchema, PaginationParams, PaginatedResponse } from '@matchmind/shared-types'
 
 const router = express.Router()
+
+/** Shape of a player record in src/data/players.json (admin-managed draft pool). */
+interface PlayerRecord {
+  id: string
+  name: string
+  tournamentId: string
+  position?: string
+  club?: string
+  nationality?: string
+  basePrice?: number
+  rarityTier?: string
+  isEligibleForIcon?: boolean
+  photoUrl?: string
+}
+
+function readPlayers(): PlayerRecord[] {
+  const fs = require('fs')
+  const path = require('path')
+  const playersPath = path.join(__dirname, '..', 'data', 'players.json')
+  if (!fs.existsSync(playersPath)) {
+    return []
+  }
+  return JSON.parse(fs.readFileSync(playersPath, 'utf-8')) as PlayerRecord[]
+}
+
+function writePlayers(players: PlayerRecord[]): void {
+  const fs = require('fs')
+  const path = require('path')
+  const playersPath = path.join(__dirname, '..', 'data', 'players.json')
+  const tmpPath = playersPath + '.tmp'
+  fs.writeFileSync(tmpPath, JSON.stringify(players, null, 2), 'utf-8')
+  fs.renameSync(tmpPath, playersPath)
+}
 
 async function invalidatePlayerCache() {
   if (redis.status === 'ready' || redis.status === 'connect') {
@@ -22,7 +57,7 @@ async function invalidatePlayerCache() {
         await redis.del(...keys)
         logger.info({ event: 'redis.cache_invalidated' }, 'Invalidated player cache')
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       logger.error(
         { event: 'redis.cache_invalidation_error', err: (err as Error).message },
         'Failed to invalidate cache',
@@ -52,13 +87,13 @@ const auditLogMiddleware = (req: express.Request, res: express.Response, next: e
               query: req.query,
               params: req.params,
             })
-            .catch((err: any) => {
+            .catch((err: unknown) => {
               logger.error(
                 { event: 'admin.audit_log_error', err: (err as Error).message },
                 'Failed to save audit log in middleware',
               )
             })
-        } catch (err: any) {
+        } catch (err: unknown) {
           logger.error(
             { event: 'admin.audit_log_setup_error', err: (err as Error).message },
             'Failed to instantiate admin service for logging',
@@ -80,8 +115,8 @@ function getAdminService(req: AuthenticatedRequest) {
     reportRepository,
     adminLogRepository,
     prisma: {
-      user: { count: (opts?: any) => prisma.user.count(opts) },
-      room: { count: (opts?: any) => prisma.room.count(opts) },
+      user: { count: (opts?: Prisma.UserCountArgs) => prisma.user.count(opts) },
+      room: { count: (opts?: Prisma.RoomCountArgs) => prisma.room.count(opts) },
     },
   })
 }
@@ -150,7 +185,7 @@ router.get('/users', async (req: AuthenticatedRequest, res) => {
   const { page, limit } = paginationSchema.parse(req.query)
   const search = (req.query.search as string) || ''
 
-  const where: Record<string, unknown> = { isDeleted: false }
+  const where: Prisma.UserWhereInput = { deletedAt: null }
   if (search) {
     where.OR = [
       { username: { contains: search, mode: 'insensitive' } },
@@ -235,9 +270,9 @@ router.patch('/users/:id', async (req: AuthenticatedRequest, res) => {
     displayName?: string
   }
 
-  const data: Record<string, any> = {}
-  if (role) data.role = role
-  if (tier) data.tier = tier
+  const data: Prisma.UserUpdateInput = {}
+  if (role) data.role = role as UserRole
+  if (tier) data.tier = tier as UserTier
   if (username) data.username = username
   if (email) data.email = email
   if (displayName) data.displayName = displayName
@@ -319,7 +354,7 @@ router.get('/fixtures', async (req: AuthenticatedRequest, res) => {
   const { page, limit } = paginationSchema.parse(req.query)
   const tournamentId = req.query.tournamentId as string | undefined
 
-  const where: Record<string, any> = {}
+  const where: Prisma.FixtureWhereInput = {}
   if (tournamentId) where.tournamentId = tournamentId
 
   const [fixtures, total] = await Promise.all([
@@ -353,10 +388,10 @@ router.patch('/fixtures/:id', async (req: AuthenticatedRequest, res) => {
     status?: string
   }
 
-  const data: Record<string, any> = {}
+  const data: Prisma.FixtureUpdateInput = {}
   if (homeScore !== undefined) data.homeScore = homeScore
   if (awayScore !== undefined) data.awayScore = awayScore
-  if (status) data.status = status
+  if (status) data.status = status as FixtureStatus
 
   const fixture = await prisma.fixture.update({
     where: { id: req.params.id as string },
@@ -590,7 +625,7 @@ openapiRegistry.registerPath({
 })
 router.get('/draft/pool-validation', async (_req: AuthenticatedRequest, res) => {
   const { TOURNAMENTS } = require('../config/tournaments')
-  const results = TOURNAMENTS.map((t: any) => {
+  const results = TOURNAMENTS.map((t: Tournament) => {
     const result = validateTournamentDraftPool(t.id)
     return {
       ...result,
@@ -608,15 +643,10 @@ router.get('/draft/pool-validation', async (_req: AuthenticatedRequest, res) => 
   })
 
   // Enrich with icon counts from player data
-  const fs = require('fs')
-  const path = require('path')
-  const playersPath = path.join(__dirname, '..', 'data', 'players.json')
-  if (fs.existsSync(playersPath)) {
-    const allPlayers = JSON.parse(fs.readFileSync(playersPath, 'utf-8'))
-    for (const r of results) {
-      r.iconCount = allPlayers.filter((p: any) => p.tournamentId === r.tournamentId && p.rarityTier === 'ICON').length
-      r.playerCount = allPlayers.filter((p: any) => p.tournamentId === r.tournamentId).length
-    }
+  const allPlayers = readPlayers()
+  for (const r of results) {
+    r.iconCount = allPlayers.filter((p) => p.tournamentId === r.tournamentId && p.rarityTier === 'ICON').length
+    r.playerCount = allPlayers.filter((p) => p.tournamentId === r.tournamentId).length
   }
 
   res.json({ tournaments: results })
@@ -634,17 +664,14 @@ openapiRegistry.registerPath({
   path: '/draft/icons',
   responses: { 200: { description: 'Success' } },
 })
-router.get('/draft/icons', async (req: AuthenticatedRequest, res) => {
-  const fs = require('fs')
-  const path = require('path')
-  const playersPath = path.join(__dirname, '..', 'data', 'players.json')
-  if (!fs.existsSync(playersPath)) {
+router.get('/draft/icons', async (_req: AuthenticatedRequest, res) => {
+  const allPlayers = readPlayers()
+  if (allPlayers.length === 0) {
     return res.json({ players: [] })
   }
-  const allPlayers = JSON.parse(fs.readFileSync(playersPath, 'utf-8'))
   const icons = allPlayers
-    .filter((p: any) => p.rarityTier === 'ICON' || p.isEligibleForIcon)
-    .map((p: any) => ({
+    .filter((p) => p.rarityTier === 'ICON' || p.isEligibleForIcon)
+    .map((p) => ({
       id: p.id,
       name: p.name,
       tournamentId: p.tournamentId,
@@ -656,7 +683,7 @@ router.get('/draft/icons', async (req: AuthenticatedRequest, res) => {
       isEligibleForIcon: p.isEligibleForIcon || false,
       photoUrl: p.photoUrl,
     }))
-    .sort((a: any, b: any) => a.tournamentId.localeCompare(b.tournamentId) || b.basePrice - a.basePrice)
+    .sort((a, b) => a.tournamentId.localeCompare(b.tournamentId) || (b.basePrice ?? 0) - (a.basePrice ?? 0))
 
   res.json({ players: icons })
 })
@@ -673,22 +700,21 @@ openapiRegistry.registerPath({
   responses: { 200: { description: 'Success' } },
 })
 router.post('/draft/icons/:playerId/toggle', async (req: AuthenticatedRequest, res) => {
-  const fs = require('fs')
-  const path = require('path')
-  const playersPath = path.join(__dirname, '..', 'data', 'players.json')
-
-  if (!fs.existsSync(playersPath)) {
+  const allPlayers = readPlayers()
+  if (allPlayers.length === 0) {
     return res.status(404).json({ error: { code: 'PLAYERS_NOT_FOUND', message: 'players.json not found' } })
   }
 
-  const allPlayers = JSON.parse(fs.readFileSync(playersPath, 'utf-8'))
-  const playerIndex = allPlayers.findIndex((p: any) => p.id === req.params.playerId)
+  const playerIndex = allPlayers.findIndex((p) => p.id === req.params.playerId)
 
   if (playerIndex === -1) {
     return res.status(404).json({ error: { code: 'PLAYER_NOT_FOUND', message: 'Player not found in players.json' } })
   }
 
   const player = allPlayers[playerIndex]
+  if (!player) {
+    return res.status(404).json({ error: { code: 'PLAYER_NOT_FOUND', message: 'Player not found in players.json' } })
+  }
   const newValue = !player.isEligibleForIcon
 
   allPlayers[playerIndex] = {
@@ -697,9 +723,7 @@ router.post('/draft/icons/:playerId/toggle', async (req: AuthenticatedRequest, r
   }
 
   // Write back atomically
-  const tmpPath = playersPath + '.tmp'
-  fs.writeFileSync(tmpPath, JSON.stringify(allPlayers, null, 2), 'utf-8')
-  fs.renameSync(tmpPath, playersPath)
+  writePlayers(allPlayers)
 
   getAdminService(req).logAction(req.userId!, 'ICON_ELIGIBILITY_TOGGLED', String(req.params.playerId), 'player', {
     wasEligible: !newValue,
@@ -742,17 +766,11 @@ router.post('/draft/revalidate', async (req: AuthenticatedRequest, res) => {
   const tournamentId = req.body.tournamentId as string | undefined
 
   // 1. Re-compute rarity tiers
-  const fs = require('fs')
-  const path = require('path')
-  const playersPath = path.join(__dirname, '..', 'data', 'players.json')
-
-  if (!fs.existsSync(playersPath)) {
+  let allPlayers = readPlayers()
+  if (allPlayers.length === 0) {
     return res.status(404).json({ error: { code: 'PLAYERS_NOT_FOUND', message: 'players.json not found' } })
   }
-
-  // Read players
-  let allPlayers = JSON.parse(fs.readFileSync(playersPath, 'utf-8'))
-  const tournamentIds = tournamentId ? [tournamentId] : [...new Set(allPlayers.map((p: any) => p.tournamentId))]
+  const tournamentIds = tournamentId ? [tournamentId] : [...new Set(allPlayers.map((p) => p.tournamentId))]
 
   // Re-assign rarity tiers
   // Sort each tournament's players by basePrice descending, assign BRONZE/SILVER/GOLD/ICON per percentiles
@@ -764,16 +782,17 @@ router.post('/draft/revalidate', async (req: AuthenticatedRequest, res) => {
   ]
 
   for (const tid of tournamentIds) {
-    const tournamentPlayers = allPlayers.filter((p: any) => p.tournamentId === tid)
+    const tournamentPlayers = allPlayers.filter((p) => p.tournamentId === tid)
     if (tournamentPlayers.length === 0) continue
 
-    const sorted = [...tournamentPlayers].sort((a: any, b: any) => b.basePrice - a.basePrice)
+    const sorted = [...tournamentPlayers].sort((a, b) => (b.basePrice ?? 0) - (a.basePrice ?? 0))
     const total = sorted.length
 
     // Build a map of { playerId: rarityTier }
     const rarityMap = new Map<string, string>()
     for (let i = 0; i < total; i++) {
       const player = sorted[i]
+      if (!player) continue
       const percentile = ((i + 1) / total) * 100
       const bottomPct = 100 - percentile
 
@@ -794,15 +813,13 @@ router.post('/draft/revalidate', async (req: AuthenticatedRequest, res) => {
     }
 
     // Apply to allPlayers
-    allPlayers = allPlayers.map((p: any) =>
+    allPlayers = allPlayers.map((p) =>
       p.tournamentId === tid && rarityMap.has(p.id) ? { ...p, rarityTier: rarityMap.get(p.id) as string } : p,
     )
   }
 
   // Write back atomically
-  const tmpPath = playersPath + '.tmp'
-  fs.writeFileSync(tmpPath, JSON.stringify(allPlayers, null, 2), 'utf-8')
-  fs.renameSync(tmpPath, playersPath)
+  writePlayers(allPlayers)
 
   // 2. Re-validate
   const tidArray = Array.from(tournamentIds) as string[]
@@ -815,7 +832,7 @@ router.post('/draft/revalidate', async (req: AuthenticatedRequest, res) => {
 
   getAdminService(req).logAction(req.userId!, 'DRAFT_POOL_REVALIDATED', '', 'draft', {
     tournamentIds,
-    allPassed: results.every((r: any) => r.passed),
+    allPassed: results.every((r: { passed: boolean }) => r.passed),
   })
 
   await invalidatePlayerCache()
@@ -824,7 +841,7 @@ router.post('/draft/revalidate', async (req: AuthenticatedRequest, res) => {
     success: true,
     message: `Re-validated ${results.length} tournament(s)`,
     results,
-    allPassed: results.every((r: any) => r.passed),
+    allPassed: results.every((r: { passed: boolean }) => r.passed),
   })
 })
 

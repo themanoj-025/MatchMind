@@ -15,14 +15,14 @@ export class RoomService {
     })
   }
 
-  async findByInviteCode(inviteCode: string): Promise<any | null> {
+  async findByInviteCode(inviteCode: string) {
     return this.prisma.room.findUnique({ where: { inviteCode } })
   }
 
   async createRoomWithHostAndAuction(
     data: { name: string; tournamentId: string; totalBudget: number; inviteCode: string },
     hostId: string,
-  ): Promise<any> {
+  ) {
     const room = await this.prisma.room.create({
       data: {
         tournamentId: data.tournamentId,
@@ -59,19 +59,19 @@ export class RoomService {
     return room
   }
 
-  async getUserRooms(userId: string): Promise<any[]> {
+  async getUserRooms(userId: string) {
     const memberships = await this.prisma.roomMember.findMany({
       where: { userId },
       include: { room: true },
       orderBy: { room: { createdAt: 'desc' } },
     })
-    return memberships.map((m: any) => ({
+    return memberships.map((m) => ({
       ...m.room,
       membership: { role: m.role, remainingBudget: m.remainingBudget, isReady: m.isReady },
     }))
   }
 
-  async getRoomDetails(roomId: string): Promise<any | null> {
+  async getRoomDetails(roomId: string) {
     return this.prisma.room.findUnique({
       where: { id: roomId },
       include: {
@@ -83,7 +83,7 @@ export class RoomService {
     })
   }
 
-  async getRoomMembers(roomId: string): Promise<{ members: any[]; roomStatus: string; allReady: boolean }> {
+  async getRoomMembers(roomId: string) {
     const members = await this.prisma.roomMember.findMany({
       where: { roomId },
       include: {
@@ -99,21 +99,21 @@ export class RoomService {
     return {
       members,
       roomStatus: room?.status || 'unknown',
-      allReady: members.length > 0 && members.every((m: any) => m.isReady),
+      allReady: members.length > 0 && members.every((m) => m.isReady),
     }
   }
 
-  async getRoomById(roomId: string): Promise<any | null> {
+  async getRoomById(roomId: string) {
     return this.prisma.room.findUnique({ where: { id: roomId } })
   }
 
-  async getMember(roomId: string, userId: string): Promise<any | null> {
+  async getMember(roomId: string, userId: string) {
     return this.prisma.roomMember.findUnique({
       where: { roomId_userId: { roomId, userId } },
     })
   }
 
-  async joinRoom(roomId: string, userId: string, totalBudget: number): Promise<any> {
+  async joinRoom(roomId: string, userId: string, totalBudget: number) {
     return this.prisma.roomMember.create({
       data: {
         roomId,
@@ -125,14 +125,14 @@ export class RoomService {
     })
   }
 
-  async getFullMember(roomId: string, userId: string): Promise<any> {
+  async getFullMember(roomId: string, userId: string) {
     return this.prisma.roomMember.findUnique({
       where: { roomId_userId: { roomId, userId } },
       include: { user: { select: { id: true, username: true, displayName: true, avatar: true } } },
     })
   }
 
-  async toggleMemberReady(roomId: string, userId: string, isCurrentlyReady: boolean): Promise<any> {
+  async toggleMemberReady(roomId: string, userId: string, isCurrentlyReady: boolean) {
     return this.prisma.roomMember.update({
       where: { roomId_userId: { roomId, userId } },
       data: { isReady: !isCurrentlyReady },
@@ -149,9 +149,7 @@ export class RoomService {
     })
   }
 
-  async getRoomLeaderboardData(
-    roomId: string,
-  ): Promise<{ ledger: any[]; rosters: any[]; tournamentId: string } | null> {
+  async getRoomLeaderboardData(roomId: string) {
     const room = await this.prisma.room.findUnique({
       where: { id: roomId },
       select: { id: true, tournamentId: true },
