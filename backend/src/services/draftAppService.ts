@@ -6,17 +6,10 @@ import {
   commitSquad,
   getSessionState,
   listUserDrafts,
-  loadFormations
+  loadFormations,
 } from './draftService'
-import {
-  enterRun,
-  getRunStatus,
-  resolveNextMatchday
-} from './draftRunService'
-import {
-  consumeTicket,
-  getTicketBalance
-} from './draftTicketService'
+import { enterRun, getRunStatus, resolveNextMatchday } from './draftRunService'
+import { consumeTicket, getTicketBalance } from './draftTicketService'
 
 export class DraftAppService {
   constructor(private opts: { prisma: DatabaseClient }) {}

@@ -20,7 +20,7 @@ export function setupGracefulShutdown(httpServer: Server): void {
     } catch (err: any) {
       logger.error(
         { event: 'server.shutdown_error', err: err instanceof Error ? (err as Error).message : String(err) },
-        'Error during graceful shutdown'
+        'Error during graceful shutdown',
       )
     }
 

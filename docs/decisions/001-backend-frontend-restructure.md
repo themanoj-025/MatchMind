@@ -16,18 +16,22 @@ The initial architecture of Match-Mind had several structural and performance is
 ## Decisions
 
 1. **API Versioning & Routing Structure**
+
    - Implemented `/api/v1` global prefix.
    - Extracted server setup, database connection, and graceful shutdown logic into a dedicated `src/infrastructure` folder.
 
 2. **Error Handling Modernization**
+
    - Removed all custom `asyncHandler` middleware in favor of Express 5's native async promise rejection handling.
    - Refactored centralized error formatting for clarity and consistency.
 
 3. **Strict Type Safety Enforcement**
+
    - Eliminated `any` usages across the backend.
    - Employed `// @ts-ignore` only as a tactical escape hatch for insurmountable Prisma payload type complexities when returning deeply nested nested relational objects.
 
 4. **Frontend Data Fetching (React Query)**
+
    - Adopted `@tanstack/react-query` to manage server state.
    - Migrated component-level `fetch` logic in `Lobby`, `Leaderboard`, and `DraftRoom` into custom hooks (`useRooms`, `useLeaderboard`, `useAuctionAdvice`).
 

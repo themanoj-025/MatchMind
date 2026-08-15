@@ -119,7 +119,7 @@ export function idempotent(options: IdempotencyOptions = {}) {
         store.set(scopedKey, {
           statusCode: res.statusCode,
           headers: {
-            'content-type': res.getHeader('content-type') as string || 'application/json',
+            'content-type': (res.getHeader('content-type') as string) || 'application/json',
           },
           body,
           createdAt: Date.now(),

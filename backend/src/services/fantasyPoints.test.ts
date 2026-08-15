@@ -10,12 +10,7 @@
  */
 
 import { describe, it, expect, vi } from 'vitest'
-import {
-  calculatePlayerPoints,
-  applyCaptainMultiplier,
-  FantasyPointsResult,
-  PlayerMatchStats,
-} from './fantasyPoints'
+import { calculatePlayerPoints, applyCaptainMultiplier, FantasyPointsResult, PlayerMatchStats } from './fantasyPoints'
 
 import { computeRoomLeaderboard } from './leaderboardService'
 
@@ -84,26 +79,17 @@ describe('calculatePlayerPoints() — Scoring Rules', () => {
   })
 
   it('awards +4 clean sheet for DEF/GK (played 60+)', () => {
-    const result = calculatePlayerPoints(
-      makeStats({ cleanSheet: true, minutesPlayed: 90 }),
-      'DEF', false, false, false,
-    )
+    const result = calculatePlayerPoints(makeStats({ cleanSheet: true, minutesPlayed: 90 }), 'DEF', false, false, false)
     expect(result.cleanSheet).toBe(4)
   })
 
   it('awards +1 clean sheet for MID (played 60+)', () => {
-    const result = calculatePlayerPoints(
-      makeStats({ cleanSheet: true, minutesPlayed: 90 }),
-      'MID', false, false, false,
-    )
+    const result = calculatePlayerPoints(makeStats({ cleanSheet: true, minutesPlayed: 90 }), 'MID', false, false, false)
     expect(result.cleanSheet).toBe(1)
   })
 
   it('no clean sheet points if played less than 60', () => {
-    const result = calculatePlayerPoints(
-      makeStats({ cleanSheet: true, minutesPlayed: 30 }),
-      'DEF', false, false, false,
-    )
+    const result = calculatePlayerPoints(makeStats({ cleanSheet: true, minutesPlayed: 30 }), 'DEF', false, false, false)
     expect(result.cleanSheet).toBeUndefined()
   })
 
@@ -148,10 +134,7 @@ describe('calculatePlayerPoints() — Scoring Rules', () => {
   })
 
   it('no goals conceded deduction if not played', () => {
-    const result = calculatePlayerPoints(
-      makeStats({ goalsConceded: 4, minutesPlayed: 0 }),
-      'DEF', false, false, false,
-    )
+    const result = calculatePlayerPoints(makeStats({ goalsConceded: 4, minutesPlayed: 0 }), 'DEF', false, false, false)
     expect(result.goalsConceded).toBeUndefined()
   })
 
@@ -159,7 +142,10 @@ describe('calculatePlayerPoints() — Scoring Rules', () => {
     // Forward: 90min(2) + 1 goal(4) + 2 assists(6) + 1 yellow(-1) = 11
     const result = calculatePlayerPoints(
       makeStats({ minutesPlayed: 90, goals: 1, assists: 2, yellowCards: 1 }),
-      'FWD', false, false, false,
+      'FWD',
+      false,
+      false,
+      false,
     )
     const total = Object.values(result).reduce((s, v) => s + v, 0)
     expect(total).toBe(11)
@@ -199,24 +185,34 @@ describe('computeFantasyPoints() Integration', () => {
     const { computeFantasyPoints } = await import('./fantasyPoints')
 
     const playerStats = {
-      'p1': { stats: makeStats({ playerId: 'p1', minutesPlayed: 90, goals: 1 }), position: 'FWD' },
-      'p2': { stats: makeStats({ playerId: 'p2', minutesPlayed: 90, cleanSheet: true }), position: 'DEF' },
+      p1: { stats: makeStats({ playerId: 'p1', minutesPlayed: 90, goals: 1 }), position: 'FWD' },
+      p2: { stats: makeStats({ playerId: 'p2', minutesPlayed: 90, cleanSheet: true }), position: 'DEF' },
     }
 
     const rosters = [
-      { id: 'r1', roomId: 'room-1', userId: 'u1', playerId: 'p1', soldPrice: 30, isCaptain: true, isViceCaptain: false },
-      { id: 'r2', roomId: 'room-1', userId: 'u1', playerId: 'p2', soldPrice: 25, isCaptain: false, isViceCaptain: false },
+      {
+        id: 'r1',
+        roomId: 'room-1',
+        userId: 'u1',
+        playerId: 'p1',
+        soldPrice: 30,
+        isCaptain: true,
+        isViceCaptain: false,
+      },
+      {
+        id: 'r2',
+        roomId: 'room-1',
+        userId: 'u1',
+        playerId: 'p2',
+        soldPrice: 25,
+        isCaptain: false,
+        isViceCaptain: false,
+      },
     ]
 
     const saveLedger = vi.fn().mockResolvedValue(undefined)
 
-    const results = await computeFantasyPoints(
-      'fixture-1',
-      playerStats,
-      rosters,
-      async () => null,
-      saveLedger,
-    )
+    const results = await computeFantasyPoints('fixture-1', playerStats, rosters, async () => null, saveLedger)
 
     expect(results).toHaveLength(2)
     // p1 (FWD): 2(min) + 4(goal) = 6 → ×2 captain = 12
@@ -238,13 +234,29 @@ describe('computeFantasyPoints() Integration', () => {
     const { computeFantasyPoints } = await import('./fantasyPoints')
 
     const playerStats = {
-      'p1': { stats: makeStats({ playerId: 'p1', minutesPlayed: 0 }), position: 'MID' }, // captain didn't play
-      'p2': { stats: makeStats({ playerId: 'p2', minutesPlayed: 90, assists: 2 }), position: 'MID' }, // VC played
+      p1: { stats: makeStats({ playerId: 'p1', minutesPlayed: 0 }), position: 'MID' }, // captain didn't play
+      p2: { stats: makeStats({ playerId: 'p2', minutesPlayed: 90, assists: 2 }), position: 'MID' }, // VC played
     }
 
     const rosters = [
-      { id: 'r1', roomId: 'room-1', userId: 'u1', playerId: 'p1', soldPrice: 30, isCaptain: true, isViceCaptain: false },
-      { id: 'r2', roomId: 'room-1', userId: 'u1', playerId: 'p2', soldPrice: 25, isCaptain: false, isViceCaptain: true },
+      {
+        id: 'r1',
+        roomId: 'room-1',
+        userId: 'u1',
+        playerId: 'p1',
+        soldPrice: 30,
+        isCaptain: true,
+        isViceCaptain: false,
+      },
+      {
+        id: 'r2',
+        roomId: 'room-1',
+        userId: 'u1',
+        playerId: 'p2',
+        soldPrice: 25,
+        isCaptain: false,
+        isViceCaptain: true,
+      },
     ]
 
     const results = await computeFantasyPoints(
@@ -272,7 +284,17 @@ describe('computeFantasyPoints() Integration', () => {
     const results = await computeFantasyPoints(
       'fixture-1',
       {}, // no stats
-      [{ id: 'r1', roomId: 'room-1', userId: 'u1', playerId: 'p1', soldPrice: 30, isCaptain: false, isViceCaptain: false }],
+      [
+        {
+          id: 'r1',
+          roomId: 'room-1',
+          userId: 'u1',
+          playerId: 'p1',
+          soldPrice: 30,
+          isCaptain: false,
+          isViceCaptain: false,
+        },
+      ],
       async () => null,
       vi.fn().mockResolvedValue(undefined),
     )
@@ -287,9 +309,36 @@ describe('computeRoomLeaderboard()', () => {
   it('aggregates points per user from the ledger', () => {
     const entries = computeRoomLeaderboard(
       [
-        { userId: 'u1', totalPoints: 10, playerId: 'p1', roomId: 'r1', fixtureId: 'f1', basePoints: 8, captainMultiplier: 1, breakdown: {} },
-        { userId: 'u1', totalPoints: 15, playerId: 'p2', roomId: 'r1', fixtureId: 'f1', basePoints: 10, captainMultiplier: 1.5, breakdown: {} },
-        { userId: 'u2', totalPoints: 12, playerId: 'p3', roomId: 'r1', fixtureId: 'f1', basePoints: 12, captainMultiplier: 1, breakdown: {} },
+        {
+          userId: 'u1',
+          totalPoints: 10,
+          playerId: 'p1',
+          roomId: 'r1',
+          fixtureId: 'f1',
+          basePoints: 8,
+          captainMultiplier: 1,
+          breakdown: {},
+        },
+        {
+          userId: 'u1',
+          totalPoints: 15,
+          playerId: 'p2',
+          roomId: 'r1',
+          fixtureId: 'f1',
+          basePoints: 10,
+          captainMultiplier: 1.5,
+          breakdown: {},
+        },
+        {
+          userId: 'u2',
+          totalPoints: 12,
+          playerId: 'p3',
+          roomId: 'r1',
+          fixtureId: 'f1',
+          basePoints: 12,
+          captainMultiplier: 1,
+          breakdown: {},
+        },
       ],
       'r1',
     )
@@ -310,8 +359,26 @@ describe('computeRoomLeaderboard()', () => {
   it('calculates roster value when provided', () => {
     const entries = computeRoomLeaderboard(
       [
-        { userId: 'u1', totalPoints: 10, playerId: 'p1', roomId: 'r1', fixtureId: 'f1', basePoints: 8, captainMultiplier: 1, breakdown: {} },
-        { userId: 'u1', totalPoints: 5, playerId: 'p2', roomId: 'r1', fixtureId: 'f1', basePoints: 5, captainMultiplier: 1, breakdown: {} },
+        {
+          userId: 'u1',
+          totalPoints: 10,
+          playerId: 'p1',
+          roomId: 'r1',
+          fixtureId: 'f1',
+          basePoints: 8,
+          captainMultiplier: 1,
+          breakdown: {},
+        },
+        {
+          userId: 'u1',
+          totalPoints: 5,
+          playerId: 'p2',
+          roomId: 'r1',
+          fixtureId: 'f1',
+          basePoints: 5,
+          captainMultiplier: 1,
+          breakdown: {},
+        },
       ],
       'r1',
       [

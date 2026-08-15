@@ -25,13 +25,17 @@ async function checkTokenVersion(userId: string, tokenVersion: number, prisma: a
     // Fail closed to prevent bypasses during database outages/transient errors
     logger.fatal(
       { event: 'auth.token_version_db_failure', userId, err: (err as Error).message },
-      'Token version DB lookup failed. Denying access (fail closed) to prevent security bypass.'
+      'Token version DB lookup failed. Denying access (fail closed) to prevent security bypass.',
     )
     return false
   }
 }
 
-export const authenticateToken = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+export const authenticateToken = async (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction,
+): Promise<void> => {
   // Check Authorization header first, then fall back to accessToken cookie
   const authHeader = req.headers['authorization']
   let token = authHeader && authHeader.split(' ')[1]

@@ -36,7 +36,7 @@ function createToken(): string {
  */
 function setCsrfCookie(res: Response, token: string): void {
   res.cookie(COOKIE_NAME, token, {
-    httpOnly: false,   // must be readable by JS
+    httpOnly: false, // must be readable by JS
     sameSite: 'strict',
     secure: env.NODE_ENV === 'production',
     path: '/',
@@ -118,8 +118,10 @@ export function csrfProtection(req: Request, res: Response, next: NextFunction):
   }
 
   // Constant-time comparison to prevent timing attacks
-  if (cookieToken.length !== headerToken.length ||
-      !crypto.timingSafeEqual(Buffer.from(cookieToken), Buffer.from(headerToken))) {
+  if (
+    cookieToken.length !== headerToken.length ||
+    !crypto.timingSafeEqual(Buffer.from(cookieToken), Buffer.from(headerToken))
+  ) {
     res.status(403).json({
       error: { code: 'CSRF_TOKEN_MISMATCH', message: 'CSRF token mismatch' },
     })

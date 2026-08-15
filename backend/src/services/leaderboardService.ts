@@ -14,10 +14,10 @@ export interface LeaderboardEntry {
   rank: number
   userId: string
   totalPoints: number
-  entries: number            // Number of fixtures scored
-  avgPoints: number           // Average points per fixture
-  rosterValue: number         // Total cost of drafted players
-  change?: number             // Rank change since last update (optional)
+  entries: number // Number of fixtures scored
+  avgPoints: number // Average points per fixture
+  rosterValue: number // Total cost of drafted players
+  change?: number // Rank change since last update (optional)
 }
 
 export interface RoomLeaderboard {
@@ -59,9 +59,7 @@ export function computeRoomLeaderboard(
       userId,
       totalPoints: data.totalPoints,
       entries: data.entries,
-      avgPoints: data.entries > 0
-        ? Math.round((data.totalPoints / data.entries) * 10) / 10
-        : 0,
+      avgPoints: data.entries > 0 ? Math.round((data.totalPoints / data.entries) * 10) / 10 : 0,
       rosterValue: rosterValueMap[userId] || 0,
     }))
     .sort((a, b) => {
@@ -74,5 +72,3 @@ export function computeRoomLeaderboard(
       rank: index + 1,
     }))
 }
-
-

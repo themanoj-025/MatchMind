@@ -37,10 +37,13 @@ try {
       reconnectStrategy: (retries: number) => {
         // Exponential backoff capped at 3000ms
         const delay = Math.min(retries * 100, 3000)
-        logger.info({ event: 'redis.reconnect_strategy', retries, delay }, `Redis reconnect attempt ${retries}; waiting ${delay}ms`)
+        logger.info(
+          { event: 'redis.reconnect_strategy', retries, delay },
+          `Redis reconnect attempt ${retries}; waiting ${delay}ms`,
+        )
         return delay
-      }
-    }
+      },
+    },
   })
 
   sharedRedisClient.on('connect', () => {
@@ -49,7 +52,10 @@ try {
 
   sharedRedisClient.on('ready', () => {
     redisStoreBacking = 'redis'
-    logger.info({ event: 'redis.ready', storeBacking: redisStoreBacking }, 'Redis client ready. Rate limiting using Redis store.')
+    logger.info(
+      { event: 'redis.ready', storeBacking: redisStoreBacking },
+      'Redis client ready. Rate limiting using Redis store.',
+    )
   })
 
   sharedRedisClient.on('error', (err: any) => {
@@ -58,7 +64,10 @@ try {
 
   sharedRedisClient.on('end', () => {
     redisStoreBacking = 'local-fallback'
-    logger.warn({ event: 'redis.end', storeBacking: redisStoreBacking }, 'Redis connection closed. Rate limiting falling back to local memory.')
+    logger.warn(
+      { event: 'redis.end', storeBacking: redisStoreBacking },
+      'Redis connection closed. Rate limiting falling back to local memory.',
+    )
   })
 
   sharedRedisClient.on('reconnecting', () => {
@@ -66,11 +75,17 @@ try {
   })
 
   sharedRedisClient.connect().catch((err: any) => {
-    logger.warn({ event: 'redis.initial_connection_failed', err: (err as Error).message }, 'Redis initial connection failed; rate limiting using local memory.')
+    logger.warn(
+      { event: 'redis.initial_connection_failed', err: (err as Error).message },
+      'Redis initial connection failed; rate limiting using local memory.',
+    )
   })
 } catch (err: any) {
   sharedRedisClient = null
-  logger.warn({ event: 'redis.initialization_failed', err: (err as Error).message }, 'Redis client initialization failed; rate limiting using local memory.')
+  logger.warn(
+    { event: 'redis.initialization_failed', err: (err as Error).message },
+    'Redis client initialization failed; rate limiting using local memory.',
+  )
 }
 
 // ─── Fallback In-Memory Store ──────────────────────────────
@@ -137,7 +152,7 @@ class HybridStore {
       } catch (err: any) {
         logger.error(
           { event: 'redis.rate_limit_fallback_active', key, err: (err as Error).message },
-          'Redis rate limit store increment failed — falling back to local memory store'
+          'Redis rate limit store increment failed — falling back to local memory store',
         )
       }
     }
@@ -151,7 +166,7 @@ class HybridStore {
       } catch (err: any) {
         logger.error(
           { event: 'redis.rate_limit_fallback_active_decrement', key, err: (err as Error).message },
-          'Redis rate limit store decrement failed — falling back to local memory store'
+          'Redis rate limit store decrement failed — falling back to local memory store',
         )
       }
     }
@@ -165,7 +180,7 @@ class HybridStore {
       } catch (err: any) {
         logger.error(
           { event: 'redis.rate_limit_fallback_active_reset', key, err: (err as Error).message },
-          'Redis rate limit store resetKey failed — falling back to local memory store'
+          'Redis rate limit store resetKey failed — falling back to local memory store',
         )
       }
     }
@@ -187,7 +202,7 @@ function createLimiter(options: LimiterOptions) {
   const windowMs = options.windowMs || 60 * 1000
   const store = new HybridStore({
     prefix: options.prefix,
-    windowMs
+    windowMs,
   })
 
   return rateLimit({

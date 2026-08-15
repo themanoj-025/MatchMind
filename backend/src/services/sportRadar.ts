@@ -33,23 +33,25 @@ export class SportRadarService {
         throw new Error(`SportRadar API error: ${response.statusText}`)
       }
       const data = await response.json()
-      
+
       // Map/validate the data as needed
-      return data.sport_events?.map((event: any) => ({
-        id: event.id,
-        scheduled: event.scheduled,
-        status: event.status,
-        home_team: {
-          id: event.competitors[0].id,
-          name: event.competitors[0].name,
-          alias: event.competitors[0].abbreviation
-        },
-        away_team: {
-          id: event.competitors[1].id,
-          name: event.competitors[1].name,
-          alias: event.competitors[1].abbreviation
-        }
-      })) || []
+      return (
+        data.sport_events?.map((event: any) => ({
+          id: event.id,
+          scheduled: event.scheduled,
+          status: event.status,
+          home_team: {
+            id: event.competitors[0].id,
+            name: event.competitors[0].name,
+            alias: event.competitors[0].abbreviation,
+          },
+          away_team: {
+            id: event.competitors[1].id,
+            name: event.competitors[1].name,
+            alias: event.competitors[1].abbreviation,
+          },
+        })) || []
+      )
     } catch (error: any) {
       logger.error({ event: 'sportradar.fetch_failed', error }, 'Failed to fetch schedule from SportRadar')
       throw error

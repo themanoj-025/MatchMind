@@ -1,11 +1,30 @@
 [
   {
     "tournamentId": "fifa-wc-2026",
-    "slotsByConfederation": { "UEFA": 16, "CAF": 9, "AFC": 8, "CONMEBOL": 6, "CONCACAF": 6, "OFC": 1, "Hosts (auto)": 3 },
+    "slotsByConfederation": {
+      "UEFA": 16,
+      "CAF": 9,
+      "AFC": 8,
+      "CONMEBOL": 6,
+      "CONCACAF": 6,
+      "OFC": 1,
+      "Hosts (auto)": 3
+    },
     "totalSlots": 48,
     "windowStart": "2023-09-01",
     "windowEnd": "2026-03-31",
-    "confirmedTeamIds": ["t1_team_01", "t1_team_02", "t1_team_03", "t1_team_04", "t1_team_05", "t1_team_06", "t1_team_07", "t1_team_08", "t1_team_09", "t1_team_10"],
+    "confirmedTeamIds": [
+      "t1_team_01",
+      "t1_team_02",
+      "t1_team_03",
+      "t1_team_04",
+      "t1_team_05",
+      "t1_team_06",
+      "t1_team_07",
+      "t1_team_08",
+      "t1_team_09",
+      "t1_team_10"
+    ],
     "pendingSlots": 38
   },
   {
@@ -24,7 +43,16 @@
   },
   {
     "tournamentId": "fifa-wwc-2027",
-    "slotsByConfederation": { "UEFA": 11, "CAF": 4, "AFC": 6, "CONMEBOL": 3, "CONCACAF": 4, "OFC": 1, "Hosts (auto)": 1, "Intercontinental playoffs": 3 },
+    "slotsByConfederation": {
+      "UEFA": 11,
+      "CAF": 4,
+      "AFC": 6,
+      "CONMEBOL": 3,
+      "CONCACAF": 4,
+      "OFC": 1,
+      "Hosts (auto)": 1,
+      "Intercontinental playoffs": 3
+    },
     "totalSlots": 32,
     "windowStart": "2025-09-01",
     "windowEnd": "2027-03-31",

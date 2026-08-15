@@ -6,11 +6,15 @@ repos:
         types_or: [javascript, jsx, ts, tsx, json, css, scss, markdown]
 
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.5.0
+    rev: v5.0.0
     hooks:
       - id: trailing-whitespace
       - id: end-of-file-fixer
       - id: check-yaml
+        # k8s/deployment.yaml is a multi-document manifest
+        args: ['--multi']
       - id: check-json
+        # tsconfig files are JSONC (comments allowed) — exclude them
+        exclude: 'tsconfig.*\.json$'
       - id: check-added-large-files
         args: ['--maxkb=1000']

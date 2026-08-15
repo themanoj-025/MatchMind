@@ -148,8 +148,7 @@ export function calculatePlayerPoints(
 
   // Goals conceded (DEF/GK only, only if played)
   if ((position === 'DEF' || position === 'GK') && stats.minutesPlayed > 0 && stats.goalsConceded >= 2) {
-    breakdown.goalsConceded =
-      Math.floor(stats.goalsConceded / 2) * SCORING_RULES.GOALS_CONCEDED_PER_2
+    breakdown.goalsConceded = Math.floor(stats.goalsConceded / 2) * SCORING_RULES.GOALS_CONCEDED_PER_2
   }
 
   return breakdown
@@ -187,8 +186,8 @@ export async function computeFantasyPoints(
   // Determine which captain actually played
   const captainEntry = rosters.find((r) => r.isCaptain)
   const captainPlayed = captainEntry
-    // @ts-ignore
-    ? playerStats[captainEntry.playerId]?.stats.minutesPlayed > 0
+    ? // @ts-ignore
+      playerStats[captainEntry.playerId]?.stats.minutesPlayed > 0
     : false
 
   for (const roster of rosters) {
@@ -197,21 +196,10 @@ export async function computeFantasyPoints(
 
     if (!stats) continue
 
-    const breakdown = calculatePlayerPoints(
-      stats,
-      position,
-      roster.isCaptain,
-      roster.isViceCaptain,
-      captainPlayed,
-    )
+    const breakdown = calculatePlayerPoints(stats, position, roster.isCaptain, roster.isViceCaptain, captainPlayed)
 
     const basePoints = Object.values(breakdown).reduce((sum, val) => sum + val, 0)
-    const totalPoints = applyCaptainMultiplier(
-      basePoints,
-      roster.isCaptain,
-      roster.isViceCaptain,
-      captainPlayed,
-    )
+    const totalPoints = applyCaptainMultiplier(basePoints, roster.isCaptain, roster.isViceCaptain, captainPlayed)
 
     const result: FantasyPointsResult = {
       playerId: roster.playerId,
@@ -219,10 +207,11 @@ export async function computeFantasyPoints(
       roomId: roster.roomId,
       fixtureId,
       basePoints,
-      captainMultiplier:
-        roster.isCaptain ? SCORING_RULES.CAPTAIN_MULTIPLIER
-        : (roster.isViceCaptain && !captainPlayed) ? SCORING_RULES.VICE_CAPTAIN_MULTIPLIER
-        : 1,
+      captainMultiplier: roster.isCaptain
+        ? SCORING_RULES.CAPTAIN_MULTIPLIER
+        : roster.isViceCaptain && !captainPlayed
+          ? SCORING_RULES.VICE_CAPTAIN_MULTIPLIER
+          : 1,
       totalPoints,
       breakdown,
     }

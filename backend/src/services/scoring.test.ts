@@ -47,56 +47,38 @@ function pred(overrides: Partial<PredictionInput> & { homeGoals: number; awayGoa
 describe('calculatePredictionPoints', () => {
   describe('Exact score', () => {
     it('awards 50 + 5 base = 55 pts for exact score match', () => {
-      const result = calculatePredictionPoints(
-        pred({ homeGoals: 2, awayGoals: 1 }),
-        { homeScore: 2, awayScore: 1 },
-      )
+      const result = calculatePredictionPoints(pred({ homeGoals: 2, awayGoals: 1 }), { homeScore: 2, awayScore: 1 })
       expect(result.total).toBe(55)
       expect(result.breakdown.exactScore).toBe(50)
       expect(result.breakdown.base).toBe(5)
     })
 
     it('awards exact score points for a 0-0 draw prediction', () => {
-      const result = calculatePredictionPoints(
-        pred({ homeGoals: 0, awayGoals: 0 }),
-        { homeScore: 0, awayScore: 0 },
-      )
+      const result = calculatePredictionPoints(pred({ homeGoals: 0, awayGoals: 0 }), { homeScore: 0, awayScore: 0 })
       expect(result.total).toBe(55)
     })
 
     it('awards exact score points for a high-scoring match', () => {
-      const result = calculatePredictionPoints(
-        pred({ homeGoals: 5, awayGoals: 3 }),
-        { homeScore: 5, awayScore: 3 },
-      )
+      const result = calculatePredictionPoints(pred({ homeGoals: 5, awayGoals: 3 }), { homeScore: 5, awayScore: 3 })
       expect(result.total).toBe(55)
     })
   })
 
   describe('Correct result + same goal difference', () => {
     it('awards 35 + 5 base = 40 pts for correct result with same GD', () => {
-      const result = calculatePredictionPoints(
-        pred({ homeGoals: 3, awayGoals: 1 }),
-        { homeScore: 2, awayScore: 0 },
-      )
+      const result = calculatePredictionPoints(pred({ homeGoals: 3, awayGoals: 1 }), { homeScore: 2, awayScore: 0 })
       expect(result.total).toBe(40)
       expect(result.breakdown.resultAndGD).toBe(35)
       expect(result.breakdown.base).toBe(5)
     })
 
     it('awards 40 pts for correct draw with same GD (1-1 vs 2-2)', () => {
-      const result = calculatePredictionPoints(
-        pred({ homeGoals: 1, awayGoals: 1 }),
-        { homeScore: 2, awayScore: 2 },
-      )
+      const result = calculatePredictionPoints(pred({ homeGoals: 1, awayGoals: 1 }), { homeScore: 2, awayScore: 2 })
       expect(result.total).toBe(40)
     })
 
     it('does NOT award result+GD if GD differs', () => {
-      const result = calculatePredictionPoints(
-        pred({ homeGoals: 3, awayGoals: 0 }),
-        { homeScore: 2, awayScore: 0 },
-      )
+      const result = calculatePredictionPoints(pred({ homeGoals: 3, awayGoals: 0 }), { homeScore: 2, awayScore: 0 })
       // home win correct, GD is 3 vs 2 — only result correct
       expect(result.total).toBe(30)
       expect(result.breakdown.resultOnly).toBe(25)
@@ -108,7 +90,7 @@ describe('calculatePredictionPoints', () => {
     it('awards 25 + 5 base = 30 pts for correct result (home win, different GD)', () => {
       const result = calculatePredictionPoints(
         pred({ homeGoals: 3, awayGoals: 0 }), // GD: 3
-        { homeScore: 2, awayScore: 1 },        // GD: 1
+        { homeScore: 2, awayScore: 1 }, // GD: 1
       )
       expect(result.total).toBe(30)
       expect(result.breakdown.resultOnly).toBe(25)
@@ -117,7 +99,7 @@ describe('calculatePredictionPoints', () => {
     it('awards 30 pts for correct result (away win, different GD)', () => {
       const result = calculatePredictionPoints(
         pred({ homeGoals: 0, awayGoals: 4 }), // GD: -4
-        { homeScore: 1, awayScore: 3 },       // GD: -2
+        { homeScore: 1, awayScore: 3 }, // GD: -2
       )
       expect(result.total).toBe(30)
       expect(result.breakdown.resultOnly).toBe(25)
@@ -126,7 +108,7 @@ describe('calculatePredictionPoints', () => {
     it('awards 40 pts for correct draw with same GD', () => {
       const result = calculatePredictionPoints(
         pred({ homeGoals: 2, awayGoals: 2 }), // GD: 0
-        { homeScore: 1, awayScore: 1 },       // GD: 0
+        { homeScore: 1, awayScore: 1 }, // GD: 0
       )
       expect(result.total).toBe(40)
       expect(result.breakdown.resultAndGD).toBe(35)
@@ -135,7 +117,7 @@ describe('calculatePredictionPoints', () => {
     it('awards 5 pts when home win predicted but actual is draw (wrong result)', () => {
       const result = calculatePredictionPoints(
         pred({ homeGoals: 3, awayGoals: 2 }), // home win
-        { homeScore: 1, awayScore: 1 },       // draw
+        { homeScore: 1, awayScore: 1 }, // draw
       )
       expect(result.total).toBe(5)
       expect(result.breakdown.base).toBe(5)
@@ -144,10 +126,7 @@ describe('calculatePredictionPoints', () => {
 
   describe('Wrong result', () => {
     it('awards only 5 base pts for wrong result', () => {
-      const result = calculatePredictionPoints(
-        pred({ homeGoals: 0, awayGoals: 2 }),
-        { homeScore: 2, awayScore: 1 },
-      )
+      const result = calculatePredictionPoints(pred({ homeGoals: 0, awayGoals: 2 }), { homeScore: 2, awayScore: 1 })
       expect(result.total).toBe(5)
       expect(result.breakdown.base).toBe(5)
       expect(result.breakdown.exactScore).toBeUndefined()
@@ -156,44 +135,41 @@ describe('calculatePredictionPoints', () => {
     })
 
     it('awards 5 pts for home win predicted but away win actual', () => {
-      const result = calculatePredictionPoints(
-        pred({ homeGoals: 3, awayGoals: 0 }),
-        { homeScore: 0, awayScore: 2 },
-      )
+      const result = calculatePredictionPoints(pred({ homeGoals: 3, awayGoals: 0 }), { homeScore: 0, awayScore: 2 })
       expect(result.total).toBe(5)
     })
   })
 
   describe('BTTS (Both Teams To Score) bonus', () => {
     it('awards +10 BTTS bonus when both teams score and user predicted BTTS yes', () => {
-      const result = calculatePredictionPoints(
-        pred({ homeGoals: 2, awayGoals: 1, btts: true }),
-        { homeScore: 3, awayScore: 2 },
-      )
+      const result = calculatePredictionPoints(pred({ homeGoals: 2, awayGoals: 1, btts: true }), {
+        homeScore: 3,
+        awayScore: 2,
+      })
       expect(result.breakdown.btts).toBe(10)
     })
 
     it('awards +10 BTTS bonus when no team scores and user predicted BTTS no', () => {
-      const result = calculatePredictionPoints(
-        pred({ homeGoals: 0, awayGoals: 0, btts: false }),
-        { homeScore: 0, awayScore: 0 },
-      )
+      const result = calculatePredictionPoints(pred({ homeGoals: 0, awayGoals: 0, btts: false }), {
+        homeScore: 0,
+        awayScore: 0,
+      })
       expect(result.breakdown.btts).toBe(10)
     })
 
     it('does NOT award BTTS bonus when user predicted yes but only one team scores', () => {
-      const result = calculatePredictionPoints(
-        pred({ homeGoals: 1, awayGoals: 0, btts: true }),
-        { homeScore: 1, awayScore: 0 },
-      )
+      const result = calculatePredictionPoints(pred({ homeGoals: 1, awayGoals: 0, btts: true }), {
+        homeScore: 1,
+        awayScore: 0,
+      })
       expect(result.breakdown.btts).toBeUndefined()
     })
 
     it('does NOT award BTTS when user did not predict BTTS', () => {
-      const result = calculatePredictionPoints(
-        pred({ homeGoals: 2, awayGoals: 0, btts: null }),
-        { homeScore: 1, awayScore: 1 },
-      )
+      const result = calculatePredictionPoints(pred({ homeGoals: 2, awayGoals: 0, btts: null }), {
+        homeScore: 1,
+        awayScore: 1,
+      })
       expect(result.breakdown.btts).toBeUndefined()
     })
   })
@@ -234,10 +210,10 @@ describe('calculatePredictionPoints', () => {
 
   describe('Void / no data', () => {
     it('returns 0 points for void match (null scores)', () => {
-      const result = calculatePredictionPoints(
-        pred({ homeGoals: 2, awayGoals: 1 }),
-        { homeScore: null as unknown as number, awayScore: null as unknown as number },
-      )
+      const result = calculatePredictionPoints(pred({ homeGoals: 2, awayGoals: 1 }), {
+        homeScore: null as unknown as number,
+        awayScore: null as unknown as number,
+      })
       expect(result.total).toBe(0)
       expect(result.breakdown.void).toBe(0)
     })
@@ -253,10 +229,10 @@ describe('calculatePredictionPoints', () => {
     })
 
     it('correct result only when BTTS fails', () => {
-      const result = calculatePredictionPoints(
-        pred({ homeGoals: 2, awayGoals: 0, btts: true }),
-        { homeScore: 1, awayScore: 0 },
-      )
+      const result = calculatePredictionPoints(pred({ homeGoals: 2, awayGoals: 0, btts: true }), {
+        homeScore: 1,
+        awayScore: 0,
+      })
       // home win correct (GD differs), BTTS wrong
       expect(result.total).toBe(30)
       expect(result.breakdown.resultOnly).toBe(25)
@@ -297,16 +273,16 @@ describe('scoreMatchPredictions', () => {
   it('scores multiple predictions for the same match', () => {
     const predictions: PredictionInput[] = [
       { ...pred({ homeGoals: 2, awayGoals: 1 }), id: 'p1', userId: 'user-1', matchId },
-      { ...pred({ homeGoals: 3, awayGoals: 0 }), id: 'p2', userId: 'user-2', matchId },  // GD: 3 vs 1 — result only
+      { ...pred({ homeGoals: 3, awayGoals: 0 }), id: 'p2', userId: 'user-2', matchId }, // GD: 3 vs 1 — result only
       { ...pred({ homeGoals: 0, awayGoals: 2 }), id: 'p3', userId: 'user-3', matchId },
     ]
 
     const results = scoreMatchPredictions(matchId, predictions, actualResult)
 
     expect(results).toHaveLength(3)
-    expect(results[0].pointsEarned).toBe(55)  // exact
-    expect(results[1].pointsEarned).toBe(30)  // result only (3-0 vs 2-1, GD differs)
-    expect(results[2].pointsEarned).toBe(5)   // wrong
+    expect(results[0].pointsEarned).toBe(55) // exact
+    expect(results[1].pointsEarned).toBe(30) // result only (3-0 vs 2-1, GD differs)
+    expect(results[2].pointsEarned).toBe(5) // wrong
   })
 
   it('marks wasCorrect for correct predictions', () => {
@@ -321,10 +297,14 @@ describe('scoreMatchPredictions', () => {
   })
 
   it('sets correctResult and exactScore flags correctly', () => {
-    const results = scoreMatchPredictions(matchId, [
-      { ...pred({ homeGoals: 2, awayGoals: 1 }), id: 'p1', userId: 'u1', matchId },
-      { ...pred({ homeGoals: 3, awayGoals: 0 }), id: 'p2', userId: 'u2', matchId },  // GD differs, but correct result
-    ], actualResult)
+    const results = scoreMatchPredictions(
+      matchId,
+      [
+        { ...pred({ homeGoals: 2, awayGoals: 1 }), id: 'p1', userId: 'u1', matchId },
+        { ...pred({ homeGoals: 3, awayGoals: 0 }), id: 'p2', userId: 'u2', matchId }, // GD differs, but correct result
+      ],
+      actualResult,
+    )
 
     expect(results[0].exactScore).toBe(true)
     expect(results[0].correctResult).toBe(true)
@@ -482,11 +462,7 @@ describe('rebuildLeaderboard', () => {
   })
 
   it('ranks users by total points descending', () => {
-    const predictions = [
-      makeScored('user-a', 55, true),
-      makeScored('user-b', 30, true),
-      makeScored('user-c', 5, false),
-    ]
+    const predictions = [makeScored('user-a', 55, true), makeScored('user-b', 30, true), makeScored('user-c', 5, false)]
 
     const entries = rebuildLeaderboard(predictions)
     expect(entries).toHaveLength(3)
@@ -496,11 +472,7 @@ describe('rebuildLeaderboard', () => {
   })
 
   it('assigns correct ranks (1-based)', () => {
-    const predictions = [
-      makeScored('user-a', 55, true),
-      makeScored('user-b', 55, true),
-      makeScored('user-c', 5, false),
-    ]
+    const predictions = [makeScored('user-a', 55, true), makeScored('user-b', 55, true), makeScored('user-c', 5, false)]
 
     const entries = rebuildLeaderboard(predictions)
     expect(entries[0].rank).toBe(1)
@@ -509,37 +481,25 @@ describe('rebuildLeaderboard', () => {
   })
 
   it('aggregates multiple predictions per user', () => {
-    const predictions = [
-      makeScored('user-a', 55, true),
-      makeScored('user-a', 30, true),
-      makeScored('user-b', 55, true),
-    ]
+    const predictions = [makeScored('user-a', 55, true), makeScored('user-a', 30, true), makeScored('user-b', 55, true)]
 
     const entries = rebuildLeaderboard(predictions)
-    const userA = entries.find(e => e.userId === 'user-a')
+    const userA = entries.find((e) => e.userId === 'user-a')
     expect(userA?.totalPoints).toBe(85)
     expect(userA?.totalPredictions).toBe(2)
     expect(userA?.correctPredictions).toBe(2)
   })
 
   it('calculates accuracy as percentage', () => {
-    const predictions = [
-      makeScored('user-a', 55, true),
-      makeScored('user-a', 5, false),
-      makeScored('user-a', 30, true),
-    ]
+    const predictions = [makeScored('user-a', 55, true), makeScored('user-a', 5, false), makeScored('user-a', 30, true)]
 
     const entries = rebuildLeaderboard(predictions)
-    const userA = entries.find(e => e.userId === 'user-a')
+    const userA = entries.find((e) => e.userId === 'user-a')
     expect(userA?.accuracy).toBe(66.7) // 2/3 = 66.666... ≈ 66.7
   })
 
   it('breaks ties by accuracy then streak', () => {
-    const predictions = [
-      makeScored('user-a', 55, true),
-      makeScored('user-b', 55, true),
-      makeScored('user-c', 55, true),
-    ]
+    const predictions = [makeScored('user-a', 55, true), makeScored('user-b', 55, true), makeScored('user-c', 55, true)]
     const entries = rebuildLeaderboard(predictions)
     expect(entries[0].totalPoints).toBe(55)
     expect(entries[1].totalPoints).toBe(55)
@@ -560,14 +520,14 @@ describe('rebuildLeaderboard', () => {
 
   it('computes tier correctly for each entry', () => {
     const predictions = [
-      makeScored('user-a', 55, true),   // BRONZE (0-499)
-      makeScored('user-b', 500, true),  // SILVER (500-1499)
+      makeScored('user-a', 55, true), // BRONZE (0-499)
+      makeScored('user-b', 500, true), // SILVER (500-1499)
       makeScored('user-c', 1500, true), // GOLD (1500-3499)
     ]
 
     const entries = rebuildLeaderboard(predictions)
-    expect(entries.find(e => e.userId === 'user-a')?.tier).toBe('BRONZE')
-    expect(entries.find(e => e.userId === 'user-b')?.tier).toBe('SILVER')
-    expect(entries.find(e => e.userId === 'user-c')?.tier).toBe('GOLD')
+    expect(entries.find((e) => e.userId === 'user-a')?.tier).toBe('BRONZE')
+    expect(entries.find((e) => e.userId === 'user-b')?.tier).toBe('SILVER')
+    expect(entries.find((e) => e.userId === 'user-c')?.tier).toBe('GOLD')
   })
 })

@@ -26,7 +26,7 @@ for (let i = 0; i < secretKeys.length; i++) {
     if (key1 && key2 && jwtSecrets[key1] === jwtSecrets[key2]) {
       logger.fatal(
         { event: 'startup.env_invalid', key1, key2 },
-        `CRITICAL SECURITY ERROR: ${key1} and ${key2} cannot be identical.`
+        `CRITICAL SECURITY ERROR: ${key1} and ${key2} cannot be identical.`,
       )
       process.exit(1)
     }
@@ -74,12 +74,7 @@ app.use(
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        scriptSrc: [
-          "'self'",
-          "'unsafe-eval'",
-          'https://js.stripe.com',
-          'https://www.googletagmanager.com',
-        ],
+        scriptSrc: ["'self'", "'unsafe-eval'", 'https://js.stripe.com', 'https://www.googletagmanager.com'],
         styleSrc: ["'self'", 'https://fonts.googleapis.com'],
         imgSrc: ["'self'", 'data:', 'https:', 'blob:'],
         fontSrc: ["'self'", 'https://fonts.gstatic.com', 'data:'],
@@ -163,24 +158,23 @@ app.use('/api/v1/stripe', stripeRoutes)
 app.use('/api/v1/ai', aiRoutes)
 app.use('/api/v1/draft', draftRoutes)
 
-
 // ─── Prometheus metrics endpoint ────────────────────────────────
 import { metricsMiddleware, metricsEndpoint } from './middleware/metrics'
 app.use(metricsMiddleware)
-app.get(
-  '/api/metrics',
-  async (_req: express.Request, res: express.Response) => {
-    const metrics = await metricsEndpoint()
-    res.setHeader('Content-Type', 'text/plain')
-    res.send(metrics)
-  }
-)
+app.get('/api/metrics', async (_req: express.Request, res: express.Response) => {
+  const metrics = await metricsEndpoint()
+  res.setHeader('Content-Type', 'text/plain')
+  res.send(metrics)
+})
 
 // ─── Global Error Handler ─────────────────────────────────────────────
 import { DomainError } from './errors/DomainError'
 
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
-  logger.error({ event: 'app.unhandled_error', err: (err as Error).message, stack: err.stack, path: req.path }, 'Unhandled exception')
+  logger.error(
+    { event: 'app.unhandled_error', err: (err as Error).message, stack: err.stack, path: req.path },
+    'Unhandled exception',
+  )
 
   if (res.headersSent) {
     return next(err)

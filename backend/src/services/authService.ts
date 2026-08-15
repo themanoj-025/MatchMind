@@ -36,16 +36,10 @@ export function generateTokens(userId: string, tokenVersion?: number): TokenPair
   }
 
   return {
-    accessToken: jwt.sign(
-      { userId, tokenVersion: tokenVersion ?? 0 },
-      jwtSecret,
-      { expiresIn: ACCESS_TOKEN_EXPIRY },
-    ),
-    refreshToken: jwt.sign(
-      { userId, tokenVersion: tokenVersion ?? 0 },
-      refreshSecret,
-      { expiresIn: REFRESH_TOKEN_EXPIRY },
-    ),
+    accessToken: jwt.sign({ userId, tokenVersion: tokenVersion ?? 0 }, jwtSecret, { expiresIn: ACCESS_TOKEN_EXPIRY }),
+    refreshToken: jwt.sign({ userId, tokenVersion: tokenVersion ?? 0 }, refreshSecret, {
+      expiresIn: REFRESH_TOKEN_EXPIRY,
+    }),
   }
 }
 
@@ -60,7 +54,10 @@ export async function getTokenVersion(userId: string, prisma: any): Promise<numb
     })
     return user?.tokenVersion ?? 0
   } catch (err: any) {
-    logger.error({ event: 'auth.token_version_error', userId, err: String(err) }, 'Failed to get token version — denying access')
+    logger.error(
+      { event: 'auth.token_version_error', userId, err: String(err) },
+      'Failed to get token version — denying access',
+    )
     return 0
   }
 }
@@ -147,11 +144,9 @@ export class AuthService {
     })
 
     // Generate and send verification email
-    const verificationToken = jwt.sign(
-      { userId: user.id, purpose: 'email-verification' },
-      env.JWT_SECRET!,
-      { expiresIn: '24h' }
-    )
+    const verificationToken = jwt.sign({ userId: user.id, purpose: 'email-verification' }, env.JWT_SECRET!, {
+      expiresIn: '24h',
+    })
     await sendVerificationEmail(email, verificationToken)
 
     const tokenVersion = await getTokenVersion(user.id, this.deps.userRepository)
@@ -242,7 +237,10 @@ export class AuthService {
    */
   async generatePasswordResetToken(email: string): Promise<void> {
     if (!env.JWT_RESET_SECRET) {
-      logger.error({ event: 'auth.password_reset_secret_missing' }, 'JWT_RESET_SECRET not configured — cannot generate reset tokens')
+      logger.error(
+        { event: 'auth.password_reset_secret_missing' },
+        'JWT_RESET_SECRET not configured — cannot generate reset tokens',
+      )
       return
     }
     const user = await this.deps.userRepository.findByEmail(email)
@@ -250,11 +248,9 @@ export class AuthService {
       // Invalidate existing tokens by bumping tokenVersion when requesting a reset
       const tokenVersion = await revokeTokens(user.id, this.deps.userRepository)
 
-      const resetToken = jwt.sign(
-        { userId: user.id, purpose: 'password-reset', tokenVersion },
-        env.JWT_RESET_SECRET,
-        { expiresIn: '1h' }
-      )
+      const resetToken = jwt.sign({ userId: user.id, purpose: 'password-reset', tokenVersion }, env.JWT_RESET_SECRET, {
+        expiresIn: '1h',
+      })
       await sendPasswordResetEmail(email, resetToken)
     }
     // Always return success to prevent email enumeration
@@ -293,7 +289,7 @@ export class AuthService {
     }
 
     const passwordHash = await argon2.hash(newPassword)
-    
+
     const nextTokenVersion = currentVersion + 1
     await this.deps.userRepository.update(user.id, {
       passwordHash,

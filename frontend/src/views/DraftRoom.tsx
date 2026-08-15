@@ -33,7 +33,6 @@ const DraftTimer: React.FC<{ timerEndsAt: string | null }> = ({ timerEndsAt }) =
   )
 }
 
-
 interface Player {
   id: string
   name: string
@@ -72,20 +71,18 @@ export const DraftRoom: React.FC = () => {
   const [currentPlayer, setCurrentPlayer] = useState<Player | null>(null)
   const [currentBid, setCurrentBid] = useState(0)
   const [currentBidderId, setCurrentBidderId] = useState<string | null>(null)
-  const [timerEndsAt, setTimerEndsAt] = useState<string | null>(null)  
+  const [timerEndsAt, setTimerEndsAt] = useState<string | null>(null)
   const [myBudget, setMyBudget] = useState(0)
   const [roster, setRoster] = useState<RosterItem[]>([])
   const [activeMembers, setActiveMembers] = useState<any[]>([])
   const [chatMessages, setChatMessages] = useState<ChatMsg[]>([])
-  
+
   const [chatInput, setChatInput] = useState('')
   const [bidInput, setBidInput] = useState('')
   const [aiAdvice, setAiAdvice] = useState<any>(null)
   const [aiOpen, setAiOpen] = useState(false)
 
   const chatEndRef = useRef<HTMLDivElement>(null)
-
-
 
   // Scroll chat to bottom
   useEffect(() => {
@@ -130,7 +127,7 @@ export const DraftRoom: React.FC = () => {
       setCurrentBid(data.amount)
       setCurrentBidderId(data.userId)
       setTimerEndsAt(data.timerEndsAt)
-      
+
       // Update local budget state for the bidder
       if (data.userId === user?.id) {
         setMyBudget(data.remainingBudget)
@@ -142,7 +139,10 @@ export const DraftRoom: React.FC = () => {
     })
 
     newSocket.on('PLAYER_SOLD', (data: any) => {
-      showToast(`Player sold to ${data.buyerId === user?.id ? 'you' : 'another manager'} for $${data.price}M!`, 'success')
+      showToast(
+        `Player sold to ${data.buyerId === user?.id ? 'you' : 'another manager'} for $${data.price}M!`,
+        'success',
+      )
       // Room state updates automatically on server tick, but clear local bids
       setBidInput('')
     })
@@ -200,8 +200,8 @@ export const DraftRoom: React.FC = () => {
         },
         onError: (err: any) => {
           showToast(err.message || 'Failed to fetch AI insights', 'error')
-        }
-      }
+        },
+      },
     )
   }
 
@@ -212,7 +212,10 @@ export const DraftRoom: React.FC = () => {
       {/* Header bar */}
       <header className="border-b border-white/5 bg-[#050506]/80 backdrop-blur-md px-6 py-4 flex items-center justify-between z-10">
         <div className="flex items-center gap-4">
-          <button onClick={() => navigate('/lobby')} className="p-2 hover:bg-white/5 rounded-lg text-foreground-muted hover:text-white transition-all cursor-pointer">
+          <button
+            onClick={() => navigate('/lobby')}
+            className="p-2 hover:bg-white/5 rounded-lg text-foreground-muted hover:text-white transition-all cursor-pointer"
+          >
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div>
@@ -241,14 +244,21 @@ export const DraftRoom: React.FC = () => {
               <Trophy className="w-4 h-4 text-accent" /> Active Roster ({roster.length}/11)
             </h3>
             {roster.length === 0 ? (
-              <p className="text-xs text-foreground-muted text-center my-auto">Roster is empty. Place bids to acquire players.</p>
+              <p className="text-xs text-foreground-muted text-center my-auto">
+                Roster is empty. Place bids to acquire players.
+              </p>
             ) : (
               <div className="space-y-2 overflow-y-auto flex-1 max-h-[300px] pr-1">
                 {roster.map((item) => (
-                  <div key={item.id} className="flex justify-between items-center p-2 rounded bg-white/[0.02] border border-white/5 text-xs">
+                  <div
+                    key={item.id}
+                    className="flex justify-between items-center p-2 rounded bg-white/[0.02] border border-white/5 text-xs"
+                  >
                     <div>
                       <p className="font-semibold">{item.player?.name}</p>
-                      <span className="text-[10px] text-foreground-muted uppercase font-mono">{item.player?.position} • {item.player?.club}</span>
+                      <span className="text-[10px] text-foreground-muted uppercase font-mono">
+                        {item.player?.position} • {item.player?.club}
+                      </span>
                     </div>
                     <span className="font-mono text-emerald-400 font-semibold">${item.soldPrice}M</span>
                   </div>
@@ -281,9 +291,13 @@ export const DraftRoom: React.FC = () => {
               <>
                 <div className="flex justify-between items-start">
                   <div>
-                    <span className="text-[10px] uppercase font-mono tracking-widest text-accent bg-accent/10 border border-accent/20 px-2 py-0.5 rounded">Current Target</span>
+                    <span className="text-[10px] uppercase font-mono tracking-widest text-accent bg-accent/10 border border-accent/20 px-2 py-0.5 rounded">
+                      Current Target
+                    </span>
                     <h2 className="text-4xl font-bold tracking-tight mt-3">{currentPlayer.name}</h2>
-                    <p className="text-sm text-foreground-muted uppercase font-mono mt-1">{currentPlayer.position} • {currentPlayer.club}</p>
+                    <p className="text-sm text-foreground-muted uppercase font-mono mt-1">
+                      {currentPlayer.position} • {currentPlayer.club}
+                    </p>
                   </div>
                   <div className="flex flex-col items-end">
                     <span className="text-xs text-foreground-muted uppercase font-mono">Bidding Ends In</span>
@@ -296,7 +310,10 @@ export const DraftRoom: React.FC = () => {
                   <span className="text-xs text-foreground-muted uppercase font-mono">High Bid</span>
                   <h3 className="text-6xl font-black font-mono text-gradient-accent mt-2">${currentBid}M</h3>
                   <p className="text-xs text-foreground-muted mt-4">
-                    High Bidder: <span className="font-semibold text-foreground">{currentBidderId === user?.id ? 'You' : currentBidderId || 'None'}</span>
+                    High Bidder:{' '}
+                    <span className="font-semibold text-foreground">
+                      {currentBidderId === user?.id ? 'You' : currentBidderId || 'None'}
+                    </span>
                   </p>
                 </div>
 
@@ -309,14 +326,18 @@ export const DraftRoom: React.FC = () => {
                     onChange={(e) => setBidInput(e.target.value)}
                     className="flex-1 text-center font-mono py-6 text-lg"
                   />
-                  <Button type="submit" className="px-8 py-6 font-semibold">Place Bid</Button>
+                  <Button type="submit" className="px-8 py-6 font-semibold">
+                    Place Bid
+                  </Button>
                 </form>
               </>
             ) : (
               <div className="my-auto text-center space-y-4">
                 <span className="w-3 h-3 rounded-full bg-amber-500 animate-ping mx-auto block" />
                 <h3 className="text-xl font-semibold">Waiting for Draft Manager to submit next player</h3>
-                <p className="text-sm text-foreground-muted">The board will update instantly once the auction commences.</p>
+                <p className="text-sm text-foreground-muted">
+                  The board will update instantly once the auction commences.
+                </p>
               </div>
             )}
           </Card>
@@ -351,7 +372,9 @@ export const DraftRoom: React.FC = () => {
               onChange={(e) => setChatInput(e.target.value)}
               className="flex-1 text-xs"
             />
-            <Button type="submit" className="px-4 py-3 text-xs">Send</Button>
+            <Button type="submit" className="px-4 py-3 text-xs">
+              Send
+            </Button>
           </form>
         </div>
       </main>
@@ -364,37 +387,61 @@ export const DraftRoom: React.FC = () => {
               <h3 className="text-lg font-semibold flex items-center gap-2 text-gradient-accent">
                 <Sparkles className="w-5 h-5 text-accent" /> AI Advisor Insights
               </h3>
-              <button onClick={() => setAiOpen(false)} className="text-foreground-muted hover:text-white cursor-pointer text-sm">Close</button>
+              <button
+                onClick={() => setAiOpen(false)}
+                className="text-foreground-muted hover:text-white cursor-pointer text-sm"
+              >
+                Close
+              </button>
             </div>
 
             {aiAdviceMutation.isPending ? (
               <div className="space-y-4 pt-12 text-center">
                 <div className="w-6 h-6 border-2 border-accent border-t-transparent rounded-full animate-spin mx-auto" />
-                <p className="text-xs text-foreground-muted font-mono">Formulating strategy and evaluating roster needs...</p>
+                <p className="text-xs text-foreground-muted font-mono">
+                  Formulating strategy and evaluating roster needs...
+                </p>
               </div>
             ) : aiAdvice ? (
               <div className="space-y-6 text-sm">
                 <div>
-                  <h4 className="text-xs font-semibold uppercase tracking-wider text-foreground-muted mb-1.5">Strategy Summary</h4>
-                  <p className="text-foreground-subtle leading-relaxed bg-white/[0.02] border border-white/5 p-3 rounded">{aiAdvice.summary}</p>
+                  <h4 className="text-xs font-semibold uppercase tracking-wider text-foreground-muted mb-1.5">
+                    Strategy Summary
+                  </h4>
+                  <p className="text-foreground-subtle leading-relaxed bg-white/[0.02] border border-white/5 p-3 rounded">
+                    {aiAdvice.summary}
+                  </p>
                 </div>
                 <div>
-                  <h4 className="text-xs font-semibold uppercase tracking-wider text-foreground-muted mb-1.5">Position Focus</h4>
-                  <p className="text-foreground-subtle bg-white/[0.02] border border-white/5 p-3 rounded font-mono">{JSON.stringify(aiAdvice.positionNeeds || aiAdvice.positionFocus)}</p>
+                  <h4 className="text-xs font-semibold uppercase tracking-wider text-foreground-muted mb-1.5">
+                    Position Focus
+                  </h4>
+                  <p className="text-foreground-subtle bg-white/[0.02] border border-white/5 p-3 rounded font-mono">
+                    {JSON.stringify(aiAdvice.positionNeeds || aiAdvice.positionFocus)}
+                  </p>
                 </div>
                 <div>
-                  <h4 className="text-xs font-semibold uppercase tracking-wider text-foreground-muted mb-1.5">Suggested Targets</h4>
+                  <h4 className="text-xs font-semibold uppercase tracking-wider text-foreground-muted mb-1.5">
+                    Suggested Targets
+                  </h4>
                   <div className="space-y-2">
                     {aiAdvice.targets?.map((target: string, index: number) => (
-                      <div key={index} className="p-2 rounded bg-accent/5 border border-accent/20 text-xs font-semibold text-accent-bright">
+                      <div
+                        key={index}
+                        className="p-2 rounded bg-accent/5 border border-accent/20 text-xs font-semibold text-accent-bright"
+                      >
                         {target}
                       </div>
                     ))}
                   </div>
                 </div>
                 <div>
-                  <h4 className="text-xs font-semibold uppercase tracking-wider text-foreground-muted mb-1.5">Budget Allocation Advice</h4>
-                  <p className="text-foreground-subtle leading-relaxed bg-white/[0.02] border border-white/5 p-3 rounded">{aiAdvice.budgetAdvice}</p>
+                  <h4 className="text-xs font-semibold uppercase tracking-wider text-foreground-muted mb-1.5">
+                    Budget Allocation Advice
+                  </h4>
+                  <p className="text-foreground-subtle leading-relaxed bg-white/[0.02] border border-white/5 p-3 rounded">
+                    {aiAdvice.budgetAdvice}
+                  </p>
                 </div>
               </div>
             ) : (
@@ -402,7 +449,11 @@ export const DraftRoom: React.FC = () => {
             )}
           </div>
 
-          <Button onClick={requestAiAdvice} className="w-full py-4 text-xs font-semibold" disabled={aiAdviceMutation.isPending}>
+          <Button
+            onClick={requestAiAdvice}
+            className="w-full py-4 text-xs font-semibold"
+            disabled={aiAdviceMutation.isPending}
+          >
             Recalculate Strategy
           </Button>
         </div>

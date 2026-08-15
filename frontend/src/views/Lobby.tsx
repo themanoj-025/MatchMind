@@ -8,8 +8,6 @@ import { Card } from '../components/Card'
 import { Layers, Plus, LogOut, Trophy } from 'lucide-react'
 import { useRooms, useCreateRoom } from '../hooks/useRooms'
 
-
-
 export const Lobby: React.FC = () => {
   const [newRoomName, setNewRoomName] = useState('')
   const [budget, setBudget] = useState(200)
@@ -45,7 +43,7 @@ export const Lobby: React.FC = () => {
         onError: (err: any) => {
           showToast(err.message || 'Failed to create room', 'error')
         },
-      }
+      },
     )
   }
 
@@ -63,7 +61,11 @@ export const Lobby: React.FC = () => {
           <Button variant="ghost" className="flex items-center gap-2" onClick={() => navigate('/leaderboard')}>
             <Trophy className="w-4 h-4" /> Leaderboard
           </Button>
-          <Button variant="secondary" className="flex items-center gap-2 border-white/5 bg-white/[0.02]" onClick={logout}>
+          <Button
+            variant="secondary"
+            className="flex items-center gap-2 border-white/5 bg-white/[0.02]"
+            onClick={logout}
+          >
             <LogOut className="w-4 h-4" /> Log Out
           </Button>
         </div>
@@ -80,15 +82,22 @@ export const Lobby: React.FC = () => {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {rooms.map((room) => (
-                <Card key={room.id} className="p-6 border-white/5 bg-white/[0.01] hover:bg-white/[0.03] transition-all duration-300">
+                <Card
+                  key={room.id}
+                  className="p-6 border-white/5 bg-white/[0.01] hover:bg-white/[0.03] transition-all duration-300"
+                >
                   <div className="flex justify-between items-start mb-4">
                     <div>
                       <h3 className="text-lg font-semibold">{room.name}</h3>
-                      <span className={`inline-block text-[10px] uppercase font-mono px-2 py-0.5 rounded-full mt-1.5 ${
-                        room.status === 'DRAFTING' ? 'bg-emerald-500/20 text-emerald-300' :
-                        room.status === 'COMPLETED' ? 'bg-indigo-500/20 text-indigo-300' :
-                        'bg-amber-500/20 text-amber-300'
-                      }`}>
+                      <span
+                        className={`inline-block text-[10px] uppercase font-mono px-2 py-0.5 rounded-full mt-1.5 ${
+                          room.status === 'DRAFTING'
+                            ? 'bg-emerald-500/20 text-emerald-300'
+                            : room.status === 'COMPLETED'
+                              ? 'bg-indigo-500/20 text-indigo-300'
+                              : 'bg-amber-500/20 text-amber-300'
+                        }`}
+                      >
                         {room.status}
                       </span>
                     </div>
@@ -114,7 +123,9 @@ export const Lobby: React.FC = () => {
             </h3>
             <form onSubmit={handleCreateRoom} className="space-y-4">
               <div>
-                <label className="text-xs font-semibold uppercase tracking-wider text-foreground-muted block mb-1">Chamber Name</label>
+                <label className="text-xs font-semibold uppercase tracking-wider text-foreground-muted block mb-1">
+                  Chamber Name
+                </label>
                 <Input
                   placeholder="Premier League Draft #12"
                   value={newRoomName}
@@ -123,7 +134,9 @@ export const Lobby: React.FC = () => {
                 />
               </div>
               <div>
-                <label className="text-xs font-semibold uppercase tracking-wider text-foreground-muted block mb-1">Budget ($ Millions)</label>
+                <label className="text-xs font-semibold uppercase tracking-wider text-foreground-muted block mb-1">
+                  Budget ($ Millions)
+                </label>
                 <Input
                   type="number"
                   placeholder="200"

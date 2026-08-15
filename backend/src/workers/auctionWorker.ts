@@ -21,7 +21,7 @@ export const auctionWorker = new Worker(
       // Execute the timer check logic that was previously in the polling loop
       const result = await checkAuctionTimer(
         roomId,
-  // @ts-ignore
+        // @ts-ignore
         async (id: string) => {
           const state = await prisma.auctionState.findUnique({ where: { roomId: id } })
           return state ? (state as unknown) : null
@@ -66,7 +66,7 @@ export const auctionWorker = new Worker(
         if (!room) return
 
         const stateBefore = await prisma.auctionState.findUnique({ where: { roomId } })
-        
+
         // We broadcast based on the result action
         if (result.action === 'SOLD_AND_NEXT') {
           io_instance.to(`room:${roomId}`).emit('PLAYER_SOLD', {
@@ -87,12 +87,10 @@ export const auctionWorker = new Worker(
           io_instance.to(`room:${roomId}`).emit('AUCTION_FINISHED', { roomId })
           logger.info({ event: 'auction.timer_finished', roomId })
         } else if (result.state?.phase === 'RE_AUCTION') {
-          io_instance
-            .to(`room:${roomId}`)
-            .emit('RE_AUCTION_STARTED', { roomId })
+          io_instance.to(`room:${roomId}`).emit('RE_AUCTION_STARTED', { roomId })
           logger.info({ event: 'auction.timer_re_auction', roomId })
         }
-        
+
         // If a new player is live, we need to schedule a new timer
         if (result.state?.phase === 'PLAYER_LIVE' && result.state.timerEndsAt) {
           const delay = new Date(result.state.timerEndsAt).getTime() - Date.now()
@@ -106,7 +104,7 @@ export const auctionWorker = new Worker(
 
       return { success: true }
     } catch (err: any) {
-  // @ts-ignore
+      // @ts-ignore
       if (err instanceof ConcurrencyError || err.code === 'CONCURRENCY_ERROR') {
         logger.warn({ event: 'worker.auction.concurrency', roomId }, 'Concurrency conflict in worker, ignoring')
       } else {
@@ -116,13 +114,16 @@ export const auctionWorker = new Worker(
     }
   },
   {
-  // @ts-ignore
+    // @ts-ignore
     connection: redis as unknown,
-  }
+  },
 )
 
 auctionWorker.on('failed', (job, err) => {
-  logger.error({ event: 'worker.auction.job_failed', jobId: job?.id, err: (err as Error).message }, 'Auction timer job failed')
+  logger.error(
+    { event: 'worker.auction.job_failed', jobId: job?.id, err: (err as Error).message },
+    'Auction timer job failed',
+  )
 })
 
 logger.info({ event: 'worker.auction.started', queue: QUEUE_NAME }, 'Auction worker listening for jobs')

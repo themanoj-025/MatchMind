@@ -14,13 +14,13 @@ import { redis } from './lib/redis'
 
 // Initialize container with PROXY mode (classic DI behavior)
 export const container = createContainer({
-  injectionMode: InjectionMode.PROXY
+  injectionMode: InjectionMode.PROXY,
 })
 
 // Register Prisma and Redis
 container.register({
   prisma: asValue(prisma),
-  redis: asValue(redis)
+  redis: asValue(redis),
 })
 
 // Create repositories

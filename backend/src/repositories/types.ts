@@ -139,11 +139,7 @@ export interface IAdminLogRepository {
     targetType?: string | null
     detail?: Record<string, unknown>
   }): Promise<unknown>
-  findMany(opts: {
-    orderBy?: Record<string, 'asc' | 'desc'>
-    take?: number
-    skip?: number
-  }): Promise<unknown[]>
+  findMany(opts: { orderBy?: Record<string, 'asc' | 'desc'>; take?: number; skip?: number }): Promise<unknown[]>
   count(where?: Record<string, unknown>): Promise<number>
 }
 

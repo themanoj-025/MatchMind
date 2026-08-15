@@ -31,30 +31,48 @@ const breakers = new Map<string, CircuitBreaker>()
 function createBreaker(options: BreakerOptions): CircuitBreaker {
   // The breaker wraps a generic action executor.
   // The actual action function is passed as the first argument to fire().
-  const breaker = new CircuitBreaker(async (actionFn: () => any) => {
-    return actionFn()
-  }, {
-    timeout: options.timeout ?? 10_000,
-    errorThresholdPercentage: options.errorThresholdPercentage ?? 50,
-    resetTimeout: options.resetTimeout ?? 30_000,
-    volumeThreshold: options.volumeThreshold ?? 3,
-    name: options.name,
-  })
+  const breaker = new CircuitBreaker(
+    async (actionFn: () => any) => {
+      return actionFn()
+    },
+    {
+      timeout: options.timeout ?? 10_000,
+      errorThresholdPercentage: options.errorThresholdPercentage ?? 50,
+      resetTimeout: options.resetTimeout ?? 30_000,
+      volumeThreshold: options.volumeThreshold ?? 3,
+      name: options.name,
+    },
+  )
 
-  breaker.on('open', () => logger.warn({
-    event: 'circuit_breaker.open',
-    service: options.name,
-  }, `Circuit breaker OPEN for ${options.name}`))
+  breaker.on('open', () =>
+    logger.warn(
+      {
+        event: 'circuit_breaker.open',
+        service: options.name,
+      },
+      `Circuit breaker OPEN for ${options.name}`,
+    ),
+  )
 
-  breaker.on('halfOpen', () => logger.info({
-    event: 'circuit_breaker.half_open',
-    service: options.name,
-  }, `Circuit breaker half-open for ${options.name}`))
+  breaker.on('halfOpen', () =>
+    logger.info(
+      {
+        event: 'circuit_breaker.half_open',
+        service: options.name,
+      },
+      `Circuit breaker half-open for ${options.name}`,
+    ),
+  )
 
-  breaker.on('close', () => logger.info({
-    event: 'circuit_breaker.close',
-    service: options.name,
-  }, `Circuit breaker CLOSED for ${options.name}`))
+  breaker.on('close', () =>
+    logger.info(
+      {
+        event: 'circuit_breaker.close',
+        service: options.name,
+      },
+      `Circuit breaker CLOSED for ${options.name}`,
+    ),
+  )
 
   breakers.set(options.name, breaker)
   return breaker
@@ -72,17 +90,17 @@ function getBreaker(name: string): CircuitBreaker {
  * Wrap an external API call with a circuit breaker.
  * Returns null if the circuit is open (caller must handle gracefully).
  */
-export async function withBreaker<T>(
-  serviceName: string,
-  action: () => Promise<T>,
-): Promise<T | null> {
+export async function withBreaker<T>(serviceName: string, action: () => Promise<T>): Promise<T | null> {
   const breaker = getBreaker(serviceName)
 
   if (breaker.opened) {
-    logger.info({
-      event: 'circuit_breaker.open_skip',
-      service: serviceName,
-    }, `Circuit open for ${serviceName} — skipping call`)
+    logger.info(
+      {
+        event: 'circuit_breaker.open_skip',
+        service: serviceName,
+      },
+      `Circuit open for ${serviceName} — skipping call`,
+    )
     return null
   }
 
@@ -90,21 +108,48 @@ export async function withBreaker<T>(
     const result = await breaker.fire(action)
     return result as T
   } catch (err: any) {
-    logger.warn({
-      event: 'circuit_breaker.fallback',
-      service: serviceName,
-      err: err instanceof Error ? (err as Error).message : String(err),
-    }, `Call failed for ${serviceName} — returning null`)
+    logger.warn(
+      {
+        event: 'circuit_breaker.fallback',
+        service: serviceName,
+        err: err instanceof Error ? (err as Error).message : String(err),
+      },
+      `Call failed for ${serviceName} — returning null`,
+    )
     return null
   }
 }
 
 // ─── Pre-configured Breakers ───────────────────────────
 
-createBreaker({ name: 'stripe', timeout: 15_000, errorThresholdPercentage: 40, resetTimeout: 60_000, volumeThreshold: 5 })
-createBreaker({ name: 'anthropic', timeout: 30_000, errorThresholdPercentage: 50, resetTimeout: 30_000, volumeThreshold: 3 })
-createBreaker({ name: 'email', timeout: 10_000, errorThresholdPercentage: 50, resetTimeout: 30_000, volumeThreshold: 3 })
-createBreaker({ name: 'sportradar', timeout: 15_000, errorThresholdPercentage: 50, resetTimeout: 30_000, volumeThreshold: 3 })
+createBreaker({
+  name: 'stripe',
+  timeout: 15_000,
+  errorThresholdPercentage: 40,
+  resetTimeout: 60_000,
+  volumeThreshold: 5,
+})
+createBreaker({
+  name: 'anthropic',
+  timeout: 30_000,
+  errorThresholdPercentage: 50,
+  resetTimeout: 30_000,
+  volumeThreshold: 3,
+})
+createBreaker({
+  name: 'email',
+  timeout: 10_000,
+  errorThresholdPercentage: 50,
+  resetTimeout: 30_000,
+  volumeThreshold: 3,
+})
+createBreaker({
+  name: 'sportradar',
+  timeout: 15_000,
+  errorThresholdPercentage: 50,
+  resetTimeout: 30_000,
+  volumeThreshold: 3,
+})
 
 /**
  * Returns the current state of all circuit breakers.

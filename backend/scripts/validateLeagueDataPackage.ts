@@ -108,14 +108,11 @@ function main() {
   const targetId = process.argv[2]
   const registry = loadRegistry()
 
-  const toValidate = targetId
-    ? registry.filter((t: any) => t.id === targetId)
-    : registry
+  const toValidate = targetId ? registry.filter((t: any) => t.id === targetId) : registry
 
   if (toValidate.length === 0) {
-    console.error(targetId
-      ? `❌ Tournament "${targetId}" not found in registry`
-      : '❌ No tournaments found in registry'
+    console.error(
+      targetId ? `❌ Tournament "${targetId}" not found in registry` : '❌ No tournaments found in registry',
     )
     process.exit(1)
   }

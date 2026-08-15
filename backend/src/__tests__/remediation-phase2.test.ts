@@ -3,7 +3,6 @@ import { acquireLock } from '../services/lockService'
 import { redis } from '../lib/redis'
 
 describe('Remediation Phase 2 Tests — Distributed Lock & OCC', () => {
-
   describe('Lock Service fallback', () => {
     it('should degrade to local mutex if Redis is offline', async () => {
       // Temporarily mock redis status

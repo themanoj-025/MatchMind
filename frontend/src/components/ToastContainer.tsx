@@ -14,8 +14,8 @@ export const ToastContainer = () => {
             toast.type === 'success'
               ? 'bg-emerald-500/20 text-emerald-300'
               : toast.type === 'error'
-              ? 'bg-rose-500/20 text-rose-300'
-              : 'bg-indigo-500/20 text-indigo-300'
+                ? 'bg-rose-500/20 text-rose-300'
+                : 'bg-indigo-500/20 text-indigo-300'
           }`}
         >
           {toast.message}

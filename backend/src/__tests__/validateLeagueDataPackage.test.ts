@@ -92,7 +92,10 @@ describe('validateLeagueDataPackage', () => {
       23, // squadSize
       [{ id: 'team-1' }, { id: 'team-2' }, { id: 'team-3' }, { id: 'team-4' }],
       Array.from({ length: 23 }, (_, i) => ({ id: `p${i}` })),
-      [{ ...baseFixture, id: 'f1' }, { ...baseFixture, id: 'f2', venueId: 'venue-1' }],
+      [
+        { ...baseFixture, id: 'f1' },
+        { ...baseFixture, id: 'f2', venueId: 'venue-1' },
+      ],
       [{ id: 'venue-1' }],
       [{ pastWinners: [{ year: 2022 }, { year: 2018 }, { year: 2014 }] }],
     )
@@ -109,10 +112,13 @@ describe('validateLeagueDataPackage', () => {
   it('fails with insufficient players', () => {
     const result = validateDataPackage(
       'test',
-      4, 23,
+      4,
+      23,
       [{ id: 'team-1' }],
       Array.from({ length: 5 }, (_, i) => ({ id: `p${i}` })),
-      [], [], [],
+      [],
+      [],
+      [],
     )
     expect(result.passed).toBe(false)
     expect(result.errors[0]).toContain('Expected at least 20 players')
@@ -121,7 +127,8 @@ describe('validateLeagueDataPackage', () => {
   it('fails when fixture references unknown team', () => {
     const result = validateDataPackage(
       'test',
-      2, 23,
+      2,
+      23,
       [{ id: 'team-1' }], // only 1 team
       Array.from({ length: 23 }, (_, i) => ({ id: `p${i}` })),
       [{ ...baseFixture, id: 'f1', homeTeamId: 'team-1', awayTeamId: 'unknown-team' }],
@@ -135,7 +142,8 @@ describe('validateLeagueDataPackage', () => {
   it('warns when fixture references unknown venue', () => {
     const result = validateDataPackage(
       'test',
-      2, 23,
+      2,
+      23,
       [{ id: 'team-1' }, { id: 'team-2' }],
       Array.from({ length: 23 }, (_, i) => ({ id: `p${i}` })),
       [{ ...baseFixture, id: 'f1', venueId: 'unknown-venue' }],
@@ -149,7 +157,8 @@ describe('validateLeagueDataPackage', () => {
   it('warns with less than 3 past winners', () => {
     const result = validateDataPackage(
       'test',
-      2, 23,
+      2,
+      23,
       [{ id: 'team-1' }, { id: 'team-2' }],
       Array.from({ length: 23 }, (_, i) => ({ id: `p${i}` })),
       [],
