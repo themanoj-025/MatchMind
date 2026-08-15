@@ -38,3 +38,17 @@ updates:
     ignore:
       - dependency-name: '@types/*'
         update-types: ['version-update:semver-patch']
+
+  - package-ecosystem: "pre-commit"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Kolkata"
+    labels:
+      - "dependencies"
+      - "pre-commit"
+    commit-message:
+      prefix: "chore(deps)"
+      include: "scope"
