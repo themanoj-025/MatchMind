@@ -154,7 +154,7 @@ export const setupSocket = (io: Server, prisma: DatabaseClient): void => {
         }
       }
 
-      next()
+      return next()
     } catch (err: unknown) {
       return next(new Error('Invalid or expired token'))
     }
@@ -301,14 +301,7 @@ export const setupSocket = (io: Server, prisma: DatabaseClient): void => {
               userId: socket.userId,
               expectedVersion: data.expectedVersion,
             } as BidRequest,
-            helpers.getRoom,
-            helpers.getPlayer,
-            helpers.getRoomMember,
-            helpers.getRoster,
-            helpers.getAuctionState,
-            helpers.saveAuctionState,
-            helpers.saveBid,
-            helpers.getPlayerPool,
+            helpers,
           )
 
           if (result.accepted && result.newState) {

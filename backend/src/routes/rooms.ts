@@ -70,7 +70,7 @@ router.post(
       req.userId!,
     )
     logger.info({ event: 'room.created', roomId: room.id, tournamentId, hostId: req.userId })
-    res.status(201).json(room)
+    return res.status(201).json(room)
   },
 )
 // GET /api/rooms/mine — list user's rooms
@@ -96,7 +96,7 @@ router.get('/:id', async (req, res) => {
   if (!room) {
     return res.status(404).json({ error: { code: 'ROOM_NOT_FOUND', message: 'Room not found' } })
   }
-  res.json(room)
+  return res.json(room)
 })
 // GET /api/rooms/:id/members — list members with ready status
 openapiRegistry.registerPath({
@@ -148,7 +148,7 @@ router.post(
       io.to(`room:${room.id}`).emit('MEMBER_JOINED', { roomId: room.id, member: fullMember })
     }
     logger.info({ event: 'room.joined', roomId: room.id, userId: req.userId })
-    res.status(201).json(member)
+    return res.status(201).json(member)
   },
 )
 // PATCH /api/rooms/:id/ready — toggle ready status in lobby
@@ -179,7 +179,7 @@ router.patch('/:id/ready', authenticateToken, async (req: AuthenticatedRequest, 
       member: updated,
     })
   }
-  res.json({ isReady: updated.isReady, member: updated })
+  return res.json({ isReady: updated.isReady, member: updated })
 })
 // POST /api/rooms/:id/regenerate-invite — host regenerates invite code
 openapiRegistry.registerPath({
@@ -208,7 +208,7 @@ router.post('/:id/regenerate-invite', authenticateToken, async (req: Authenticat
   }
   await roomService.updateInviteCode(room.id, inviteCode)
   logger.info({ event: 'room.invite_regenerated', roomId: room.id })
-  res.json({ inviteCode })
+  return res.json({ inviteCode })
 })
 // GET /api/rooms/:id/leaderboard — per-room fantasy leaderboard (derived view)
 openapiRegistry.registerPath({
@@ -225,7 +225,7 @@ router.get('/:id/leaderboard', async (req, res) => {
   }
   // Compute the leaderboard as a derived view
   const entries = computeRoomLeaderboard(data.ledger, roomId, data.rosters)
-  res.json({
+  return res.json({
     roomId,
     tournamentId: data.tournamentId,
     entries,

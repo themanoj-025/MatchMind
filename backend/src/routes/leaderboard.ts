@@ -30,7 +30,7 @@ router.get('/rooms/:roomId', async (req, res) => {
   if (payload.error === 'ROOM_NOT_FOUND') {
     return res.status(404).json({ error: { code: 'ROOM_NOT_FOUND', message: 'Room not found' } })
   }
-  res.json(payload)
+  return res.json(payload)
 })
 // GET /api/leaderboard/global — deprecated, redirects to a default tournament
 openapiRegistry.registerPath({

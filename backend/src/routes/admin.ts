@@ -221,7 +221,7 @@ router.get('/users/:id', async (req: AuthenticatedRequest, res) => {
     },
   })
   if (!user) {return res.status(404).json({ error: { code: 'USER_NOT_FOUND', message: 'User not found' } })}
-  res.json({ user })
+  return res.json({ user })
 })
 /**
  * PATCH /api/admin/users/:id
@@ -297,7 +297,7 @@ router.post('/users/:id/toggle-pro', async (req: AuthenticatedRequest, res) => {
     wasPro: user.isPro,
     nowPro: !user.isPro,
   })
-  res.json({ user: updated })
+  return res.json({ user: updated })
 })
 // ─── FIXTURE MANAGEMENT ─────────────────────────────────
 /**
@@ -510,7 +510,7 @@ router.post('/settings/draft-mode/:tournamentId/:action', async (req: Authentica
     getAdminService(req).logAction(req.userId!, 'DRAFT_MODE_ENABLED', tournamentId, 'tournament', {
       validationPassed: true,
     })
-    res.json({
+    return res.json({
       message: `Draft Mode enabled for ${tournamentId}`,
       tournamentId,
       validation: validationResult,
@@ -522,15 +522,15 @@ router.post('/settings/draft-mode/:tournamentId/:action', async (req: Authentica
       .filter(Boolean)
     env.DRAFT_ENABLED_TOURNAMENTS = current.filter((id) => id !== tournamentId).join(',')
     getAdminService(req).logAction(req.userId!, 'DRAFT_MODE_DISABLED', tournamentId, 'tournament', {})
-    res.json({ message: `Draft Mode disabled for ${tournamentId}` })
+    return res.json({ message: `Draft Mode disabled for ${tournamentId}` })
   } else if (action === 'validate') {
-    res.json({
+    return res.json({
       tournamentId,
       validation: validationResult,
       canEnable: validationResult.passed,
     })
   } else {
-    res.status(400).json({ error: { code: 'INVALID_ACTION', message: 'Action must be enable, disable, or validate' } })
+    return res.status(400).json({ error: { code: 'INVALID_ACTION', message: 'Action must be enable, disable, or validate' } })
   }
 })
 // ─── DRAFT MODE ADMIN — Pool Validation ────────────────────
@@ -600,7 +600,7 @@ router.get('/draft/icons', async (_req: AuthenticatedRequest, res) => {
       photoUrl: p.photoUrl,
     }))
     .sort((a, b) => a.tournamentId.localeCompare(b.tournamentId) || (b.basePrice ?? 0) - (a.basePrice ?? 0))
-  res.json({ players: icons })
+  return res.json({ players: icons })
 })
 /**
  * POST /api/admin/draft/icons/:playerId/toggle
@@ -644,7 +644,7 @@ router.post('/draft/icons/:playerId/toggle', async (req: AuthenticatedRequest, r
     playerName: player.name,
     nowEligible: newValue,
   })
-  res.json({
+  return res.json({
     success: true,
     player: {
       id: player.id,
@@ -724,7 +724,7 @@ router.post('/draft/revalidate', async (req: AuthenticatedRequest, res) => {
     allPassed: results.every((r: { passed: boolean }) => r.passed),
   })
   await invalidatePlayerCache()
-  res.json({
+  return res.json({
     success: true,
     message: `Re-validated ${results.length} tournament(s)`,
     results,

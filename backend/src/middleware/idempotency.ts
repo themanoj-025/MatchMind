@@ -61,7 +61,7 @@ cleanupTimer.unref()
 export function idempotent(options: IdempotencyOptions = {}) {
   const ttlMs = options.ttlMs ?? DEFAULT_TTL_MS
 
-  return (req: Request, res: Response, next: NextFunction): void => {
+  return (req: Request, res: Response, next: NextFunction): Response | void => {
     // Only apply to mutating methods
     if (!['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
       return next()
@@ -77,13 +77,12 @@ export function idempotent(options: IdempotencyOptions = {}) {
     // Validate UUID v4 format
     const uuidV4Regex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
     if (!uuidV4Regex.test(idempotencyKey)) {
-      res.status(400).json({
+      return res.status(400).json({
         error: {
           code: 'INVALID_IDEMPOTENCY_KEY',
           message: 'Idempotency-Key must be a valid UUID v4',
         },
       })
-      return
     }
 
     // Scoped key = method + path + idempotency key (prevents cross-endpoint collisions)
@@ -106,8 +105,7 @@ export function idempotent(options: IdempotencyOptions = {}) {
         for (const [key, value] of Object.entries(cached.headers)) {
           res.setHeader(key, value)
         }
-        res.status(cached.statusCode).json(cached.body)
-        return
+        return res.status(cached.statusCode).json(cached.body)
       }
     }
 
@@ -133,6 +131,6 @@ export function idempotent(options: IdempotencyOptions = {}) {
       return originalJson(body)
     }
 
-    next()
+    return next()
   }
 }

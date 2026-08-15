@@ -101,7 +101,6 @@ export const auctionWorker = new Worker(
         }
       }
 
-      return { success: true }
     } catch (err: unknown) {
       const isConcurrency =
         err instanceof ConcurrencyError ||

@@ -72,15 +72,16 @@ export function requiredIncrement(currentBid: number): number {
 
 // ─── Validate Budget for Remaining Slots ─────────────────
 
-export function validateBudgetForRemainingSlots(
-  remainingBudget: number,
-  bidAmount: number,
-  playerPosition: string,
-  rosterRules: { GK: number; DEF: number; MID: number; FWD: number; total: number },
-  currentRoster: Array<{ position: string; soldPrice: number }>,
-  _playerPool: Array<{ id: string; position: string; basePrice: number }>,
-  minPlayerPrice: number = 5,
-): { valid: boolean; reason?: string } {
+export function validateBudgetForRemainingSlots(args: {
+  remainingBudget: number
+  bidAmount: number
+  playerPosition: string
+  rosterRules: { GK: number; DEF: number; MID: number; FWD: number; total: number }
+  currentRoster: Array<{ position: string; soldPrice: number }>
+  minPlayerPrice?: number
+}): { valid: boolean; reason?: string } {
+  const { remainingBudget, bidAmount, playerPosition, rosterRules, currentRoster } = args
+  const minPlayerPrice = args.minPlayerPrice ?? 5
   // Calculate remaining slots per position
   const positionCounts: Record<string, number> = { GK: 0, DEF: 0, MID: 0, FWD: 0 }
   for (const entry of currentRoster) {
@@ -165,17 +166,28 @@ export interface AuctionPlayerPoolEntryLike {
   basePrice: number
 }
 
-export async function processBid(
-  bid: BidRequest,
-  getRoom: (roomId: string) => Promise<AuctionRoomLike | null>,
-  getPlayer: (playerId: string) => Promise<AuctionPlayerLike | null>,
-  getRoomMember: (roomId: string, userId: string) => Promise<AuctionMemberLike | null>,
-  getRoster: (roomId: string, userId: string) => Promise<AuctionRosterEntryLike[]>,
-  getAuctionState: (roomId: string) => Promise<AuctionState | null>,
-  saveAuctionState: (roomId: string, state: AuctionState) => Promise<void>,
-  saveBid: (bid: AuctionBidRecord) => Promise<void>,
-  getPlayerPool: (roomId: string) => Promise<AuctionPlayerPoolEntryLike[]>,
-): Promise<BidResult> {
+export interface AuctionDeps {
+  getRoom: (roomId: string) => Promise<AuctionRoomLike | null>
+  getPlayer: (playerId: string) => Promise<AuctionPlayerLike | null>
+  getRoomMember: (roomId: string, userId: string) => Promise<AuctionMemberLike | null>
+  getRoster: (roomId: string, userId: string) => Promise<AuctionRosterEntryLike[]>
+  getAuctionState: (roomId: string) => Promise<AuctionState | null>
+  saveAuctionState: (roomId: string, state: AuctionState) => Promise<void>
+  saveBid: (bid: AuctionBidRecord) => Promise<void>
+  getPlayerPool: (roomId: string) => Promise<AuctionPlayerPoolEntryLike[]>
+}
+
+export async function processBid(bid: BidRequest, deps: AuctionDeps): Promise<BidResult> {
+  const {
+    getRoom,
+    getPlayer,
+    getRoomMember,
+    getRoster,
+    getAuctionState,
+    saveAuctionState,
+    saveBid,
+    getPlayerPool,
+  } = deps
   return runWithLock(bid.roomId, async () => {
     // 1. Re-read state fresh from DB (never trust in-memory cache)
     const state = await getAuctionState(bid.roomId)
@@ -220,14 +232,13 @@ export async function processBid(
 
     const roster = await getRoster(bid.roomId, bid.userId)
     const playerPool = await getPlayerPool(bid.roomId)
-    const budgetValidation = validateBudgetForRemainingSlots(
-      member.remainingBudget,
-      bid.amount,
-      player.position,
-      DEFAULT_ROSTER_RULES,
-      roster.map((r) => ({ position: r.position || player.position, soldPrice: r.soldPrice })),
-      playerPool,
-    )
+    const budgetValidation = validateBudgetForRemainingSlots({
+      remainingBudget: member.remainingBudget,
+      bidAmount: bid.amount,
+      playerPosition: player.position,
+      rosterRules: DEFAULT_ROSTER_RULES,
+      currentRoster: roster.map((r) => ({ position: r.position || player.position, soldPrice: r.soldPrice })),
+    })
     if (!budgetValidation.valid) {
       return { accepted: false, reason: budgetValidation.reason! }
     }

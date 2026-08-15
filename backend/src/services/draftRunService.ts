@@ -341,6 +341,71 @@ async function findUnresolvedFixtures(prisma: DatabaseClient, tournamentId: stri
   return fixtures.slice(processedRoundCount)
 }
 
+// ─── Squad Points & Outcome Helpers ─────────────────────
+
+async function computeSquadPoints(
+  prisma: DatabaseClient,
+  squad: SquadPlayer[],
+  statsMap: Map<string, { playerId: string; totalPoints?: number; goals?: number; assists?: number; minutesPlayed?: number }>,
+  playerMap: Map<string, { id: string; position: string | null }>,
+  fixtureId: string,
+): Promise<{ userSquadPoints: number; breakdown: Record<string, number> }> {
+  let userSquadPoints = 0
+  const breakdown: Record<string, number> = {}
+
+  for (const sp of squad) {
+    const stats = statsMap.get(sp.playerId)
+    if (!stats) {
+      // Player didn't play (no stats) — 0 points
+      breakdown[sp.playerId] = 0
+      continue
+    }
+
+    // Use the existing fantasy points engine if ledger entries exist
+    const ledgerEntries = await prisma.fantasyPointsLedger.findMany({
+      where: { playerId: sp.playerId, fixtureId },
+    })
+
+    if (ledgerEntries && ledgerEntries.length > 0) {
+      const points = ledgerEntries.reduce((sum: number, e) => sum + e.totalPoints, 0)
+      userSquadPoints += points
+      breakdown[sp.playerId] = points
+    } else {
+      // Fallback: compute approximate fantasy points from raw stats
+      const player = playerMap.get(sp.playerId)
+      const position = player?.position || sp.position
+      const points = computeApproximatePoints(stats, position)
+      userSquadPoints += points
+      breakdown[sp.playerId] = points
+    }
+  }
+  return { userSquadPoints, breakdown }
+}
+
+function determineRunOutcome(userSquadPoints: number, benchmarkPoints: number): RunOutcome {
+  const margin = userSquadPoints - benchmarkPoints
+  if (margin > 5) {
+    return 'WIN'
+  }
+  if (margin < -5) {
+    return 'LOSS'
+  }
+  return 'TIE'
+}
+
+function determineRunStatus(
+  newWins: number,
+  newLosses: number,
+): { newStatus: DraftRunStatus; eliminatedAt: string | null; clearedAt: string | null } {
+  if (newLosses >= DRAFT.MAX_LOSSES) {
+    return { newStatus: 'COMPLETE', eliminatedAt: new Date().toISOString(), clearedAt: null }
+  }
+  if (newWins >= DRAFT.MAX_WINS) {
+    return { newStatus: 'COMPLETE', eliminatedAt: null, clearedAt: new Date().toISOString() }
+  }
+  return { newStatus: 'WAITING_FOR_MATCHDAY', eliminatedAt: null, clearedAt: null }
+}
+
 // ─── Resolve Next Round ─────────────────────────────────
 
 async function resolveNextRound(
@@ -385,37 +450,13 @@ async function resolveNextRound(
 
     // Compute fantasy points for each squad player using real match stats
     const statsMap = new Map(playerStats.map((s) => [s.playerId, s]))
-
-    // Also fetch fantasy points from the ledger if available
-    let userSquadPoints = 0
-    const breakdown: Record<string, number> = {}
-
-    for (const sp of squad) {
-      const stats = statsMap.get(sp.playerId)
-      if (!stats) {
-        // Player didn't play (no stats) — 0 points
-        breakdown[sp.playerId] = 0
-        continue
-      }
-
-      // Use the existing fantasy points engine if ledger entries exist
-      const ledgerEntries = await prisma.fantasyPointsLedger.findMany({
-        where: { playerId: sp.playerId, fixtureId: fixture.id },
-      })
-
-      if (ledgerEntries && ledgerEntries.length > 0) {
-        const points = ledgerEntries.reduce((sum: number, e) => sum + e.totalPoints, 0)
-        userSquadPoints += points
-        breakdown[sp.playerId] = points
-      } else {
-        // Fallback: compute approximate fantasy points from raw stats
-        const player = playerMap.get(sp.playerId)
-        const position = player?.position || sp.position
-        const points = computeApproximatePoints(stats, position)
-        userSquadPoints += points
-        breakdown[sp.playerId] = points
-      }
-    }
+    const { userSquadPoints: rawSquadPoints, breakdown } = await computeSquadPoints(
+      prisma,
+      squad,
+      statsMap,
+      playerMap,
+      fixture.id,
+    )
 
     // Apply synergy bonus as percentage boost
     const synergyScore =
@@ -423,38 +464,20 @@ async function resolveNextRound(
         ? (await prisma.draftSession.findUnique({ where: { id: sessionId } }))?.synergyScore ?? 0
         : 0
     const synergyMultiplier = 1 + synergyScore / 100
-    userSquadPoints = Math.round(userSquadPoints * synergyMultiplier)
+    const userSquadPoints = Math.round(rawSquadPoints * synergyMultiplier)
 
     // Generate benchmark score: base + variance
     const benchmarkPoints = BENCHMARK_SCORE_BASE + Math.round((Math.random() * 2 - 1) * BENCHMARK_VARIANCE)
 
     // Determine outcome
-    const margin = userSquadPoints - benchmarkPoints
-    let outcome: RunOutcome
-    if (margin > 5) {
-      outcome = 'WIN'
-    } else if (margin < -5) {
-      outcome = 'LOSS'
-    } else {
-      outcome = 'TIE'
-    }
+    const outcome = determineRunOutcome(userSquadPoints, benchmarkPoints)
 
     const newWins = result.totalWins + (outcome === 'WIN' ? 1 : 0)
     const newLosses = result.totalLosses + (outcome === 'LOSS' ? 1 : 0)
     const newTies = result.totalTies + (outcome === 'TIE' ? 1 : 0)
 
     // Check elimination / full clear
-    let newStatus: DraftRunStatus = 'WAITING_FOR_MATCHDAY'
-    let eliminatedAt: string | null = null
-    let clearedAt: string | null = null
-
-    if (newLosses >= DRAFT.MAX_LOSSES) {
-      newStatus = 'COMPLETE'
-      eliminatedAt = new Date().toISOString()
-    } else if (newWins >= DRAFT.MAX_WINS) {
-      newStatus = 'COMPLETE'
-      clearedAt = new Date().toISOString()
-    }
+    const { newStatus, eliminatedAt, clearedAt } = determineRunStatus(newWins, newLosses)
 
     // Compute rewards earned
     const earnedRewards = RUN_REWARD_TIERS.filter((t) => newWins >= t.minWins && result.totalWins < t.minWins).map(
@@ -540,31 +563,58 @@ async function resolveNextRound(
 
 // ─── Approximate Fantasy Points (fallback) ──────────────
 
-function computeApproximatePoints(
-  stats: {
-    goals?: number
-    assists?: number
-    minutesPlayed?: number
-    cleanSheet?: boolean
-    saves?: number
-    penaltiesSaved?: number
-    yellowCards?: number
-    redCards?: number
-    penaltiesMissed?: number
-    ownGoals?: number
-    goalsConceded?: number
-  },
-  position: string,
-): number {
-  let points = 0
+interface ApproxStats {
+  goals?: number
+  assists?: number
+  minutesPlayed?: number
+  cleanSheet?: boolean
+  saves?: number
+  penaltiesSaved?: number
+  yellowCards?: number
+  redCards?: number
+  penaltiesMissed?: number
+  ownGoals?: number
+  goalsConceded?: number
+}
+
+function addDefensiveAdjustments(points: number, stats: ApproxStats, position: string, minutesPlayed: number): number {
+  let p = points
+  // Clean sheet (DEF/GK only, played 60+)
+  if (stats.cleanSheet && minutesPlayed >= 60) {
+    p += position === 'DEF' || position === 'GK' ? 4 : 1
+  }
+
+  // Saves (GK)
+  if ((stats.saves ?? 0) >= 3) {
+    p += Math.floor((stats.saves ?? 0) / 3)
+  }
+
+  // Penalty saves
+  p += (stats.penaltiesSaved || 0) * 5
+
+  // Goals conceded (DEF/GK)
+  if ((position === 'DEF' || position === 'GK') && minutesPlayed > 0 && (stats.goalsConceded ?? 0) >= 2) {
+    p -= Math.floor((stats.goalsConceded ?? 0) / 2)
+  }
+  return p
+}
+
+function subtractDisciplinePenalties(points: number, stats: ApproxStats): number {
+  let p = points
+  // Yellow/red cards
+  p -= (stats.yellowCards || 0) * 1
+  p -= (stats.redCards || 0) * 3
+  // Penalty miss / own goal
+  p -= (stats.penaltiesMissed || 0) * 2
+  p -= (stats.ownGoals || 0) * 2
+  return p
+}
+
+function computeApproximatePoints(stats: ApproxStats, position: string): number {
   const minutesPlayed = stats.minutesPlayed ?? 0
 
   // Minutes
-  if (minutesPlayed >= 60) {
-    points += 2
-  } else if (minutesPlayed > 0) {
-    points += 1
-  }
+  let points = minutesPlayed >= 60 ? 2 : minutesPlayed > 0 ? 1 : 0
 
   // Goals by position
   const goalPoints = position === 'FWD' ? 4 : position === 'MID' ? 5 : 6
@@ -573,31 +623,8 @@ function computeApproximatePoints(
   // Assists
   points += (stats.assists || 0) * 3
 
-  // Clean sheet (DEF/GK only, played 60+)
-  if (stats.cleanSheet && minutesPlayed >= 60) {
-    points += position === 'DEF' || position === 'GK' ? 4 : 1
-  }
-
-  // Saves (GK)
-  if ((stats.saves ?? 0) >= 3) {
-    points += Math.floor((stats.saves ?? 0) / 3)
-  }
-
-  // Penalty saves
-  points += (stats.penaltiesSaved || 0) * 5
-
-  // Yellow/red cards
-  points -= (stats.yellowCards || 0) * 1
-  points -= (stats.redCards || 0) * 3
-
-  // Penalty miss / own goal
-  points -= (stats.penaltiesMissed || 0) * 2
-  points -= (stats.ownGoals || 0) * 2
-
-  // Goals conceded (DEF/GK)
-  if ((position === 'DEF' || position === 'GK') && minutesPlayed > 0 && (stats.goalsConceded ?? 0) >= 2) {
-    points -= Math.floor((stats.goalsConceded ?? 0) / 2)
-  }
+  points = addDefensiveAdjustments(points, stats, position, minutesPlayed)
+  points = subtractDisciplinePenalties(points, stats)
 
   return Math.max(points, 0)
 }

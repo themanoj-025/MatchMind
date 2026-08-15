@@ -53,7 +53,7 @@ router.get('/:id', async (req, res) => {
   if (tournament.status === 'ANNOUNCED_NOT_CONFIRMED') {
     return res.status(404).json({ error: { code: 'TOURNAMENT_NOT_FOUND', message: 'Tournament not found' } })
   }
-  res.json(tournament)
+  return res.json(tournament)
 })
 
 export default router
