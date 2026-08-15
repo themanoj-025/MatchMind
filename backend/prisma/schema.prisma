@@ -16,7 +16,9 @@ datasource db {
 
 enum UserRole {
   USER
+  MODERATOR
   ADMIN
+  SUPERADMIN
 }
 
 enum UserTier {
@@ -44,6 +46,7 @@ enum RoomStatus {
   DRAFTING
   ACTIVE
   FINISHED
+  PAUSED
 }
 
 enum RoomMemberRole {

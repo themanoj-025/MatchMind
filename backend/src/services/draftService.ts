@@ -331,9 +331,8 @@ export async function startDraft(
     where: { tournamentId },
   })
 
-  const firstSlot = formationDef.slots[0]
+  const firstSlot = formationDef.slots[0]!
   const firstRound = generateChoiceRound(
-    // @ts-ignore
     firstSlot.position,
     [],
     allPlayers,
@@ -347,7 +346,6 @@ export async function startDraft(
     data: {
       draftSessionId: session.id,
       slotIndex: 0,
-      // @ts-ignore
       position: firstSlot.position,
       offeredPlayerIds: firstRound.offeredPlayerIds,
       offeredRarities: firstRound.offeredRarities,
@@ -389,7 +387,6 @@ export async function startDraft(
     session,
     nextRound: {
       slotIndex: 0,
-      // @ts-ignore
       position: firstSlot.position,
       playerIds: firstRound.offeredPlayerIds,
       players: playerObjects as ChoiceRound['players'],
@@ -884,11 +881,9 @@ export async function listUserDrafts(prisma: any, userId: string): Promise<Draft
 function findHighestRarityIndex(rarities: string[]): number {
   const tierOrder: Record<string, number> = { ICON: 0, GOLD: 1, SILVER: 2, BRONZE: 3 }
   let bestIdx = 0
-  // @ts-ignore
-  let bestScore = tierOrder[rarities[0]] ?? 99
+  let bestScore = tierOrder[rarities[0]!] ?? 99
   for (let i = 1; i < rarities.length; i++) {
-    // @ts-ignore
-    const score = tierOrder[rarities[i]] ?? 99
+    const score = tierOrder[rarities[i]!] ?? 99
     if (score < bestScore) {
       bestScore = score
       bestIdx = i

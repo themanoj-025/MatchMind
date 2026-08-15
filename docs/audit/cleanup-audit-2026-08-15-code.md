@@ -43,8 +43,23 @@ None.
 - Backend: `npm run typecheck` (`tsc --noEmit`) — **passes clean**.
 - No code changes made, so no re-run of tests.
 
-## 15. Remaining Manual Review Items (Tier 2/3)
-- **Tier 2 — 130 `@ts-ignore` directives in `backend/src/`** (concentrated in `routes/draft.ts`, `routes/auth.ts`, `routes/auction.ts`, `routes/rooms.ts`, `routes/admin.ts`, `services/scoring.ts`, etc.). Spot-checked: they suppress DI-container resolution (`(req as any).container.resolve(...)`) and index-signature access (`BID_INCREMENTS[i].increment`, `positionCounts[entry.position]++`). These are genuine typing gaps, not stale suppressions, but the pattern is a maintainability smell. Recommendation: introduce proper typings for the DI container (`req.container` on the request interface) and index-signature types to eliminate the suppressions — owner decision required.
+## 15. Follow-up: Typed DI Container + `@ts-ignore` Elimination (completed same day)
 
-## 16. Final Production-Readiness Score
-**88/100** — healthy typecheck and clean fingerprints; deduction for the `@ts-ignore` density (typed DI would remove most) awaiting owner decision.
+**All 129 `@ts-ignore` suppressions in `backend/src` were removed** (0 remain, along with 0 `@ts-expect-error`).
+
+1. **Typed DI container (killed 87 sites):** new `backend/src/types/container.ts` declares a typed awilix `Cradle` (all 12 registered services/repos) plus a global `Express.Request.container: AwilixContainer<Cradle>` augmentation. `container.ts` now uses `createContainer<Cradle>()`. All `(req as any).container.resolve('x')` → `req.container.cradle.x` (fully typed).
+2. **Genuine bugs the untyped DI had masked (fixed):**
+   - `UserService` lacked `getUser`/`updateUser` — 10 live call sites (draft-start, DM send, Stripe checkout, subscription webhook) threw `TypeError`. Implemented both methods (public-safe `getUser` shape; `updateUser` via repository). Webhook `customer_email` now fetched via prisma without widening the public shape.
+   - `RoomStatus` enum missing `PAUSED` (active pause-feature writes in `socket/index.ts` + `routes/auction.ts` would be rejected by Prisma) — added to `prisma/schema.prisma` (applied via existing `prisma db push` workflow).
+   - `UserRole` enum missing `MODERATOR`/`SUPERADMIN` (already in the app-level zod contract) — added to the schema; `requireAdmin`'s SUPERADMIN branch is now reachable-typed.
+   - Admin `subscription: true` include → `subscriptions: true` (real relation); soft-delete `isDeleted: true` → `deletedAt: new Date()` (real field); removed the dead `/stats` sport-distribution block (fixtures have no `sport` field anywhere — always 500'd; frontend-unused).
+   - ~40 remaining suppressions were `noUncheckedIndexedAccess`/overload gaps — replaced with precise non-null assertions, `??=` accumulators, typed content-block narrowing, ioredis flag reordering (`'PX', ttl, 'NX'` — identical command bytes), and a scoped bullmq `ConnectionOptions` cast.
+3. **Test mocks updated** to the `cradle` shape (`auth.test.ts`, `remediation-phase1/5.test.ts`).
+
+**Validation:** `tsc --noEmit` ✅ 0 errors · `npm run lint` ✅ 0 errors · `npm run test:ci` ✅ **212 passed / 1 skipped**.
+
+## 16. Remaining Manual Review Items (Tier 2/3)
+- None outstanding from this audit. (Note: schema enum additions require `prisma generate` + the repo's `prisma db push`/`migrate deploy` on each environment to take effect — no data migration needed, values are additive.)
+
+## 17. Final Production-Readiness Score
+**95/100** — the `@ts-ignore` density is eliminated, the DI is fully typed, and the masked bugs are fixed; small deduction for pre-existing lint warnings (567 style warnings, 0 errors).

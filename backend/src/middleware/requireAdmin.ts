@@ -7,7 +7,7 @@ import type { AuthenticatedRequest } from './auth'
 
 export async function requireAdmin(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
   try {
-    const prisma = (req as any).container.resolve('prisma')
+    const prisma = req.container.cradle.prisma
     const user = await prisma.user.findUnique({
       where: { id: req.userId },
       select: { role: true },

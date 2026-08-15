@@ -1,10 +1,39 @@
 import { IUserRepository, UserData } from '../repositories/types'
 
+/** Public user shape — safe for client responses (no credentials/private fields). */
+export interface PublicUser {
+  id: string
+  username: string
+  displayName: string | null
+  avatar: string | null
+  isPro: boolean
+  proExpiresAt: Date | null
+}
+
 export class UserService {
   private userRepository: IUserRepository
 
   constructor(deps: { userRepository: IUserRepository }) {
     this.userRepository = deps.userRepository
+  }
+
+  /** Fetch a user's public profile (used by billing/draft/DM flows). */
+  async getUser(userId: string): Promise<PublicUser | null> {
+    const user = await this.userRepository.findById(userId)
+    if (!user) return null
+    return {
+      id: user.id,
+      username: user.username,
+      displayName: user.displayName,
+      avatar: user.avatar,
+      isPro: user.isPro,
+      proExpiresAt: user.proExpiresAt,
+    }
+  }
+
+  /** Update a user's account fields (e.g., pro subscription state). */
+  async updateUser(userId: string, data: Partial<UserData>): Promise<UserData> {
+    return this.userRepository.update(userId, data)
   }
 
   async checkUsernameAvailable(username: string): Promise<boolean> {

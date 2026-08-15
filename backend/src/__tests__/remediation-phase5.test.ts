@@ -65,14 +65,9 @@ describe('Remediation Phase 5 Tests — AI Hint Caching', () => {
 
     app.use((req: any, _res, next) => {
       req.container = {
-        resolve: (key: string) => {
-          if (key === 'prisma') {
-            return prismaMock
-          }
-          if (key === 'cacheService') {
-            return cacheServiceMock
-          }
-          return null
+        cradle: {
+          prisma: prismaMock,
+          cacheService: cacheServiceMock,
         },
       }
       next()

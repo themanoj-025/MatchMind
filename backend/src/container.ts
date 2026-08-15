@@ -1,4 +1,5 @@
 import { createContainer, asClass, asValue, InjectionMode } from 'awilix'
+import type { Cradle } from './types/container'
 import { prisma } from './lib/prisma'
 import { AuthService } from './services/authService'
 import { UserService } from './services/userService'
@@ -13,7 +14,7 @@ import { createRepositories } from './repositories'
 import { redis } from './lib/redis'
 
 // Initialize container with PROXY mode (classic DI behavior)
-export const container = createContainer({
+export const container = createContainer<Cradle>({
   injectionMode: InjectionMode.PROXY,
 })
 
