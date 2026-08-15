@@ -1,6 +1,6 @@
 import type { AwilixContainer } from 'awilix'
-import type { PrismaClient } from '@prisma/client'
 import type { Redis } from 'ioredis'
+import type { ExtendedPrismaClient } from '../lib/prisma'
 import type { PrismaPredictionRepository, PrismaUserRepository } from '../repositories'
 import type { AuthService } from '../services/authService'
 import type { CacheService } from '../services/cacheService'
@@ -16,7 +16,7 @@ import type { UserService } from '../services/userService'
  * `container.cradle.<name>` resolves to these exact types at compile time.
  */
 export interface Cradle {
-  prisma: PrismaClient
+  prisma: ExtendedPrismaClient
   redis: Redis
   userRepository: PrismaUserRepository
   predictionRepository: PrismaPredictionRepository

@@ -82,6 +82,8 @@ enum PredictionStatus {
 enum ChatMessageType {
   user
   system
+  text
+  gif
 }
 
 enum ReportStatus {
@@ -151,8 +153,34 @@ model User {
   starredPlayers     StarredPlayer[]
   subscriptions      Subscription[]
   userAchievements   UserAchievement[]
+  userSports         UserSport[]
+  userTeams          UserTeam[]
 
   @@index([deletedAt])
+}
+
+model UserSport {
+  id        String   @id @default(uuid(7))
+  userId    String
+  sport     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, sport])
+  @@index([sport])
+}
+
+model UserTeam {
+  id        String   @id @default(uuid(7))
+  userId    String
+  teamId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, teamId])
+  @@index([teamId])
 }
 
 model Tournament {
@@ -390,7 +418,9 @@ model ChatMessage {
   id        String          @id @default(uuid(7))
   userId    String
   roomId    String
-  text      String
+  roomType  String          @default("room")
+  isRead    Boolean         @default(false)
+  text      String?
   timestamp DateTime        @default(now())
   gifUrl    String?
   type      ChatMessageType @default(user)
@@ -406,6 +436,7 @@ model ChatMessage {
   reports   Report[]
 
   @@index([roomId, deletedAt])
+  @@index([roomType, isRead])
   @@index([reactions], type: Gin)
 }
 
@@ -453,15 +484,21 @@ model AdminLog {
 }
 
 model Subscription {
-  id        String    @id @default(uuid(7))
-  userId    String
-  status    String
-  plan      String
-  expiresAt DateTime?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                   String    @id @default(uuid(7))
+  userId               String    @unique
+  status               String
+  plan                 String
+  stripeCustomerId     String?
+  stripeSubscriptionId String?   @unique
+  currentPeriodStart   DateTime?
+  currentPeriodEnd     DateTime?
+  cancelAtPeriodEnd    Boolean   @default(false)
+  expiresAt            DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+  user                 User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([stripeSubscriptionId])
   @@index([userId])
 }
 
@@ -531,9 +568,10 @@ model DraftSession {
   tournamentId          String
   formation             String
   status                String
-  ticketConsumedId      String
+  ticketConsumedId      String?
   synergyScore          Float           @default(0)
   formationBonusApplied Boolean         @default(false)
+  completedAt           DateTime?
   createdAt             DateTime        @default(now())
   updatedAt             DateTime        @updatedAt
   deletedAt             DateTime?

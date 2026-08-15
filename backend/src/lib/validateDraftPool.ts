@@ -30,10 +30,22 @@ export interface ValidationResult {
 
 // ─── Helpers ─────────────────────────────────────────────
 
-function loadJSON(filename: string, dataDir: string): any[] {
+/** Shape of a player record in src/data/players.json. */
+interface PlayerRecord {
+  id: string
+  name?: string
+  tournamentId: string
+  position?: string
+  basePrice?: number | null
+  rarityTier?: string | null
+  photoUrl?: string
+  rarityComputedAt?: string
+}
+
+function loadJSON(filename: string, dataDir: string): PlayerRecord[] {
   const filePath = path.join(dataDir, filename)
   if (!fs.existsSync(filePath)) return []
-  return JSON.parse(fs.readFileSync(filePath, 'utf-8'))
+  return JSON.parse(fs.readFileSync(filePath, 'utf-8')) as PlayerRecord[]
 }
 
 // ─── Validate Single Tournament ─────────────────────────
@@ -44,9 +56,9 @@ export function validateTournamentDraftPool(tournamentId: string, dataDir?: stri
   const warnings: string[] = []
   const infos: string[] = []
 
-  let players: any[]
+  let players: PlayerRecord[]
   try {
-    players = loadJSON('players.json', effectiveDataDir).filter((p: any) => p.tournamentId === tournamentId)
+    players = loadJSON('players.json', effectiveDataDir).filter((p) => p.tournamentId === tournamentId)
   } catch {
     errors.push(`Failed to read players.json from ${effectiveDataDir}`)
     return { tournamentId, passed: false, errors, warnings, infos }
@@ -58,23 +70,23 @@ export function validateTournamentDraftPool(tournamentId: string, dataDir?: stri
   }
 
   // ─── Check 1: All players have basePrice ─────────────────
-  const noPrice = players.filter((p: any) => p.basePrice == null)
+  const noPrice = players.filter((p) => p.basePrice == null)
   if (noPrice.length > 0) {
     errors.push(`${noPrice.length} player(s) missing basePrice — hard requirement for Draft Mode rarity computation`)
-    noPrice.slice(0, 5).forEach((p: any) => {
+    noPrice.slice(0, 5).forEach((p) => {
       errors.push(`  • ${p.name || p.id} (${p.position})`)
     })
   }
 
   // ─── Check 2: Rarity tiers computed ────────────────────
-  const hasRarityData = players.some((p: any) => p.rarityTier != null)
+  const hasRarityData = players.some((p) => p.rarityTier != null)
 
   if (!hasRarityData) {
     errors.push(`No rarity tiers found — run \`npx tsx scripts/computeRarityTiers.ts ${tournamentId}\` first`)
   } else {
     try {
       const cache = loadJSON('playerRarityCache.json', effectiveDataDir)
-      const entry = cache.find((c: any) => c.tournamentId === tournamentId)
+      const entry = cache.find((c) => c.tournamentId === tournamentId)
       if (entry?.rarityComputedAt) {
         infos.push(`Rarity tiers computed at ${entry.rarityComputedAt}`)
       }
@@ -83,7 +95,7 @@ export function validateTournamentDraftPool(tournamentId: string, dataDir?: stri
     }
   }
 
-  const missingRarity = players.filter((p: any) => p.rarityTier == null && p.basePrice != null)
+  const missingRarity = players.filter((p) => p.rarityTier == null && p.basePrice != null)
   if (missingRarity.length > 0) {
     errors.push(`${missingRarity.length} player(s) missing rarityTier — run computeRarityTiers.ts again`)
   }
@@ -124,7 +136,7 @@ export function validateTournamentDraftPool(tournamentId: string, dataDir?: stri
   }
 
   // ─── Check 5: photoUrl completeness (informational) ──
-  const withPhoto = players.filter((p: any) => p.photoUrl)
+  const withPhoto = players.filter((p) => p.photoUrl)
   const photoPct = ((withPhoto.length / players.length) * 100).toFixed(1)
   if (parseFloat(photoPct) < 100) {
     warnings.push(

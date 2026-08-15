@@ -8,8 +8,17 @@ import logger from '../utils/logger'
 import type { AuthenticatedRequest } from '../middleware/auth'
 import { idempotent } from '../middleware/idempotency'
 import { openapiRegistry } from '../config/openapi'
+import type Stripe from 'stripe'
 
 const router = express.Router()
+
+function loadStripe(): Stripe | null {
+  try {
+    return require('stripe')(env.STRIPE_SECRET_KEY) as Stripe
+  } catch {
+    return null
+  }
+}
 
 /**
  * POST /api/stripe/create-checkout
@@ -40,10 +49,8 @@ router.post(
 
     // Use circuit breaker for Stripe API calls
     const session = await withBreaker('stripe', async () => {
-      let stripe: any
-      try {
-        stripe = require('stripe')(env.STRIPE_SECRET_KEY)
-      } catch {
+      const stripe = loadStripe()
+      if (!stripe) {
         logger.info(
           { event: 'stripe.not_configured', userId: req.userId },
           'Stripe API key not configured, returning mock URL',
@@ -103,14 +110,23 @@ openapiRegistry.registerPath({
   responses: { 200: { description: 'Success' } },
 })
 router.post('/webhook', async (req, res) => {
-  const sig = req.headers['stripe-signature'] as string
-  let event: any
+  const sig = req.headers['stripe-signature'] as string | undefined
+  let event: Stripe.Event
 
   try {
-    const stripe = require('stripe')(env.STRIPE_SECRET_KEY)
+    const stripe = loadStripe()
+    if (!stripe) {
+      return res.status(400).send('Webhook Error: Stripe not configured')
+    }
+    if (!sig) {
+      return res.status(400).send('Webhook Error: Missing stripe-signature header')
+    }
+    if (!env.STRIPE_WEBHOOK_SECRET) {
+      return res.status(400).send('Webhook Error: Stripe webhook secret not configured')
+    }
     const body = Buffer.isBuffer(req.body) ? req.body : JSON.stringify(req.body)
     event = stripe.webhooks.constructEvent(body, sig, env.STRIPE_WEBHOOK_SECRET)
-  } catch (err: any) {
+  } catch (err: unknown) {
     logger.error(
       { event: 'stripe.webhook_verification_failed', err: (err as Error).message },
       'Stripe webhook signature verification failed',
@@ -123,25 +139,28 @@ router.post('/webhook', async (req, res) => {
 
   switch (event.type) {
     case 'checkout.session.completed': {
-      const session = event.data.object
+      const session = event.data.object as Stripe.Checkout.Session
       const userId = session.metadata?.userId
       if (!userId) break
 
       const subscriptionId = session.subscription
       const customerId = session.customer
 
-      if (subscriptionId && customerId) {
+      if (subscriptionId && customerId && typeof subscriptionId === 'string' && typeof customerId === 'string') {
         try {
-          const stripe = require('stripe')(env.STRIPE_SECRET_KEY)
-          const sub = await stripe.subscriptions.retrieve(subscriptionId)
+          const stripe = loadStripe()
+          const sub = stripe
+            ? await stripe.subscriptions.retrieve(subscriptionId)
+            : ({} as Stripe.Subscription)
 
           await stripeService.upsertSubscription(userId, customerId, subscriptionId, sub)
 
+          const item = sub.items.data[0]
           await userService.updateUser(userId, {
             isPro: true,
-            proExpiresAt: new Date(sub.current_period_end * 1000),
+            proExpiresAt: new Date((item?.current_period_end ?? sub.created) * 1000),
           })
-        } catch (err: any) {
+        } catch (err: unknown) {
           logger.error(
             { event: 'stripe.subscription_creation_failed', err: (err as Error).message },
             'Failed to process subscription',
@@ -152,7 +171,7 @@ router.post('/webhook', async (req, res) => {
     }
 
     case 'customer.subscription.updated': {
-      const sub = event.data.object
+      const sub = event.data.object as Stripe.Subscription
       const subscriptionId = sub.id
 
       try {
@@ -162,9 +181,10 @@ router.post('/webhook', async (req, res) => {
         await stripeService.updateSubscriptionStatus(subscriptionId, sub)
 
         if (sub.status === 'active') {
+          const item = sub.items.data[0]
           await userService.updateUser(existing.userId, {
             isPro: true,
-            proExpiresAt: new Date(sub.current_period_end * 1000),
+            proExpiresAt: new Date((item?.current_period_end ?? sub.created) * 1000),
           })
         } else if (sub.status === 'past_due' || sub.status === 'canceled' || sub.status === 'unpaid') {
           await userService.updateUser(existing.userId, {
@@ -172,7 +192,7 @@ router.post('/webhook', async (req, res) => {
             proExpiresAt: null,
           })
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         logger.error(
           { event: 'stripe.subscription_update_failed', err: (err as Error).message },
           'Subscription update failed',
@@ -182,7 +202,7 @@ router.post('/webhook', async (req, res) => {
     }
 
     case 'customer.subscription.deleted': {
-      const sub = event.data.object
+      const sub = event.data.object as Stripe.Subscription
       const subscriptionId = sub.id
 
       try {
@@ -195,7 +215,7 @@ router.post('/webhook', async (req, res) => {
           isPro: false,
           proExpiresAt: null,
         })
-      } catch (err: any) {
+      } catch (err: unknown) {
         logger.error(
           { event: 'stripe.subscription_deletion_failed', err: (err as Error).message },
           'Subscription deletion failed',
@@ -229,10 +249,8 @@ router.post('/create-portal-session', authenticateToken, async (req: Authenticat
     return res.status(400).json({ error: { code: 'NO_SUBSCRIPTION', message: 'No active subscription found' } })
   }
 
-  let stripe: any
-  try {
-    stripe = require('stripe')(env.STRIPE_SECRET_KEY)
-  } catch {
+  const stripe = loadStripe()
+  if (!stripe) {
     return res.json({ url: `${env.FRONTEND_URL || 'http://localhost:3000'}/pricing` })
   }
 

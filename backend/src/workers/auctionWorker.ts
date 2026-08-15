@@ -1,7 +1,7 @@
 import { Worker, Job, type ConnectionOptions } from 'bullmq'
 import { redis } from '../lib/redis'
 import { container } from '../container'
-import { PrismaClient } from '@prisma/client'
+import type { ExtendedPrismaClient } from '../lib/prisma'
 import logger from '../utils/logger'
 import { checkAuctionTimer, type AuctionState } from '../services/auctionEngine'
 import { app } from '../app'
@@ -9,7 +9,7 @@ import { ConcurrencyError } from '../errors/DomainError'
 import { RoomStatus } from '@matchmind/shared-types'
 
 const QUEUE_NAME = 'auction-timer'
-const prisma: PrismaClient = container.resolve('prisma')
+const prisma: ExtendedPrismaClient = container.resolve('prisma')
 
 export const auctionWorker = new Worker(
   QUEUE_NAME,
