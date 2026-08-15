@@ -26,8 +26,7 @@ openapiRegistry.registerPath({
   responses: { 200: { description: 'Success' } },
 })
 router.get('/conversations', authenticateToken, async (req: AuthenticatedRequest, res) => {
-  // @ts-ignore
-  const messageService = (req as any).container.resolve('messageService')
+  const messageService = req.container.cradle.messageService
   const userId = req.userId!
 
   // Get all DM rooms this user is part of
@@ -93,15 +92,13 @@ openapiRegistry.registerPath({
   responses: { 200: { description: 'Success' } },
 })
 router.get('/:userId', authenticateToken, async (req: AuthenticatedRequest, res) => {
-  // @ts-ignore
-  const messageService = (req as any).container.resolve('messageService')
-  // @ts-ignore
-  const userService = (req as any).container.resolve('userService')
+  const messageService = req.container.cradle.messageService
+  const userService = req.container.cradle.userService
   const { userId: targetUserId } = req.params
   const roomId = getDMRoomId(req.userId!, String(targetUserId))
 
   // Verify the other user exists
-  const otherUser = await userService.getUser(targetUserId)
+  const otherUser = await userService.getUser(String(targetUserId))
   if (!otherUser) {
     return res.status(404).json({ error: { code: 'USER_NOT_FOUND', message: 'User not found' } })
   }
@@ -123,10 +120,8 @@ openapiRegistry.registerPath({
   responses: { 200: { description: 'Success' } },
 })
 router.post('/:userId', authenticateToken, validate(sendMessageSchema), async (req: AuthenticatedRequest, res) => {
-  // @ts-ignore
-  const messageService = (req as any).container.resolve('messageService')
-  // @ts-ignore
-  const userService = (req as any).container.resolve('userService')
+  const messageService = req.container.cradle.messageService
+  const userService = req.container.cradle.userService
   const { text, gifUrl } = req.body as { text?: string; gifUrl?: string }
   const { userId: targetUserId } = req.params
   const roomId = getDMRoomId(req.userId!, String(targetUserId))
@@ -137,12 +132,12 @@ router.post('/:userId', authenticateToken, validate(sendMessageSchema), async (r
   }
 
   // Verify the recipient exists
-  const recipient = await userService.getUser(targetUserId)
+  const recipient = await userService.getUser(String(targetUserId))
   if (!recipient) {
     return res.status(404).json({ error: { code: 'USER_NOT_FOUND', message: 'Recipient not found' } })
   }
 
-  const message = await messageService.sendMessage(roomId, req.userId, text || null, gifUrl || null)
+  const message = await messageService.sendMessage(roomId, req.userId!, text || null, gifUrl || null)
 
   // Emit real-time event to both users
   const io = req.app.get('io')
@@ -168,12 +163,11 @@ openapiRegistry.registerPath({
   responses: { 200: { description: 'Success' } },
 })
 router.patch('/read/:userId', authenticateToken, async (req: AuthenticatedRequest, res) => {
-  // @ts-ignore
-  const messageService = (req as any).container.resolve('messageService')
+  const messageService = req.container.cradle.messageService
   const { userId: targetUserId } = req.params
   const roomId = getDMRoomId(req.userId!, String(targetUserId))
 
-  await messageService.markAsRead(roomId, targetUserId)
+  await messageService.markAsRead(roomId, String(targetUserId))
 
   res.json({ message: 'Marked as read' })
 })

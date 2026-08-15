@@ -73,7 +73,7 @@ router.use(auditLogMiddleware)
 
 /** Create an AdminService instance from the Express app's prisma client */
 function getAdminService(req: AuthenticatedRequest) {
-  const prisma = (req as any).container.resolve('prisma')
+  const prisma = req.container.cradle.prisma
   const { userRepository, reportRepository, adminLogRepository } = createRepositories(prisma)
   return new AdminService({
     userRepository,
@@ -101,25 +101,7 @@ openapiRegistry.registerPath({
 router.get('/stats', async (req: AuthenticatedRequest, res) => {
   const stats = await getAdminService(req).getDashboardStats()
 
-  // Compute sport distribution from real fixtures data
-  const prisma = (req as any).container.resolve('prisma')
-  const allFixtures = await prisma.fixture.findMany({
-    select: { sport: true },
-  })
-  const sportCounts: Record<string, number> = {}
-  for (const f of allFixtures) {
-    const sport = f.sport || 'UNKNOWN'
-    sportCounts[sport] = (sportCounts[sport] || 0) + 1
-  }
-  const total = Object.values(sportCounts).reduce((a, b) => a + b, 0) || 1
-  const sportDistribution = Object.entries(sportCounts)
-    .map(([name, value]) => ({ name, value: Math.round((value / total) * 100) }))
-    .sort((a, b) => b.value - a.value)
-
-  res.json({
-    ...stats,
-    sportDistribution,
-  })
+  res.json(stats)
 })
 
 // ─── SYSTEM METRICS ──────────────────────────────────────
@@ -164,7 +146,7 @@ openapiRegistry.registerPath({
   responses: { 200: { description: 'Success' } },
 })
 router.get('/users', async (req: AuthenticatedRequest, res) => {
-  const prisma = (req as any).container.resolve('prisma')
+  const prisma = req.container.cradle.prisma
   const { page, limit } = paginationSchema.parse(req.query)
   const search = (req.query.search as string) || ''
 
@@ -215,11 +197,11 @@ openapiRegistry.registerPath({
   responses: { 200: { description: 'Success' } },
 })
 router.get('/users/:id', async (req: AuthenticatedRequest, res) => {
-  const prisma = (req as any).container.resolve('prisma')
+  const prisma = req.container.cradle.prisma
   const user = await prisma.user.findUnique({
-    where: { id: req.params.id },
+    where: { id: req.params.id as string },
     include: {
-      subscription: true,
+      subscriptions: true,
       _count: {
         select: {
           followers: true,
@@ -244,8 +226,7 @@ openapiRegistry.registerPath({
   responses: { 200: { description: 'Success' } },
 })
 router.patch('/users/:id', async (req: AuthenticatedRequest, res) => {
-  // @ts-ignore
-  const prisma = (req as any).container.resolve('prisma')
+  const prisma = req.container.cradle.prisma
   const { role, tier, username, email, displayName } = req.body as {
     role?: string
     tier?: string
@@ -262,7 +243,7 @@ router.patch('/users/:id', async (req: AuthenticatedRequest, res) => {
   if (displayName) data.displayName = displayName
 
   const user = await prisma.user.update({
-    where: { id: req.params.id },
+    where: { id: req.params.id as string },
     data,
     select: { id: true, username: true, email: true, role: true, tier: true },
   })
@@ -281,11 +262,10 @@ openapiRegistry.registerPath({
   responses: { 200: { description: 'Success' } },
 })
 router.delete('/users/:id', async (req: AuthenticatedRequest, res) => {
-  // @ts-ignore
-  const prisma = (req as any).container.resolve('prisma')
+  const prisma = req.container.cradle.prisma
   await prisma.user.update({
-    where: { id: req.params.id },
-    data: { isDeleted: true, email: `deleted-${req.params.id}@matchmind.gg`, username: `deleted-${req.params.id}` },
+    where: { id: req.params.id as string },
+    data: { deletedAt: new Date(), email: `deleted-${req.params.id}@matchmind.gg`, username: `deleted-${req.params.id}` },
   })
   getAdminService(req).logAction(req.userId!, 'USER_SOFT_DELETED', String(req.params.id), 'user', {})
   res.json({ message: 'User soft-deleted' })
@@ -302,13 +282,12 @@ openapiRegistry.registerPath({
   responses: { 200: { description: 'Success' } },
 })
 router.post('/users/:id/toggle-pro', async (req: AuthenticatedRequest, res) => {
-  // @ts-ignore
-  const prisma = (req as any).container.resolve('prisma')
-  const user = await prisma.user.findUnique({ where: { id: req.params.id }, select: { isPro: true } })
+  const prisma = req.container.cradle.prisma
+  const user = await prisma.user.findUnique({ where: { id: req.params.id as string }, select: { isPro: true } })
   if (!user) return res.status(404).json({ error: { code: 'USER_NOT_FOUND', message: 'User not found' } })
 
   const updated = await prisma.user.update({
-    where: { id: req.params.id },
+    where: { id: req.params.id as string },
     data: {
       isPro: !user.isPro,
       proExpiresAt: user.isPro ? null : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
@@ -336,8 +315,7 @@ openapiRegistry.registerPath({
   responses: { 200: { description: 'Success' } },
 })
 router.get('/fixtures', async (req: AuthenticatedRequest, res) => {
-  // @ts-ignore
-  const prisma = (req as any).container.resolve('prisma')
+  const prisma = req.container.cradle.prisma
   const { page, limit } = paginationSchema.parse(req.query)
   const tournamentId = req.query.tournamentId as string | undefined
 
@@ -368,8 +346,7 @@ openapiRegistry.registerPath({
   responses: { 200: { description: 'Success' } },
 })
 router.patch('/fixtures/:id', async (req: AuthenticatedRequest, res) => {
-  // @ts-ignore
-  const prisma = (req as any).container.resolve('prisma')
+  const prisma = req.container.cradle.prisma
   const { homeScore, awayScore, status } = req.body as {
     homeScore?: number
     awayScore?: number
@@ -382,7 +359,7 @@ router.patch('/fixtures/:id', async (req: AuthenticatedRequest, res) => {
   if (status) data.status = status
 
   const fixture = await prisma.fixture.update({
-    where: { id: req.params.id },
+    where: { id: req.params.id as string },
     data,
   })
 
@@ -403,8 +380,7 @@ openapiRegistry.registerPath({
   responses: { 200: { description: 'Success' } },
 })
 router.get('/reports', async (req: AuthenticatedRequest, res) => {
-  // @ts-ignore
-  const prisma = (req as any).container.resolve('prisma')
+  const prisma = req.container.cradle.prisma
   const { page, limit } = paginationSchema.parse(req.query)
   const status = (req.query.status as string) || 'pending'
 
@@ -436,12 +412,11 @@ openapiRegistry.registerPath({
   responses: { 200: { description: 'Success' } },
 })
 router.patch('/reports/:id', async (req: AuthenticatedRequest, res) => {
-  // @ts-ignore
-  const prisma = (req as any).container.resolve('prisma')
+  const prisma = req.container.cradle.prisma
   const { status } = req.body as { status?: string } // 'resolved' | 'dismissed'
 
   const report = await prisma.report.update({
-    where: { id: req.params.id },
+    where: { id: req.params.id as string },
     data: { status: status || 'resolved' },
   })
 
@@ -478,8 +453,7 @@ openapiRegistry.registerPath({
   responses: { 200: { description: 'Success' } },
 })
 router.get('/activity-log', async (req: AuthenticatedRequest, res) => {
-  // @ts-ignore
-  const prisma = (req as any).container.resolve('prisma')
+  const prisma = req.container.cradle.prisma
   const { page, limit } = paginationSchema.parse(req.query)
 
   const [logs, total] = await Promise.all([

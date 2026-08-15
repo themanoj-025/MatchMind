@@ -15,10 +15,9 @@ openapiRegistry.registerPath({
   responses: { 200: { description: 'Success' } },
 })
 router.get('/check-username', async (req, res) => {
-  // @ts-ignore
-  const userService = (req as any).container.resolve('userService')
+  const userService = req.container.cradle.userService
   const { username } = req.query as { username?: string }
-  const available = await userService.checkUsernameAvailable(username)
+  const available = await userService.checkUsernameAvailable(username!)
   res.json({ available })
 })
 
@@ -28,8 +27,7 @@ openapiRegistry.registerPath({
   responses: { 200: { description: 'Success' } },
 })
 router.get('/:id', async (req, res) => {
-  // @ts-ignore
-  const userService = (req as any).container.resolve('userService')
+  const userService = req.container.cradle.userService
   const user = await userService.getUserProfile(req.params.id)
   if (!user) return res.status(404).json({ error: { code: 'USER_NOT_FOUND', message: 'User not found' } })
   res.json(user)
@@ -42,8 +40,7 @@ openapiRegistry.registerPath({
   responses: { 200: { description: 'Success' } },
 })
 router.patch('/me', authenticateToken, validate(updateProfileSchema), async (req: AuthenticatedRequest, res) => {
-  // @ts-ignore
-  const userService = (req as any).container.resolve('userService')
+  const userService = req.container.cradle.userService
   const { displayName, avatar, bio, favouriteSports, favouriteTeams } = req.body as {
     displayName?: string
     avatar?: string | null
@@ -52,7 +49,7 @@ router.patch('/me', authenticateToken, validate(updateProfileSchema), async (req
     favouriteTeams?: string[]
   }
 
-  const user = await userService.updateProfile(req.userId, {
+  const user = await userService.updateProfile(req.userId!, {
     displayName,
     avatar,
     bio,
@@ -69,9 +66,8 @@ openapiRegistry.registerPath({
   responses: { 200: { description: 'Success' } },
 })
 router.post('/:id/follow', authenticateToken, async (req: AuthenticatedRequest, res) => {
-  // @ts-ignore
-  const userService = (req as any).container.resolve('userService')
-  const follow = await userService.followUser(req.userId, req.params.id)
+  const userService = req.container.cradle.userService
+  const follow = await userService.followUser(req.userId!, req.params.id as string)
   res.status(201).json(follow)
 })
 
@@ -81,9 +77,8 @@ openapiRegistry.registerPath({
   responses: { 200: { description: 'Success' } },
 })
 router.delete('/:id/follow', authenticateToken, async (req: AuthenticatedRequest, res) => {
-  // @ts-ignore
-  const userService = (req as any).container.resolve('userService')
-  await userService.unfollowUser(req.userId, req.params.id)
+  const userService = req.container.cradle.userService
+  await userService.unfollowUser(req.userId!, req.params.id as string)
   res.json({ message: 'Unfollowed' })
 })
 
@@ -93,9 +88,8 @@ openapiRegistry.registerPath({
   responses: { 200: { description: 'Success' } },
 })
 router.get('/me/notifications', authenticateToken, async (req: AuthenticatedRequest, res) => {
-  // @ts-ignore
-  const userService = (req as any).container.resolve('userService')
-  const notifications = await userService.getNotifications(req.userId)
+  const userService = req.container.cradle.userService
+  const notifications = await userService.getNotifications(req.userId!)
   res.json(notifications)
 })
 
@@ -105,9 +99,8 @@ openapiRegistry.registerPath({
   responses: { 200: { description: 'Success' } },
 })
 router.patch('/me/notifications/read', authenticateToken, async (req: AuthenticatedRequest, res) => {
-  // @ts-ignore
-  const userService = (req as any).container.resolve('userService')
-  await userService.markNotificationsRead(req.userId)
+  const userService = req.container.cradle.userService
+  await userService.markNotificationsRead(req.userId!)
   res.json({ message: 'All notifications marked as read' })
 })
 

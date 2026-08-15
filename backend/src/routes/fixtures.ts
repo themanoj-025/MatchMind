@@ -16,8 +16,7 @@ openapiRegistry.registerPath({
   responses: { 200: { description: 'Success' } },
 })
 router.get('/', async (req, res) => {
-  // @ts-ignore
-  const matchService = (req as any).container.resolve('matchService')
+  const matchService = req.container.cradle.matchService
   const { tournamentId } = req.query as { tournamentId?: string }
 
   const fixtures = await matchService.getFixtures(tournamentId)
@@ -32,8 +31,7 @@ openapiRegistry.registerPath({
   responses: { 200: { description: 'Success' } },
 })
 router.get('/:id', async (req, res) => {
-  // @ts-ignore
-  const matchService = (req as any).container.resolve('matchService')
+  const matchService = req.container.cradle.matchService
   const fixture = await matchService.getFixtureDetails(req.params.id)
   if (!fixture) {
     return res.status(404).json({ error: { code: 'FIXTURE_NOT_FOUND', message: 'Fixture not found' } })
@@ -49,8 +47,7 @@ openapiRegistry.registerPath({
   responses: { 200: { description: 'Success' } },
 })
 router.post('/', authenticateToken, requireAdmin, async (req: AuthenticatedRequest, res) => {
-  // @ts-ignore
-  const matchService = (req as any).container.resolve('matchService')
+  const matchService = req.container.cradle.matchService
   const fixture = await matchService.createFixture(req.body)
   res.status(201).json(fixture)
 })
@@ -63,8 +60,7 @@ openapiRegistry.registerPath({
   responses: { 200: { description: 'Success' } },
 })
 router.post('/:id/player-stats', authenticateToken, requireAdmin, async (req: AuthenticatedRequest, res) => {
-  // @ts-ignore
-  const matchService = (req as any).container.resolve('matchService')
+  const matchService = req.container.cradle.matchService
   const { playerStats } = req.body as {
     playerStats: Array<{
       playerId: string
@@ -82,7 +78,7 @@ router.post('/:id/player-stats', authenticateToken, requireAdmin, async (req: Au
     }>
   }
 
-  const created = await matchService.enterPlayerStats(req.params.id, playerStats)
+  const created = await matchService.enterPlayerStats(req.params.id as string, playerStats)
 
   logger.info({ event: 'admin.player_stats_entered', fixtureId: req.params.id, count: created.length })
   res.status(201).json(created)
@@ -96,11 +92,10 @@ openapiRegistry.registerPath({
   responses: { 200: { description: 'Success' } },
 })
 router.post('/:id/finalize', authenticateToken, requireAdmin, async (req: AuthenticatedRequest, res) => {
-  // @ts-ignore
-  const matchService = (req as any).container.resolve('matchService')
+  const matchService = req.container.cradle.matchService
   const io = req.app.get('io')
 
-  const { roomsProcessed, fantasyEntries } = await matchService.finalizeFixture(req.params.id, req.userId, io)
+  const { roomsProcessed, fantasyEntries } = await matchService.finalizeFixture(req.params.id as string, req.userId!, io)
 
   res.json({ message: 'Fixture finalized', roomsProcessed, fantasyEntries })
 })

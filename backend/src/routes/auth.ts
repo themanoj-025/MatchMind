@@ -40,8 +40,7 @@ openapiRegistry.registerPath({
   responses: { 200: { description: 'Success' } },
 })
 router.get('/me', authenticateToken, async (req: AuthenticatedRequest, res) => {
-  // @ts-ignore
-  const userRepository = (req as any).container.resolve('userRepository')
+  const userRepository = req.container.cradle.userRepository
   const user = await userRepository.findById(req.userId!)
   if (!user) {
     return res.status(401).json({ error: { code: 'UNAUTHORIZED', message: 'User not found' } })
@@ -71,8 +70,7 @@ openapiRegistry.registerPath({
 router.post('/signup', validate(signupSchema), async (req, res) => {
   const { username, email, password } = req.body
 
-  // @ts-ignore
-  const authService = (req as any).container.resolve('authService')
+  const authService = req.container.cradle.authService
   const result = await authService.signup(username, email, password)
   const tokens = result.tokens
 
@@ -91,8 +89,7 @@ openapiRegistry.registerPath({
 router.post('/login', validate(loginSchema), async (req, res) => {
   const { email, password } = req.body
 
-  // @ts-ignore
-  const authService = (req as any).container.resolve('authService')
+  const authService = req.container.cradle.authService
   const result = await authService.login(email, password)
   const tokens = result.tokens
 
@@ -108,8 +105,7 @@ openapiRegistry.registerPath({
   responses: { 200: { description: 'Success' } },
 })
 router.post('/logout', authenticateToken, async (req: AuthenticatedRequest, res) => {
-  // @ts-ignore
-  const prisma = (req as any).container.resolve('prisma')
+  const prisma = req.container.cradle.prisma
   await revokeTokens(req.userId!, prisma)
   clearAuthCookies(res)
   logger.info({ event: 'auth.logout', userId: req.userId })
@@ -124,8 +120,7 @@ openapiRegistry.registerPath({
   responses: { 200: { description: 'Success' } },
 })
 router.post('/logout-all', authenticateToken, async (req: AuthenticatedRequest, res) => {
-  // @ts-ignore
-  const prisma = (req as any).container.resolve('prisma')
+  const prisma = req.container.cradle.prisma
   await revokeTokens(req.userId!, prisma)
   clearAuthCookies(res)
   logger.info({ event: 'auth.logout_all', userId: req.userId })
@@ -139,8 +134,7 @@ openapiRegistry.registerPath({
   path: '/google',
   responses: { 200: { description: 'Success' } },
 })
-// @ts-ignore
-router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }) as unknown)
+router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }))
 
 // GET /api/auth/google/cb
 
@@ -150,8 +144,7 @@ openapiRegistry.registerPath({
   responses: { 200: { description: 'Success' } },
 })
 router.get('/google/cb', passport.authenticate('google', { session: false }), (req, res) => {
-  // @ts-ignore
-  const googleUser = (req as any).user
+  const googleUser = req.user as { id: string; tokenVersion: number }
   // Async token generation — use sync version since passport already resolved user
   const tokens = generateTokens(googleUser.id, googleUser.tokenVersion)
   setAuthCookies(res, tokens)
@@ -175,8 +168,7 @@ router.post('/refresh', async (req, res) => {
     })
   }
 
-  // @ts-ignore
-  const authService = (req as any).container.resolve('authService')
+  const authService = req.container.cradle.authService
   const tokens = await authService.refreshToken(token)
   setAuthCookies(res, tokens)
   res.json({ message: 'Tokens refreshed successfully' }) // Tokens are NOT returned in JSON
@@ -192,8 +184,7 @@ openapiRegistry.registerPath({
 })
 router.post('/forgot-password', validate(forgotPasswordSchema), async (req, res) => {
   const { email } = req.body
-  // @ts-ignore
-  const authService = (req as any).container.resolve('authService')
+  const authService = req.container.cradle.authService
   await authService.generatePasswordResetToken(email)
   res.json({ message: 'If an account exists, a reset link has been sent.' })
 })
@@ -208,8 +199,7 @@ openapiRegistry.registerPath({
 })
 router.post('/reset-password', validate(resetPasswordSchema), async (req, res) => {
   const { token, password } = req.body
-  // @ts-ignore
-  const authService = (req as any).container.resolve('authService')
+  const authService = req.container.cradle.authService
 
   await authService.resetPassword(token, password)
 
@@ -226,14 +216,12 @@ openapiRegistry.registerPath({
   responses: { 200: { description: 'Success' } },
 })
 router.post('/verify-email', validate(verifyEmailSchema), async (req, res) => {
-  // @ts-ignore
-  const prisma = (req as any).container.resolve('prisma')
+  const prisma = req.container.cradle.prisma
   const { token } = req.body
 
   let decoded: { userId: string; purpose: string }
   try {
-    // @ts-ignore
-    decoded = jwt.verify(token, env.JWT_SECRET!) as unknown
+    decoded = jwt.verify(token, env.JWT_SECRET!) as { userId: string; purpose: string }
   } catch (err: any) {
     return res.status(400).json({
       error: { code: 'INVALID_TOKEN', message: 'Verification token is invalid or expired' },
@@ -246,8 +234,7 @@ router.post('/verify-email', validate(verifyEmailSchema), async (req, res) => {
     })
   }
 
-  // @ts-ignore
-  const userRepository = (req as any).container.resolve('userRepository')
+  const userRepository = req.container.cradle.userRepository
   const user = await userRepository.update(decoded.userId, { emailVerified: true })
 
   logger.info({ event: 'auth.email_verified', userId: user.id }, 'Email verified')

@@ -290,10 +290,10 @@ async function createTestApp(prismaMock: MockPrisma) {
       return null
     }
     ;(req as any).container = {
-      resolve: (key: string) => {
-        if (key === 'userRepository') return (mockDeps as any).userRepository
-        if (key === 'authService') return new AuthService(mockDeps)
-        return null
+      cradle: {
+        userRepository: (mockDeps as any).userRepository,
+        authService: new AuthService(mockDeps),
+        prisma: prismaMock,
       },
     }
     next()

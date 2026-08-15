@@ -42,10 +42,8 @@ openapiRegistry.registerPath({
   responses: { 200: { description: 'Success' } },
 })
 router.post('/start', draftLimiter, validate(draftStartSchema), async (req: AuthenticatedRequest, res) => {
-  // @ts-ignore
-  const draftService = (req as any).container.resolve('draftService')
-  // @ts-ignore
-  const userService = (req as any).container.resolve('userService')
+  const draftService = req.container.cradle.draftService
+  const userService = req.container.cradle.userService
 
   const { tournamentId, formation } = req.body as { tournamentId: string; formation: string }
 
@@ -61,7 +59,7 @@ router.post('/start', draftLimiter, validate(draftStartSchema), async (req: Auth
   }
 
   // Check if user is Pro
-  const user = await userService.getUser(req.userId)
+  const user = await userService.getUser(req.userId!)
   const isPro = user?.isPro ?? false
 
   // Start draft (consumes ticket internally)
@@ -89,8 +87,7 @@ openapiRegistry.registerPath({
   responses: { 200: { description: 'Success' } },
 })
 router.get('/formations', async (req, res) => {
-  // @ts-ignore
-  const draftService = (req as any).container.resolve('draftService')
+  const draftService = req.container.cradle.draftService
   const formations = draftService.loadFormations()
   res.json(formations)
 })
@@ -103,8 +100,7 @@ openapiRegistry.registerPath({
   responses: { 200: { description: 'Success' } },
 })
 router.get('/mine', async (req: AuthenticatedRequest, res) => {
-  // @ts-ignore
-  const draftService = (req as any).container.resolve('draftService')
+  const draftService = req.container.cradle.draftService
   const sessions = await draftService.listUserDrafts(req.userId!)
   res.json(sessions)
 })
@@ -117,13 +113,11 @@ openapiRegistry.registerPath({
   responses: { 200: { description: 'Success' } },
 })
 router.get('/tickets', async (req: AuthenticatedRequest, res) => {
-  // @ts-ignore
-  const draftService = (req as any).container.resolve('draftService')
-  // @ts-ignore
-  const userService = (req as any).container.resolve('userService')
+  const draftService = req.container.cradle.draftService
+  const userService = req.container.cradle.userService
   const tournamentId = req.query.tournamentId as string | undefined
 
-  const user = await userService.getUser(req.userId)
+  const user = await userService.getUser(req.userId!)
   const isPro = user?.isPro ?? false
 
   if (tournamentId) {
@@ -154,10 +148,8 @@ openapiRegistry.registerPath({
   responses: { 200: { description: 'Success' } },
 })
 router.get('/:sessionId', async (req: AuthenticatedRequest, res) => {
-  // @ts-ignore
-  const draftService = (req as any).container.resolve('draftService')
-  // @ts-ignore
-  const prisma = (req as any).container.resolve('prisma') // temporary for player fetch
+  const draftService = req.container.cradle.draftService
+  const prisma = req.container.cradle.prisma // temporary for player fetch
   const result = await draftService.getSessionState(req.params.sessionId as string, req.userId!)
 
   if (result.error) {
@@ -208,8 +200,7 @@ openapiRegistry.registerPath({
   responses: { 200: { description: 'Success' } },
 })
 router.get('/:sessionId/next-round', async (req: AuthenticatedRequest, res) => {
-  // @ts-ignore
-  const draftService = (req as any).container.resolve('draftService')
+  const draftService = req.container.cradle.draftService
   const result = await draftService.getNextRound(req.params.sessionId as string, req.userId!)
 
   if (result.error) {
@@ -237,8 +228,7 @@ openapiRegistry.registerPath({
   responses: { 200: { description: 'Success' } },
 })
 router.post('/:sessionId/pick', validate(draftPickSchema), async (req: AuthenticatedRequest, res) => {
-  // @ts-ignore
-  const draftService = (req as any).container.resolve('draftService')
+  const draftService = req.container.cradle.draftService
   const { slotIndex, pickedPlayerId } = req.body as { slotIndex: number; pickedPlayerId: string }
 
   const result = await draftService.processPick(req.params.sessionId as string, req.userId!, slotIndex, pickedPlayerId)
@@ -265,8 +255,7 @@ openapiRegistry.registerPath({
   responses: { 200: { description: 'Success' } },
 })
 router.post('/:sessionId/commit', async (req: AuthenticatedRequest, res) => {
-  // @ts-ignore
-  const draftService = (req as any).container.resolve('draftService')
+  const draftService = req.container.cradle.draftService
   const result = await draftService.commitSquad(req.params.sessionId as string, req.userId!)
 
   if (!result.success) {
@@ -300,8 +289,7 @@ openapiRegistry.registerPath({
   responses: { 200: { description: 'Success' } },
 })
 router.post('/:sessionId/enter-run', async (req: AuthenticatedRequest, res) => {
-  // @ts-ignore
-  const draftService = (req as any).container.resolve('draftService')
+  const draftService = req.container.cradle.draftService
   const result = await draftService.enterRun(req.params.sessionId as string, req.userId!)
 
   if (!result.success) {
@@ -330,8 +318,7 @@ openapiRegistry.registerPath({
   responses: { 200: { description: 'Success' } },
 })
 router.get('/:sessionId/run-status', async (req: AuthenticatedRequest, res) => {
-  // @ts-ignore
-  const draftService = (req as any).container.resolve('draftService')
+  const draftService = req.container.cradle.draftService
   const result = await draftService.getRunStatus(req.params.sessionId as string, req.userId!)
 
   if (!result.success) {
@@ -352,8 +339,7 @@ openapiRegistry.registerPath({
   responses: { 200: { description: 'Success' } },
 })
 router.post('/:sessionId/resolve-matchday', async (req: AuthenticatedRequest, res) => {
-  // @ts-ignore
-  const draftService = (req as any).container.resolve('draftService')
+  const draftService = req.container.cradle.draftService
   const result = await draftService.resolveNextMatchday(req.params.sessionId as string, req.userId!)
 
   if (!result.success) {

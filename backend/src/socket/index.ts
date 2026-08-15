@@ -181,8 +181,7 @@ export const setupSocket = (io: Server, prisma: any): void => {
         return
       }
       const roomPrefix = roomId.split(':')[0]
-      // @ts-ignore
-      if (!ALLOWED_ROOM_TYPES.includes(roomPrefix)) {
+      if (!ALLOWED_ROOM_TYPES.includes(roomPrefix!)) {
         return
       }
 
@@ -494,8 +493,7 @@ export const setupSocket = (io: Server, prisma: any): void => {
         }
 
         const roomType = roomId.split(':')[0]
-        // @ts-ignore
-        if (!ALLOWED_ROOM_TYPES.includes(roomType)) {
+        if (!ALLOWED_ROOM_TYPES.includes(roomType!)) {
           return
         }
 

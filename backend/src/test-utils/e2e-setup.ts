@@ -84,7 +84,6 @@ export function createTestTournament(overrides: Record<string, any> = {}) {
  * need to generate JWTs or manage auth tokens.
  */
 function mockAuthenticateToken(req: express.Request, _res: any, next: any) {
-  // @ts-ignore
   req.userId = 'test-user-1'
   next()
 }

@@ -56,12 +56,11 @@ router.post(
   authenticateToken,
   validate(createRoomSchema),
   async (req: AuthenticatedRequest, res) => {
-    // @ts-ignore
-    const roomService = (req as any).container.resolve('roomService')
+    const roomService = req.container.cradle.roomService
     const { name, tournamentId, totalBudget } = req.body as z.infer<typeof createRoomSchema>
 
     // Check free tier limit
-    const activeRooms = await roomService.countActiveRoomsForUser(req.userId)
+    const activeRooms = await roomService.countActiveRoomsForUser(req.userId!)
     if (activeRooms >= MAX_FREE_ROOMS_PER_USER) {
       return res.status(403).json({
         error: {
@@ -81,7 +80,7 @@ router.post(
 
     const room = await roomService.createRoomWithHostAndAuction(
       { name, tournamentId, totalBudget, inviteCode },
-      req.userId,
+      req.userId!,
     )
 
     logger.info({ event: 'room.created', roomId: room.id, tournamentId, hostId: req.userId })
@@ -97,9 +96,8 @@ openapiRegistry.registerPath({
   responses: { 200: { description: 'Success' } },
 })
 router.get('/mine', authenticateToken, async (req: AuthenticatedRequest, res) => {
-  // @ts-ignore
-  const roomService = (req as any).container.resolve('roomService')
-  const userRooms = await roomService.getUserRooms(req.userId)
+  const roomService = req.container.cradle.roomService
+  const userRooms = await roomService.getUserRooms(req.userId!)
   res.json(userRooms)
 })
 
@@ -111,8 +109,7 @@ openapiRegistry.registerPath({
   responses: { 200: { description: 'Success' } },
 })
 router.get('/:id', async (req, res) => {
-  // @ts-ignore
-  const roomService = (req as any).container.resolve('roomService')
+  const roomService = req.container.cradle.roomService
   const room = await roomService.getRoomDetails(req.params.id)
   if (!room) {
     return res.status(404).json({ error: { code: 'ROOM_NOT_FOUND', message: 'Room not found' } })
@@ -128,8 +125,7 @@ openapiRegistry.registerPath({
   responses: { 200: { description: 'Success' } },
 })
 router.get('/:id/members', async (req, res) => {
-  // @ts-ignore
-  const roomService = (req as any).container.resolve('roomService')
+  const roomService = req.container.cradle.roomService
   const data = await roomService.getRoomMembers(req.params.id)
   res.json(data)
 })
@@ -148,8 +144,7 @@ router.post(
   authenticateToken,
   validate(joinRoomSchema),
   async (req: AuthenticatedRequest, res) => {
-    // @ts-ignore
-    const roomService = (req as any).container.resolve('roomService')
+    const roomService = req.container.cradle.roomService
     const roomId = req.params.id as string
     const { inviteCode } = req.body as z.infer<typeof joinRoomSchema>
 
@@ -165,17 +160,17 @@ router.post(
     }
 
     // Check if already a member
-    const existing = await roomService.getMember(roomId, req.userId)
+    const existing = await roomService.getMember(roomId, req.userId!)
     if (existing) {
       return res.status(409).json({ error: { code: 'ALREADY_MEMBER', message: 'Already a member of this room' } })
     }
 
-    const member = await roomService.joinRoom(roomId, req.userId, room.totalBudget)
+    const member = await roomService.joinRoom(roomId, req.userId!, room.totalBudget)
 
     // Emit join event
     const io = req.app.get('io')
     if (io) {
-      const fullMember = await roomService.getFullMember(roomId, req.userId)
+      const fullMember = await roomService.getFullMember(roomId, req.userId!)
       io.to(`room:${room.id}`).emit('MEMBER_JOINED', { roomId: room.id, member: fullMember })
     }
 
@@ -192,11 +187,10 @@ openapiRegistry.registerPath({
   responses: { 200: { description: 'Success' } },
 })
 router.patch('/:id/ready', authenticateToken, async (req: AuthenticatedRequest, res) => {
-  // @ts-ignore
-  const roomService = (req as any).container.resolve('roomService')
+  const roomService = req.container.cradle.roomService
   const roomId = req.params.id as string
 
-  const member = await roomService.getMember(roomId, req.userId)
+  const member = await roomService.getMember(roomId, req.userId!)
   if (!member) {
     return res.status(404).json({ error: { code: 'NOT_MEMBER', message: 'You are not a member of this room' } })
   }
@@ -206,7 +200,7 @@ router.patch('/:id/ready', authenticateToken, async (req: AuthenticatedRequest, 
     return res.status(400).json({ error: { code: 'ROOM_NOT_LOBBY', message: 'Room is not in lobby state' } })
   }
 
-  const updated = await roomService.toggleMemberReady(roomId, req.userId, member.isReady)
+  const updated = await roomService.toggleMemberReady(roomId, req.userId!, member.isReady)
 
   // Emit ready status change to room
   const io = req.app.get('io')
@@ -230,8 +224,7 @@ openapiRegistry.registerPath({
   responses: { 200: { description: 'Success' } },
 })
 router.post('/:id/regenerate-invite', authenticateToken, async (req: AuthenticatedRequest, res) => {
-  // @ts-ignore
-  const roomService = (req as any).container.resolve('roomService')
+  const roomService = req.container.cradle.roomService
   const roomId = req.params.id as string
 
   const room = await roomService.getRoomById(roomId)
@@ -266,8 +259,7 @@ openapiRegistry.registerPath({
   responses: { 200: { description: 'Success' } },
 })
 router.get('/:id/leaderboard', async (req, res) => {
-  // @ts-ignore
-  const roomService = (req as any).container.resolve('roomService')
+  const roomService = req.container.cradle.roomService
   const roomId = req.params.id as string
 
   const data = await roomService.getRoomLeaderboardData(roomId)

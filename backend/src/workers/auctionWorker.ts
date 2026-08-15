@@ -1,9 +1,9 @@
-import { Worker, Job } from 'bullmq'
+import { Worker, Job, type ConnectionOptions } from 'bullmq'
 import { redis } from '../lib/redis'
 import { container } from '../container'
 import { PrismaClient } from '@prisma/client'
 import logger from '../utils/logger'
-import { checkAuctionTimer } from '../services/auctionEngine'
+import { checkAuctionTimer, type AuctionState } from '../services/auctionEngine'
 import { app } from '../app'
 import { ConcurrencyError } from '../errors/DomainError'
 import { RoomStatus } from '@matchmind/shared-types'
@@ -21,10 +21,9 @@ export const auctionWorker = new Worker(
       // Execute the timer check logic that was previously in the polling loop
       const result = await checkAuctionTimer(
         roomId,
-        // @ts-ignore
         async (id: string) => {
           const state = await prisma.auctionState.findUnique({ where: { roomId: id } })
-          return state ? (state as unknown) : null
+          return state ? (state as AuctionState) : null
         },
         async (id: string, state: any) => {
           const expectedVersion = state.version - 1
@@ -104,7 +103,6 @@ export const auctionWorker = new Worker(
 
       return { success: true }
     } catch (err: any) {
-      // @ts-ignore
       if (err instanceof ConcurrencyError || err.code === 'CONCURRENCY_ERROR') {
         logger.warn({ event: 'worker.auction.concurrency', roomId }, 'Concurrency conflict in worker, ignoring')
       } else {
@@ -114,8 +112,7 @@ export const auctionWorker = new Worker(
     }
   },
   {
-    // @ts-ignore
-    connection: redis as unknown,
+    connection: redis as unknown as ConnectionOptions,
   },
 )
 

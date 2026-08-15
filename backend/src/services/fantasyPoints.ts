@@ -186,8 +186,7 @@ export async function computeFantasyPoints(
   // Determine which captain actually played
   const captainEntry = rosters.find((r) => r.isCaptain)
   const captainPlayed = captainEntry
-    ? // @ts-ignore
-      playerStats[captainEntry.playerId]?.stats.minutesPlayed > 0
+    ? (playerStats[captainEntry.playerId]?.stats.minutesPlayed ?? 0) > 0
     : false
 
   for (const roster of rosters) {
@@ -238,13 +237,9 @@ export function computeLeaderboard(
   const scores: Record<string, { totalPoints: number; entries: number }> = {}
 
   for (const entry of ledger) {
-    if (!scores[entry.userId]) {
-      scores[entry.userId] = { totalPoints: 0, entries: 0 }
-    }
-    // @ts-ignore
-    scores[entry.userId].totalPoints += entry.totalPoints
-    // @ts-ignore
-    scores[entry.userId].entries++
+    const s = (scores[entry.userId] ??= { totalPoints: 0, entries: 0 })
+    s.totalPoints += entry.totalPoints
+    s.entries++
   }
 
   return Object.entries(scores)

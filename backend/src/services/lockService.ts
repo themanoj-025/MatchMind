@@ -45,8 +45,7 @@ export async function acquireLock(key: string, ttlMs = 5000, retries = 3, retryD
   // Attempt lock acquisition with retries
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
-      // @ts-ignore
-      const result = await redis.set(key, token, 'NX', 'PX', ttlMs)
+      const result = await redis.set(key, token, 'PX', ttlMs, 'NX')
       if (result === 'OK') {
         return {
           key,

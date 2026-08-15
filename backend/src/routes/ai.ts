@@ -42,10 +42,8 @@ openapiRegistry.registerPath({
   responses: { 200: { description: 'Success' } },
 })
 router.post('/auction-advice', authenticateToken, aiPredictionLimiter, async (req: AuthenticatedRequest, res) => {
-  // @ts-ignore
-  const prisma = (req as any).container.resolve('prisma')
-  // @ts-ignore
-  const cacheService = (req as any).container.resolve('cacheService')
+  const prisma = req.container.cradle.prisma
+  const cacheService = req.container.cradle.cacheService
   const { roomId } = req.body as { roomId: string }
 
   if (!roomId) {
@@ -54,7 +52,7 @@ router.post('/auction-advice', authenticateToken, aiPredictionLimiter, async (re
 
   // Verify room membership
   const member = await prisma.roomMember.findUnique({
-    where: { roomId_userId: { roomId, userId: req.userId } },
+    where: { roomId_userId: { roomId, userId: req.userId! } },
   })
   if (!member) {
     return res.status(403).json({ error: { code: 'NOT_MEMBER', message: 'You are not a member of this room' } })
@@ -95,8 +93,7 @@ router.post('/auction-advice', authenticateToken, aiPredictionLimiter, async (re
   const rosterPositions: Record<string, number> = { GK: 0, DEF: 0, MID: 0, FWD: 0 }
   for (const entry of roster) {
     if (entry.player?.position) {
-      // @ts-ignore
-      rosterPositions[entry.player.position]++
+      rosterPositions[entry.player.position]!++
     }
   }
 
@@ -228,8 +225,8 @@ Only respond with valid JSON, no other text.`,
   })
 
   try {
-    // @ts-ignore
-    const text = (msg.content[0] as unknown)?.text || '{}'
+    const firstBlock = msg.content[0]
+    const text = firstBlock && firstBlock.type === 'text' ? firstBlock.text : '{}'
     return JSON.parse(text)
   } catch {
     return null

@@ -23,11 +23,8 @@ describe('Remediation Phase 1 Tests', () => {
 
       app.use((req: any, _res, next) => {
         req.container = {
-          resolve: (key: string) => {
-            if (key === 'prisma') {
-              return prismaMock
-            }
-            return null
+          cradle: {
+            prisma: prismaMock,
           },
         }
         next()

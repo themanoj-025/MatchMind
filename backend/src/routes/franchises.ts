@@ -13,8 +13,7 @@ openapiRegistry.registerPath({
   responses: { 200: { description: 'Success' } },
 })
 router.get('/:roomId/franchises/:userId', authenticateToken, async (req: AuthenticatedRequest, res) => {
-  // @ts-ignore
-  const prisma = (req as any).container.resolve('prisma')
+  const prisma = req.container.cradle.prisma
   const roomId = req.params.roomId as string
   const userId = req.params.userId as string
 
@@ -44,8 +43,7 @@ openapiRegistry.registerPath({
   responses: { 200: { description: 'Success' } },
 })
 router.patch('/:roomId/franchises/me/captain', authenticateToken, async (req: AuthenticatedRequest, res) => {
-  // @ts-ignore
-  const prisma = (req as any).container.resolve('prisma')
+  const prisma = req.container.cradle.prisma
   const roomId = req.params.roomId as string
   const { playerId, isViceCaptain } = req.body as { playerId?: string; isViceCaptain?: boolean }
 

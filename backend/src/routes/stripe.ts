@@ -28,13 +28,11 @@ router.post(
   authenticateToken,
   validate(createCheckoutSchema),
   async (req: AuthenticatedRequest, res) => {
-    // @ts-ignore
-    const stripeService = (req as any).container.resolve('stripeService')
-    // @ts-ignore
-    const userService = (req as any).container.resolve('userService')
+    const stripeService = req.container.cradle.stripeService
+    const userService = req.container.cradle.userService
     const { plan } = req.body as { plan: string } // 'monthly' | 'annual'
 
-    const user = await userService.getUser(req.userId)
+    const user = await userService.getUser(req.userId!)
     if (!user) return res.status(404).json({ error: { code: 'USER_NOT_FOUND', message: 'User not found' } })
 
     // If user already has a Stripe customer, reuse it
@@ -59,9 +57,13 @@ router.post(
         throw new Error('Stripe price ID not configured')
       }
 
+      const email = existingSub
+        ? undefined
+        : (await req.container.cradle.prisma.user.findUnique({ where: { id: user.id }, select: { email: true } }))?.email
+
       const checkoutSession = await stripe.checkout.sessions.create({
         customer: existingSub?.stripeCustomerId || undefined,
-        customer_email: existingSub ? undefined : user.email,
+        customer_email: email,
         mode: 'subscription',
         line_items: [{ price: priceId, quantity: 1 }],
         success_url: `${env.FRONTEND_URL || 'http://localhost:3000'}/profile/me/settings?pro=activated`,
@@ -116,10 +118,8 @@ router.post('/webhook', async (req, res) => {
     return res.status(400).send(`Webhook Error: ${(err as Error).message}`)
   }
 
-  // @ts-ignore
-  const stripeService = (req as any).container.resolve('stripeService')
-  // @ts-ignore
-  const userService = (req as any).container.resolve('userService')
+  const stripeService = req.container.cradle.stripeService
+  const userService = req.container.cradle.userService
 
   switch (event.type) {
     case 'checkout.session.completed': {
@@ -222,9 +222,8 @@ openapiRegistry.registerPath({
   responses: { 200: { description: 'Success' } },
 })
 router.post('/create-portal-session', authenticateToken, async (req: AuthenticatedRequest, res) => {
-  // @ts-ignore
-  const stripeService = (req as any).container.resolve('stripeService')
-  const sub = await stripeService.getSubscriptionByUserId(req.userId)
+  const stripeService = req.container.cradle.stripeService
+  const sub = await stripeService.getSubscriptionByUserId(req.userId!)
 
   if (!sub?.stripeCustomerId) {
     return res.status(400).json({ error: { code: 'NO_SUBSCRIPTION', message: 'No active subscription found' } })
@@ -256,13 +255,11 @@ openapiRegistry.registerPath({
   responses: { 200: { description: 'Success' } },
 })
 router.get('/status', authenticateToken, async (req: AuthenticatedRequest, res) => {
-  // @ts-ignore
-  const stripeService = (req as any).container.resolve('stripeService')
-  // @ts-ignore
-  const userService = (req as any).container.resolve('userService')
+  const stripeService = req.container.cradle.stripeService
+  const userService = req.container.cradle.userService
 
-  const user = await userService.getUser(req.userId)
-  const sub = await stripeService.getSubscriptionByUserId(req.userId)
+  const user = await userService.getUser(req.userId!)
+  const sub = await stripeService.getSubscriptionByUserId(req.userId!)
 
   if (!user) return res.status(404).json({ error: { code: 'USER_NOT_FOUND', message: 'User not found' } })
 

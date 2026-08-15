@@ -21,10 +21,8 @@ openapiRegistry.registerPath({
   responses: { 200: { description: 'Success' } },
 })
 router.get('/', async (req, res) => {
-  // @ts-ignore
-  const prisma = (req as any).container.resolve('prisma')
-  // @ts-ignore
-  const cacheService = (req as any).container.resolve('cacheService')
+  const prisma = req.container.cradle.prisma
+  const cacheService = req.container.cradle.cacheService
   const { tournamentId, cursor, take } = cursorPaginationSchema
     .extend({ tournamentId: z.string().optional() })
     .parse(req.query)
@@ -44,7 +42,7 @@ router.get('/', async (req, res) => {
 
     const hasMore = players.length > take
     const data = hasMore ? players.slice(0, -1) : players
-    const nextCursor = hasMore ? data[data.length - 1].id : undefined
+    const nextCursor = hasMore ? data[data.length - 1]!.id : undefined
 
     return { data, hasMore, nextCursor }
   })
@@ -60,10 +58,8 @@ openapiRegistry.registerPath({
   responses: { 200: { description: 'Success' } },
 })
 router.get('/:id', async (req, res) => {
-  // @ts-ignore
-  const prisma = (req as any).container.resolve('prisma')
-  // @ts-ignore
-  const cacheService = (req as any).container.resolve('cacheService')
+  const prisma = req.container.cradle.prisma
+  const cacheService = req.container.cradle.cacheService
   const { id } = req.params
 
   const cacheKey = `players:detail:${id}`
