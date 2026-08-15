@@ -60,7 +60,7 @@ export function computeRoomLeaderboard(
     }))
     .sort((a, b) => {
       // Sort by total points descending, then by avg points descending
-      if (b.totalPoints !== a.totalPoints) return b.totalPoints - a.totalPoints
+      if (b.totalPoints !== a.totalPoints) {return b.totalPoints - a.totalPoints}
       return b.avgPoints - a.avgPoints
     })
     .map((entry, index) => ({

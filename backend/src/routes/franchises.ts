@@ -1,6 +1,5 @@
 import express from 'express'
-import { authenticateToken } from '../middleware/auth'
-import type { AuthenticatedRequest } from '../middleware/auth'
+import { authenticateToken, type AuthenticatedRequest } from '../middleware/auth'
 import { openapiRegistry } from '../config/openapi'
 
 const router = express.Router()
@@ -66,7 +65,7 @@ router.patch('/:roomId/franchises/me/captain', authenticateToken, async (req: Au
   const roster = await prisma.roster.findMany({
     where: { roomId, userId: req.userId },
   })
-  const rosterPlayerIds = new Set(roster.map((r: any) => r.playerId))
+  const rosterPlayerIds = new Set(roster.map((r) => r.playerId))
   if (!rosterPlayerIds.has(playerId)) {
     return res.status(400).json({ error: { code: 'PLAYER_NOT_IN_ROSTER', message: 'Player must be in your roster' } })
   }
@@ -79,7 +78,7 @@ router.patch('/:roomId/franchises/me/captain', authenticateToken, async (req: Au
         data: { isViceCaptain: false },
       })
     }
-    const entry = roster.find((r: any) => r.playerId === playerId)
+    const entry = roster.find((r) => r.playerId === playerId)
     if (entry) {
       await prisma.roster.update({
         where: { id: entry.id },
@@ -94,7 +93,7 @@ router.patch('/:roomId/franchises/me/captain', authenticateToken, async (req: Au
         data: { isCaptain: false, isViceCaptain: false },
       })
     }
-    const entry = roster.find((r: any) => r.playerId === playerId)
+    const entry = roster.find((r) => r.playerId === playerId)
     if (entry) {
       await prisma.roster.update({
         where: { id: entry.id },

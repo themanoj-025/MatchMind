@@ -17,7 +17,7 @@ export function setupGracefulShutdown(httpServer: Server): void {
       logger.info({ event: 'server.http_closed' }, 'HTTP server closed')
       await prisma.$disconnect()
       logger.info({ event: 'server.db_closed' }, 'MatchMind Database persisted and closed')
-    } catch (err: any) {
+    } catch (err: unknown) {
       logger.error(
         { event: 'server.shutdown_error', err: err instanceof Error ? (err as Error).message : String(err) },
         'Error during graceful shutdown',

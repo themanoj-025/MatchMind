@@ -36,7 +36,7 @@ export function cleanupDir(dir: string): void {
   }
 }
 
-export function createTestUser(overrides: Record<string, any> = {}) {
+export function createTestUser(overrides: Record<string, unknown> = {}) {
   return {
     id: 'test-user-1',
     username: 'testuser',
@@ -50,7 +50,7 @@ export function createTestUser(overrides: Record<string, any> = {}) {
   }
 }
 
-export function createTestPlayer(overrides: Record<string, any> = {}) {
+export function createTestPlayer(overrides: Record<string, unknown> = {}) {
   return {
     id: 'player-1',
     tournamentId: 'fifa-wc-2026',
@@ -63,7 +63,7 @@ export function createTestPlayer(overrides: Record<string, any> = {}) {
   }
 }
 
-export function createTestTournament(overrides: Record<string, any> = {}) {
+export function createTestTournament(overrides: Record<string, unknown> = {}) {
   return {
     id: 'fifa-wc-2026',
     name: 'FIFA World Cup 2026',
@@ -83,7 +83,7 @@ export function createTestTournament(overrides: Record<string, any> = {}) {
  * This replaces the real authenticateToken middleware so tests don't
  * need to generate JWTs or manage auth tokens.
  */
-function mockAuthenticateToken(req: express.Request, _res: any, next: any) {
+function mockAuthenticateToken(req: express.Request, _res: express.Response, next: express.NextFunction) {
   req.userId = 'test-user-1'
   next()
 }

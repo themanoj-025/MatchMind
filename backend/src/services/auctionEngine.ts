@@ -133,16 +133,48 @@ export function validateBudgetForRemainingSlots(
 
 // ─── Process Bid ─────────────────────────────────────────
 
+export interface AuctionRoomLike {
+  status: string
+}
+
+export interface AuctionPlayerLike {
+  position: string
+}
+
+export interface AuctionMemberLike {
+  remainingBudget: number
+}
+
+export interface AuctionRosterEntryLike {
+  position?: string
+  soldPrice: number
+}
+
+export interface AuctionBidRecord {
+  roomId: string
+  playerId: string
+  userId: string
+  amount: number
+  timestamp: string
+  version: number
+}
+
+export interface AuctionPlayerPoolEntryLike {
+  id: string
+  position: string
+  basePrice: number
+}
+
 export async function processBid(
   bid: BidRequest,
-  getRoom: (roomId: string) => Promise<any>,
-  getPlayer: (playerId: string) => Promise<any>,
-  getRoomMember: (roomId: string, userId: string) => Promise<any>,
-  getRoster: (roomId: string, userId: string) => Promise<any[]>,
+  getRoom: (roomId: string) => Promise<AuctionRoomLike | null>,
+  getPlayer: (playerId: string) => Promise<AuctionPlayerLike | null>,
+  getRoomMember: (roomId: string, userId: string) => Promise<AuctionMemberLike | null>,
+  getRoster: (roomId: string, userId: string) => Promise<AuctionRosterEntryLike[]>,
   getAuctionState: (roomId: string) => Promise<AuctionState | null>,
   saveAuctionState: (roomId: string, state: AuctionState) => Promise<void>,
-  saveBid: (bid: any) => Promise<void>,
-  getPlayerPool: (roomId: string) => Promise<any[]>,
+  saveBid: (bid: AuctionBidRecord) => Promise<void>,
+  getPlayerPool: (roomId: string) => Promise<AuctionPlayerPoolEntryLike[]>,
 ): Promise<BidResult> {
   return runWithLock(bid.roomId, async () => {
     // 1. Re-read state fresh from DB (never trust in-memory cache)
@@ -193,7 +225,7 @@ export async function processBid(
       bid.amount,
       player.position,
       DEFAULT_ROSTER_RULES,
-      roster.map((r: any) => ({ position: r.position || player.position, soldPrice: r.soldPrice })),
+      roster.map((r) => ({ position: r.position || player.position, soldPrice: r.soldPrice })),
       playerPool,
     )
     if (!budgetValidation.valid) {

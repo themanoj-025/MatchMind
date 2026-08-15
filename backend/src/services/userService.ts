@@ -20,7 +20,7 @@ export class UserService {
   /** Fetch a user's public profile (used by billing/draft/DM flows). */
   async getUser(userId: string): Promise<PublicUser | null> {
     const user = await this.userRepository.findById(userId)
-    if (!user) return null
+    if (!user) {return null}
     return {
       id: user.id,
       username: user.username,
@@ -37,14 +37,14 @@ export class UserService {
   }
 
   async checkUsernameAvailable(username: string): Promise<boolean> {
-    if (!username || username.length < 3) return false
+    if (!username || username.length < 3) {return false}
     const existing = await this.userRepository.findByUsername(username)
     return !existing
   }
 
   async getUserProfile(userId: string): Promise<Partial<UserData> | null> {
     const user = await this.userRepository.findById(userId)
-    if (!user) return null
+    if (!user) {return null}
     return {
       id: user.id,
       username: user.username,
@@ -75,9 +75,9 @@ export class UserService {
 
     // We filter undefined keys from updateData
     const cleanedData: Partial<UserData> = {}
-    if (updateData.displayName !== undefined) cleanedData.displayName = updateData.displayName
-    if (updateData.avatar !== undefined) cleanedData.avatar = updateData.avatar
-    if (updateData.bio !== undefined) cleanedData.bio = updateData.bio
+    if (updateData.displayName !== undefined) {cleanedData.displayName = updateData.displayName}
+    if (updateData.avatar !== undefined) {cleanedData.avatar = updateData.avatar}
+    if (updateData.bio !== undefined) {cleanedData.bio = updateData.bio}
 
     const user = await this.userRepository.update(userId, cleanedData)
 

@@ -5,9 +5,12 @@ import { env } from './env'
  * Accepts a PrismaClient-like instance from the caller (index.ts)
  * so only one connection is shared across the entire app.
  */
-import passport from 'passport'
-import type { StrategyCreated, StrategyCreatedStatic } from 'passport'
-import { Strategy as GoogleStrategy } from 'passport-google-oauth20'
+import passport, { type StrategyCreated, StrategyCreatedStatic } from 'passport'
+import {
+  Strategy as GoogleStrategy,
+  type Profile as GoogleProfile,
+  type VerifyCallback as GoogleVerifyCallback,
+} from 'passport-google-oauth20'
 import { Strategy as JwtStrategy, ExtractJwt } from 'passport-jwt'
 import type { DatabaseClient } from '../repositories/index'
 import logger from '../utils/logger'
@@ -23,9 +26,9 @@ export function configurePassport(prisma: DatabaseClient) {
     new JwtStrategy(jwtOpts, async (payload: { userId: string }, done) => {
       try {
         const user = await prisma.user.findUnique({ where: { id: payload.userId } })
-        if (!user) return done(null, false)
+        if (!user) {return done(null, false)}
         return done(null, user)
-      } catch (err: any) {
+      } catch (err: unknown) {
         return done(err, false)
       }
     }),
@@ -40,10 +43,10 @@ export function configurePassport(prisma: DatabaseClient) {
           clientSecret: env.GOOGLE_CLIENT_SECRET,
           callbackURL: `${env.BACKEND_URL || 'http://localhost:4000'}/api/auth/google/cb`,
         },
-        async (accessToken: string, refreshToken: string, profile: any, done: (error: unknown, user?: any) => void) => {
+        async (accessToken: string, refreshToken: string, profile: GoogleProfile, done: GoogleVerifyCallback) => {
           try {
             const email = profile.emails?.[0]?.value
-            if (!email) return done(new Error('No email from Google'), null)
+            if (!email) {return done(new Error('No email from Google'), false)}
 
             let user = await prisma.user.findUnique({ where: { email } })
             if (!user) {
@@ -57,8 +60,8 @@ export function configurePassport(prisma: DatabaseClient) {
               })
             }
             return done(null, user)
-          } catch (err: any) {
-            return done(err, null)
+          } catch (err: unknown) {
+            return done(err, false)
           }
         },
       ),
@@ -71,12 +74,12 @@ export function configurePassport(prisma: DatabaseClient) {
   }
 
   // Serialization (not used with JWT, but required for sessions if ever needed)
-  passport.serializeUser((user: any, done) => done(null, user.id))
+  passport.serializeUser((user: { id?: string }, done) => done(null, user.id))
   passport.deserializeUser(async (id: string, done) => {
     try {
       const user = await prisma.user.findUnique({ where: { id } })
       done(null, user)
-    } catch (err: any) {
+    } catch (err: unknown) {
       done(err, null)
     }
   })

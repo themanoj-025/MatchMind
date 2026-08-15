@@ -13,12 +13,10 @@ import { env } from '../config/env'
  * Falls back to in-memory store if Redis is unavailable.
  */
 import logger from '../utils/logger'
-import rateLimit, { ipKeyGenerator } from 'express-rate-limit'
-import type { ClientRateLimitInfo } from 'express-rate-limit'
+import rateLimit, { ipKeyGenerator, type ClientRateLimitInfo } from 'express-rate-limit'
 import type { Request, Response, NextFunction } from 'express'
 import type { RedisStore as RedisStoreClass } from 'rate-limit-redis'
 import type { RedisClientType } from 'redis'
-
 let RedisStore: typeof RedisStoreClass | null = null
 try {
   const rlr = require('rate-limit-redis')
@@ -26,12 +24,9 @@ try {
 } catch {
   // Fall back to built-in memory store
 }
-
 // ─── Shared Redis client (created once, reused by all limiters) ─────
-
 let sharedRedisClient: RedisClientType | null = null
 let redisStoreBacking = 'local-fallback'
-
 try {
   const redis = require('redis')
   const redisClient: RedisClientType = redis.createClient({
@@ -49,11 +44,9 @@ try {
     },
   })
   sharedRedisClient = redisClient
-
   redisClient.on('connect', () => {
     logger.info({ event: 'redis.connecting' }, 'Redis client connecting...')
   })
-
   redisClient.on('ready', () => {
     redisStoreBacking = 'redis'
     logger.info(
@@ -61,11 +54,9 @@ try {
       'Redis client ready. Rate limiting using Redis store.',
     )
   })
-
   redisClient.on('error', (err: Error) => {
     logger.error({ event: 'redis.error', err: err.message }, `Redis client error: ${err.message}`)
   })
-
   redisClient.on('end', () => {
     redisStoreBacking = 'local-fallback'
     logger.warn(
@@ -73,11 +64,9 @@ try {
       'Redis connection closed. Rate limiting falling back to local memory.',
     )
   })
-
   redisClient.on('reconnecting', () => {
     logger.info({ event: 'redis.reconnecting' }, 'Redis client reconnecting...')
   })
-
   redisClient.connect().catch((err: Error) => {
     logger.warn(
       { event: 'redis.initial_connection_failed', err: err.message },
@@ -91,49 +80,38 @@ try {
     'Redis client initialization failed; rate limiting using local memory.',
   )
 }
-
 // ─── Fallback In-Memory Store ──────────────────────────────
-
 class MemoryStoreFallback {
   private hits = new Map<string, { count: number; expiresAt: number }>()
   private windowMs: number
-
   constructor(windowMs: number) {
     this.windowMs = windowMs
   }
-
   async increment(key: string): Promise<{ totalHits: number; resetTime: Date }> {
     const now = Date.now()
     const record = this.hits.get(key)
-
     if (!record || now > record.expiresAt) {
       const expiresAt = now + this.windowMs
       this.hits.set(key, { count: 1, expiresAt })
       return { totalHits: 1, resetTime: new Date(expiresAt) }
     }
-
     record.count += 1
     return { totalHits: record.count, resetTime: new Date(record.expiresAt) }
   }
-
   async decrement(key: string): Promise<void> {
     const record = this.hits.get(key)
     if (record) {
       record.count = Math.max(0, record.count - 1)
     }
   }
-
   async resetKey(key: string): Promise<void> {
     this.hits.delete(key)
   }
 }
-
 // ─── Hybrid Store (Dynamic Failover/Failback) ──────────────
-
 class HybridStore {
   private redisStore: RedisStoreClass | null
   private memoryStore: MemoryStoreFallback
-
   constructor(options: { prefix?: string; windowMs: number }) {
     if (RedisStore) {
       this.redisStore = new RedisStore({
@@ -150,7 +128,6 @@ class HybridStore {
     }
     this.memoryStore = new MemoryStoreFallback(options.windowMs)
   }
-
   async increment(key: string): Promise<ClientRateLimitInfo> {
     if (this.redisStore && sharedRedisClient && sharedRedisClient.isOpen && redisStoreBacking === 'redis') {
       try {
@@ -164,7 +141,6 @@ class HybridStore {
     }
     return this.memoryStore.increment(key)
   }
-
   async decrement(key: string): Promise<void> {
     if (this.redisStore && sharedRedisClient && sharedRedisClient.isOpen && redisStoreBacking === 'redis') {
       try {
@@ -178,7 +154,6 @@ class HybridStore {
     }
     return this.memoryStore.decrement(key)
   }
-
   async resetKey(key: string): Promise<void> {
     if (this.redisStore && sharedRedisClient && sharedRedisClient.isOpen && redisStoreBacking === 'redis') {
       try {
@@ -193,7 +168,6 @@ class HybridStore {
     return this.memoryStore.resetKey(key)
   }
 }
-
 interface LimiterOptions {
   windowMs: number
   max: number
@@ -201,16 +175,13 @@ interface LimiterOptions {
   prefix?: string
   keyGenerator?: (req: Request) => string
 }
-
 // ─── Factory: creates a rate limiter with optional Redis backing ─────
-
 function createLimiter(options: LimiterOptions) {
   const windowMs = options.windowMs || 60 * 1000
   const store = new HybridStore({
     prefix: options.prefix,
     windowMs,
   })
-
   return rateLimit({
     windowMs,
     max: options.max || 100,
@@ -227,9 +198,7 @@ function createLimiter(options: LimiterOptions) {
     ...(options.keyGenerator ? { keyGenerator: options.keyGenerator } : {}),
   })
 }
-
 // ─── Pre-configured limiters ────────────────────────────────
-
 // Login / signup: 5 requests per 15 minutes per IP
 export const authLimiter = createLimiter({
   windowMs: 15 * 60 * 1000,
@@ -237,7 +206,6 @@ export const authLimiter = createLimiter({
   message: 'Too many authentication attempts, please try again after 15 minutes',
   prefix: 'rl:auth:',
 })
-
 // Password reset: 3 requests per hour per IP+email
 export const passwordResetLimiter = createLimiter({
   windowMs: 60 * 60 * 1000,
@@ -246,7 +214,6 @@ export const passwordResetLimiter = createLimiter({
   prefix: 'rl:reset:',
   keyGenerator: (req) => `${ipKeyGenerator(req.ip || 'unknown')}:${req.body?.email || 'unknown'}`,
 })
-
 // Prediction submission: 30 per minute per user (POST only)
 export const predictionLimiter = createLimiter({
   windowMs: 60 * 1000,
@@ -255,7 +222,6 @@ export const predictionLimiter = createLimiter({
   prefix: 'rl:pred:',
   keyGenerator: (req) => (req as { userId?: string }).userId || ipKeyGenerator(req.ip || 'unknown'),
 })
-
 // Global API default: 100 per minute per IP
 export const globalLimiter = createLimiter({
   windowMs: 60 * 1000,
@@ -263,7 +229,6 @@ export const globalLimiter = createLimiter({
   message: 'Too many requests, please slow down',
   prefix: 'rl:global:',
 })
-
 // AI prediction: 10 requests per hour per user (paid external API — Anthropic)
 export const aiPredictionLimiter = createLimiter({
   windowMs: 60 * 60 * 1000,
@@ -272,9 +237,7 @@ export const aiPredictionLimiter = createLimiter({
   prefix: 'rl:ai:',
   keyGenerator: (req) => (req as { userId?: string }).userId || ipKeyGenerator(req.ip || 'unknown'),
 })
-
 // ─── Phase 5: Hardened Limiters ───────────────────────────────
-
 // Auction host actions (start, force-sold, next-player, etc.): 30 per minute per user
 export const auctionActionLimiter = createLimiter({
   windowMs: 60 * 1000,
@@ -283,7 +246,6 @@ export const auctionActionLimiter = createLimiter({
   prefix: 'rl:auction:',
   keyGenerator: (req) => (req as { userId?: string }).userId || ipKeyGenerator(req.ip || 'unknown'),
 })
-
 // Create Room (Host logic inside the route checks the absolute 3-room limit)
 // But we still apply a general anti-spam IP limit just in case.
 export const createRoomLimiter = createLimiter({
@@ -293,7 +255,6 @@ export const createRoomLimiter = createLimiter({
   prefix: 'rl:createroom:',
   keyGenerator: (req) => (req as { userId?: string }).userId || ipKeyGenerator(req.ip || 'unknown'),
 })
-
 // Room join: 10 per minute per user
 export const joinRoomLimiter = createLimiter({
   windowMs: 60 * 1000,
@@ -302,7 +263,6 @@ export const joinRoomLimiter = createLimiter({
   prefix: 'rl:join-room:',
   keyGenerator: (req) => (req as { userId?: string }).userId || ipKeyGenerator(req.ip || 'unknown'),
 })
-
 // Static assets / public endpoints: higher limit (200/min/IP) so crawlers & real users aren't blocked
 export const publicLimiter = createLimiter({
   windowMs: 60 * 1000,
@@ -310,7 +270,6 @@ export const publicLimiter = createLimiter({
   message: 'Too many requests, please slow down',
   prefix: 'rl:public:',
 })
-
 // Draft Mode: start draft limited to 5 per minute per user (prevents ticket-exploit scripting §1.11)
 export const draftLimiter = createLimiter({
   windowMs: 60 * 1000,
@@ -319,5 +278,4 @@ export const draftLimiter = createLimiter({
   prefix: 'rl:draft:',
   keyGenerator: (req) => (req as { userId?: string }).userId || ipKeyGenerator(req.ip || 'unknown'),
 })
-
 export const isRedisConnected = () => sharedRedisClient !== null && sharedRedisClient.isOpen

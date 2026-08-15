@@ -77,13 +77,13 @@ export function metricsMiddleware(req: Request, res: Response, next: NextFunctio
   const end = httpRequestDuration.startTimer()
   const originalEnd = res.end.bind(res)
 
-  res.end = function (this: Response, ...args: any[]) {
+  res.end = function (this: Response, ...args: Parameters<typeof originalEnd>) {
     const duration = end()
     const route = req.route?.path || req.path
     httpRequestCount.inc({ method: req.method, route, status_code: res.statusCode })
     httpRequestDuration.observe({ method: req.method, route, status_code: res.statusCode }, duration)
     return originalEnd(...args)
-  } as any
+  } as typeof res.end
 
   next()
 }

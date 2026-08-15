@@ -27,8 +27,8 @@ export interface AdminServiceDeps {
   reportRepository: { count: (where?: Record<string, unknown>) => Promise<number> }
   adminLogRepository: { create: (data: Record<string, unknown>) => Promise<unknown> }
   prisma: {
-    user: { count: (opts?: any) => Promise<number> }
-    room: { count: (opts?: any) => Promise<number> }
+    user: { count: (opts?: Record<string, unknown>) => Promise<number> }
+    room: { count: (opts?: Record<string, unknown>) => Promise<number> }
   }
 }
 
@@ -101,7 +101,7 @@ export class AdminService {
         targetType: targetType ?? null,
         detail,
       })
-    } catch (err: any) {
+    } catch (err: unknown) {
       logger.error({ event: 'admin.log_failed', err: String(err) }, 'Failed to log admin action')
     }
   }

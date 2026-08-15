@@ -16,7 +16,7 @@ export interface LeaderboardUser {
   streakCurrent: number
   tier: string
   countryCode?: string | null
-  [key: string]: any
+  [key: string]: unknown
 }
 
 export interface LeaderboardEntry {
@@ -48,7 +48,7 @@ export function toLeaderboardEntry(
     username: user.username,
     name: user.displayName || user.username,
     avatar: user.avatar,
-    points: user[pointField] ?? 0,
+    points: (user[pointField] as number | undefined) ?? 0,
     accuracy: user.predAccuracy ?? 0,
     streak: user.streakCurrent ?? 0,
     tier: user.tier,

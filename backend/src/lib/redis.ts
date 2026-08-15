@@ -29,7 +29,7 @@ export const redis = env.REDIS_URL
       del: async () => 1,
     } as unknown as Redis)
 
-redis.on('error', (err: any) => {
+redis.on('error', (err: Error) => {
   logger.error({ event: 'redis.error', err: (err as Error).message }, 'Redis connection error')
 })
 

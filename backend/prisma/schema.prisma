@@ -517,13 +517,14 @@ model Session {
 model StarredPlayer {
   id        String   @id @default(uuid(7))
   userId    String
+  roomId    String
   playerId  String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   player    Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, playerId])
+  @@unique([userId, roomId, playerId])
   @@index([userId])
 }
 
@@ -629,12 +630,18 @@ model DraftRunResult {
 }
 
 model DraftTicket {
-  id        String            @id @default(uuid(7))
-  userId    String
-  status    DraftTicketStatus @default(AVAILABLE)
-  createdAt DateTime          @default(now())
-  updatedAt DateTime          @updatedAt
+  id           String            @id @default(uuid(7))
+  userId       String
+  tournamentId String
+  status       DraftTicketStatus @default(AVAILABLE)
+  remaining    Int               @default(0)
+  lastResetAt  DateTime
+  resetsAt     DateTime
+  sourceLog    Json              @default("[]")
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
 
+  @@unique([userId, tournamentId])
   @@index([userId])
 }
 
