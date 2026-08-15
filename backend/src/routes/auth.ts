@@ -39,7 +39,7 @@ router.get('/me', authenticateToken, async (req: AuthenticatedRequest, res) => {
   if (!user) {
     return res.status(401).json({ error: { code: 'UNAUTHORIZED', message: 'User not found' } })
   }
-  res.json({
+  return res.json({
     user: {
       id: user.id,
       username: user.username,
@@ -143,7 +143,7 @@ router.post('/refresh', async (req, res) => {
   const authService = req.container.cradle.authService
   const tokens = await authService.refreshToken(token)
   setAuthCookies(res, tokens)
-  res.json({ message: 'Tokens refreshed successfully' }) // Tokens are NOT returned in JSON
+  return res.json({ message: 'Tokens refreshed successfully' }) // Tokens are NOT returned in JSON
 })
 // POST /api/auth/forgot-password
 openapiRegistry.registerPath({
@@ -198,7 +198,7 @@ router.post('/verify-email', validate(verifyEmailSchema), async (req, res) => {
   const userRepository = req.container.cradle.userRepository
   const user = await userRepository.update(decoded.userId, { emailVerified: true })
   logger.info({ event: 'auth.email_verified', userId: user.id }, 'Email verified')
-  res.json({ message: 'Email verified successfully.' })
+  return res.json({ message: 'Email verified successfully.' })
 })
 // POST /api/auth/resend-verification
 openapiRegistry.registerPath({

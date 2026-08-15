@@ -72,7 +72,7 @@ router.get('/:id', async (req, res) => {
     return res.status(404).json({ error: { code: 'PLAYER_NOT_FOUND', message: 'Player not found' } })
   }
 
-  res.json(player)
+  return res.json(player)
 })
 
 export default router

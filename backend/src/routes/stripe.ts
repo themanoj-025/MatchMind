@@ -80,7 +80,7 @@ router.post(
         },
       })
     }
-    res.json({ url: session.url })
+    return res.json({ url: session.url })
   },
 )
 /**
@@ -194,7 +194,7 @@ router.post('/webhook', async (req, res) => {
     default:
       logger.warn({ event: 'stripe.unhandled_event', eventType: event.type }, `Unhandled event type ${event.type}`)
   }
-  res.json({ received: true })
+  return res.json({ received: true })
 })
 /**
  * POST /api/stripe/create-portal-session
@@ -219,7 +219,7 @@ router.post('/create-portal-session', authenticateToken, async (req: Authenticat
     customer: sub.stripeCustomerId,
     return_url: `${env.FRONTEND_URL || 'http://localhost:3000'}/profile/me/settings`,
   })
-  res.json({ url: portalSession.url })
+  return res.json({ url: portalSession.url })
 })
 /**
  * GET /api/stripe/status
@@ -236,7 +236,7 @@ router.get('/status', authenticateToken, async (req: AuthenticatedRequest, res) 
   const user = await userService.getUser(req.userId!)
   const sub = await stripeService.getSubscriptionByUserId(req.userId!)
   if (!user) {return res.status(404).json({ error: { code: 'USER_NOT_FOUND', message: 'User not found' } })}
-  res.json({
+  return res.json({
     isPro: user.isPro,
     proExpiresAt: user.proExpiresAt,
     subscription: sub

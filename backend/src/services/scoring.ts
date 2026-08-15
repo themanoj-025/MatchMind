@@ -150,20 +150,14 @@ export function getPredictionResult(homeGoals: number, awayGoals: number): 'home
  * @param ruleset - Scoring rules (defaults to DEFAULT_RULESET)
  * @returns The total points earned
  */
-export function calculatePredictionPoints(
-  prediction: PredictionInput,
-  actualResult: MatchResult,
-  ruleset: Ruleset = DEFAULT_RULESET,
-): { total: number; breakdown: Record<string, number> } {
-  const { homeGoals, awayGoals, btts, totalGoalsOU, totalGoalsLine } = prediction
-  const { homeScore, awayScore } = actualResult
-  const breakdown: Record<string, number> = {}
-
-  // Void check: if match has no score data (e.g. postponed/cancelled)
-  if (homeScore === undefined || awayScore === undefined || homeScore === null || awayScore === null) {
-    return { total: 0, breakdown: { void: 0 } }
-  }
-
+function applyResultOutcome(
+  breakdown: Record<string, number>,
+  ruleset: Ruleset,
+  prediction: { homeGoals: number; awayGoals: number },
+  actual: { homeScore: number; awayScore: number },
+): void {
+  const { homeGoals, awayGoals } = prediction
+  const { homeScore, awayScore } = actual
   const predictedResult = getMatchResult(homeGoals, awayGoals)
   const actualResultStr = getMatchResult(homeScore, awayScore)
 
@@ -186,8 +180,9 @@ export function calculatePredictionPoints(
   else {
     breakdown.base = ruleset.base
   }
+}
 
-  // BTTS (Both Teams To Score) bonus
+function applyBttsBonus(breakdown: Record<string, number>, ruleset: Ruleset, btts: boolean | null | undefined, homeScore: number, awayScore: number): void {
   if (btts === true) {
     const bothScored = homeScore > 0 && awayScore > 0
     if (bothScored) {
@@ -199,18 +194,44 @@ export function calculatePredictionPoints(
       breakdown.btts = ruleset.btts
     }
   }
+}
 
-  // Over/Under bonus
-  if (totalGoalsOU && totalGoalsLine != null) {
-    const totalGoals = homeScore + awayScore
-    if (
-      (totalGoalsOU === 'OVER' && totalGoals > totalGoalsLine) ||
-      (totalGoalsOU === 'UNDER' && totalGoals < totalGoalsLine)
-    ) {
-      breakdown.overUnder = ruleset.overUnder
-    }
-    // Note: exact line match (totalGoals === totalGoalsLine) results in a push — no bonus awarded
+function applyOverUnderBonus(
+  breakdown: Record<string, number>,
+  ruleset: Ruleset,
+  totalGoalsOU: string | null | undefined,
+  totalGoalsLine: number | null | undefined,
+  totalGoals: number,
+): void {
+  if (!totalGoalsOU || totalGoalsLine == null) {
+    return
   }
+  if (
+    (totalGoalsOU === 'OVER' && totalGoals > totalGoalsLine) ||
+    (totalGoalsOU === 'UNDER' && totalGoals < totalGoalsLine)
+  ) {
+    breakdown.overUnder = ruleset.overUnder
+  }
+  // Note: exact line match (totalGoals === totalGoalsLine) results in a push — no bonus awarded
+}
+
+export function calculatePredictionPoints(
+  prediction: PredictionInput,
+  actualResult: MatchResult,
+  ruleset: Ruleset = DEFAULT_RULESET,
+): { total: number; breakdown: Record<string, number> } {
+  const { homeGoals, awayGoals, btts, totalGoalsOU, totalGoalsLine } = prediction
+  const { homeScore, awayScore } = actualResult
+  const breakdown: Record<string, number> = {}
+
+  // Void check: if match has no score data (e.g. postponed/cancelled)
+  if (homeScore === undefined || awayScore === undefined || homeScore === null || awayScore === null) {
+    return { total: 0, breakdown: { void: 0 } }
+  }
+
+  applyResultOutcome(breakdown, ruleset, { homeGoals, awayGoals }, { homeScore, awayScore })
+  applyBttsBonus(breakdown, ruleset, btts, homeScore, awayScore)
+  applyOverUnderBonus(breakdown, ruleset, totalGoalsOU, totalGoalsLine, homeScore + awayScore)
 
   const total = Object.values(breakdown).reduce((sum, val) => sum + val, 0)
   return { total, breakdown }

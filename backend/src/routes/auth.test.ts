@@ -339,7 +339,7 @@ async function createTestApp(prismaMock: MockPrisma) {
       })
     }
     console.error('TEST ERROR:', err)
-    res.status(500).json({ error: { code: 'TEST_ERROR', message: httpErr.message } })
+    return res.status(500).json({ error: { code: 'TEST_ERROR', message: httpErr.message } })
   })
 
   return app

@@ -95,6 +95,7 @@ function loadRegistry(): Tournament[] {
   } catch (err: unknown) {
     console.error('[TournamentRegistry] Failed to load or validate:', err)
     process.exit(1)
+    return []
   }
 }
 

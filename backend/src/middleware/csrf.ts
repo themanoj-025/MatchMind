@@ -82,7 +82,7 @@ export function csrfTokenHandler(req: Request, res: Response): void {
  *
  * On failure returns 403 with CSRF_INVALID error code.
  */
-export function csrfProtection(req: Request, res: Response, next: NextFunction): void {
+export function csrfProtection(req: Request, res: Response, next: NextFunction): Response | void {
   // ─── Skip read-only methods ─────────────────────────────
   if (['GET', 'HEAD', 'OPTIONS'].includes(req.method.toUpperCase())) {
     return next()
@@ -104,17 +104,15 @@ export function csrfProtection(req: Request, res: Response, next: NextFunction):
   const headerToken = req.headers[HEADER_NAME] as string | undefined
 
   if (!cookieToken) {
-    res.status(403).json({
+    return res.status(403).json({
       error: { code: 'CSRF_TOKEN_MISSING', message: 'CSRF token cookie is missing' },
     })
-    return
   }
 
   if (!headerToken) {
-    res.status(403).json({
+    return res.status(403).json({
       error: { code: 'CSRF_HEADER_MISSING', message: 'X-CSRF-Token header is missing' },
     })
-    return
   }
 
   // Constant-time comparison to prevent timing attacks
@@ -122,11 +120,10 @@ export function csrfProtection(req: Request, res: Response, next: NextFunction):
     cookieToken.length !== headerToken.length ||
     !crypto.timingSafeEqual(Buffer.from(cookieToken), Buffer.from(headerToken))
   ) {
-    res.status(403).json({
+    return res.status(403).json({
       error: { code: 'CSRF_TOKEN_MISMATCH', message: 'CSRF token mismatch' },
     })
-    return
   }
 
-  next()
+  return next()
 }

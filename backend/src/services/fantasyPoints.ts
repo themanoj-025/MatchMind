@@ -74,39 +74,17 @@ const SCORING_RULES = {
 
 // ─── Calculate Points for a Single Player ────────────────
 
-export function calculatePlayerPoints(
-  stats: PlayerMatchStats,
-  position: string,
-  isCaptain: boolean,
-  isViceCaptain: boolean,
-  captainPlayed: boolean, // Whether the actual captain played (for VC fallback)
-): FantasyPointsResult['breakdown'] {
-  const breakdown: Record<string, number> = {}
-
-  // Minutes played
-  if (stats.minutesPlayed >= 60) {
-    breakdown.minutes = SCORING_RULES.MINUTES_60_PLUS
-  } else if (stats.minutesPlayed > 0) {
-    breakdown.minutes = SCORING_RULES.MINUTES_LESS_THAN_60
+function goalPointsForPosition(position: string): number {
+  if (position === 'FWD') {
+    return SCORING_RULES.GOAL_FWD
   }
-
-  // Goals (position-dependent)
-  const goalPoints =
-    position === 'FWD'
-      ? SCORING_RULES.GOAL_FWD
-      : position === 'MID'
-        ? SCORING_RULES.GOAL_MID
-        : SCORING_RULES.GOAL_DEF_GK // DEF or GK
-
-  if (stats.goals > 0) {
-    breakdown.goals = stats.goals * goalPoints
+  if (position === 'MID') {
+    return SCORING_RULES.GOAL_MID
   }
+  return SCORING_RULES.GOAL_DEF_GK // DEF or GK
+}
 
-  // Assists
-  if (stats.assists > 0) {
-    breakdown.assists = stats.assists * SCORING_RULES.ASSIST
-  }
-
+function applyDefensiveBonuses(breakdown: Record<string, number>, stats: PlayerMatchStats, position: string): void {
   // Clean sheet (DEF/GK: +4, MID: +1, only if played 60+ minutes)
   if (stats.cleanSheet && stats.minutesPlayed >= 60) {
     if (position === 'DEF' || position === 'GK') {
@@ -126,30 +104,55 @@ export function calculatePlayerPoints(
     breakdown.penaltySave = stats.penaltiesSaved * SCORING_RULES.PENALTY_SAVE
   }
 
-  // Yellow card
-  if (stats.yellowCards > 0) {
-    breakdown.yellowCards = stats.yellowCards * SCORING_RULES.YELLOW_CARD
-  }
-
-  // Red card
-  if (stats.redCards > 0) {
-    breakdown.redCards = stats.redCards * SCORING_RULES.RED_CARD
-  }
-
-  // Penalty miss
-  if (stats.penaltiesMissed > 0) {
-    breakdown.penaltyMiss = stats.penaltiesMissed * SCORING_RULES.PENALTY_MISS
-  }
-
-  // Own goal
-  if (stats.ownGoals > 0) {
-    breakdown.ownGoal = stats.ownGoals * SCORING_RULES.OWN_GOAL
-  }
-
   // Goals conceded (DEF/GK only, only if played)
   if ((position === 'DEF' || position === 'GK') && stats.minutesPlayed > 0 && stats.goalsConceded >= 2) {
     breakdown.goalsConceded = Math.floor(stats.goalsConceded / 2) * SCORING_RULES.GOALS_CONCEDED_PER_2
   }
+}
+
+function applyDisciplinePenalties(breakdown: Record<string, number>, stats: PlayerMatchStats): void {
+  if (stats.yellowCards > 0) {
+    breakdown.yellowCards = stats.yellowCards * SCORING_RULES.YELLOW_CARD
+  }
+  if (stats.redCards > 0) {
+    breakdown.redCards = stats.redCards * SCORING_RULES.RED_CARD
+  }
+  if (stats.penaltiesMissed > 0) {
+    breakdown.penaltyMiss = stats.penaltiesMissed * SCORING_RULES.PENALTY_MISS
+  }
+  if (stats.ownGoals > 0) {
+    breakdown.ownGoal = stats.ownGoals * SCORING_RULES.OWN_GOAL
+  }
+}
+
+export function calculatePlayerPoints(
+  stats: PlayerMatchStats,
+  position: string,
+  isCaptain: boolean,
+  isViceCaptain: boolean,
+  captainPlayed: boolean, // Whether the actual captain played (for VC fallback)
+): FantasyPointsResult['breakdown'] {
+  const breakdown: Record<string, number> = {}
+
+  // Minutes played
+  if (stats.minutesPlayed >= 60) {
+    breakdown.minutes = SCORING_RULES.MINUTES_60_PLUS
+  } else if (stats.minutesPlayed > 0) {
+    breakdown.minutes = SCORING_RULES.MINUTES_LESS_THAN_60
+  }
+
+  // Goals (position-dependent)
+  if (stats.goals > 0) {
+    breakdown.goals = stats.goals * goalPointsForPosition(position)
+  }
+
+  // Assists
+  if (stats.assists > 0) {
+    breakdown.assists = stats.assists * SCORING_RULES.ASSIST
+  }
+
+  applyDefensiveBonuses(breakdown, stats, position)
+  applyDisciplinePenalties(breakdown, stats)
 
   return breakdown
 }
