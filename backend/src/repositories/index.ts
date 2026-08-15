@@ -17,10 +17,11 @@ import type {
   PredictionData,
   LeaderboardEntry,
 } from './types'
+import type { Prisma } from '@prisma/client'
 
-import { PrismaClient } from '@prisma/client'
+import type { ExtendedPrismaClient } from '../lib/prisma'
 
-export type DatabaseClient = any
+export type DatabaseClient = ExtendedPrismaClient
 
 // ─── User Repository ─────────────────────────────────────
 
@@ -68,7 +69,7 @@ export class PrismaUserRepository implements IUserRepository {
   }
 
   async update(id: string, data: Partial<UserData>): Promise<UserData> {
-    return this.prisma.user.update({ where: { id }, data: data as unknown }) as unknown as UserData
+    return this.prisma.user.update({ where: { id }, data: data as Prisma.UserUpdateInput }) as unknown as UserData
   }
 
   async delete(id: string): Promise<void> {
@@ -90,7 +91,7 @@ export class PrismaUserRepository implements IUserRepository {
   }
 
   async updateMany(where: Record<string, unknown>, data: Partial<UserData>): Promise<{ count: number }> {
-    return this.prisma.user.updateMany({ where, data: data as unknown })
+    return this.prisma.user.updateMany({ where: where as Prisma.UserWhereInput, data: data as Prisma.UserUpdateManyMutationInput })
   }
 
   async updateSports(userId: string, sports: string[]): Promise<void> {
@@ -151,7 +152,7 @@ export class PrismaMatchRepository implements IMatchRepository {
   }
 
   async update(id: string, data: Partial<MatchData>): Promise<MatchData> {
-    return this.prisma.fixture.update({ where: { id }, data: data as unknown }) as unknown as MatchData
+    return this.prisma.fixture.update({ where: { id }, data: data as Prisma.FixtureUpdateInput }) as unknown as MatchData
   }
 
   async count(where?: Record<string, unknown>): Promise<number> {
@@ -203,7 +204,7 @@ export class PrismaPredictionRepository implements IPredictionRepository {
         matchId: data.matchId,
         homeGoals: data.homeGoals,
         awayGoals: data.awayGoals,
-        status: (data.status ?? 'PENDING') as unknown,
+        status: data.status ?? 'PENDING',
         firstScorerId: data.firstScorerId ?? null,
         totalGoalsOU: data.totalGoalsOU ?? null,
         totalGoalsLine: data.totalGoalsLine ?? null,
@@ -213,14 +214,17 @@ export class PrismaPredictionRepository implements IPredictionRepository {
   }
 
   async update(id: string, data: Partial<PredictionData>): Promise<PredictionData> {
-    return this.prisma.prediction.update({ where: { id }, data: data as unknown }) as unknown as PredictionData
+    return this.prisma.prediction.update({ where: { id }, data: data as Prisma.PredictionUpdateInput }) as unknown as PredictionData
   }
 
   async updateMany(
     where: { matchId?: string; status?: string },
     data: Partial<PredictionData>,
   ): Promise<{ count: number }> {
-    return this.prisma.prediction.updateMany({ where: where as unknown, data: data as unknown })
+    return this.prisma.prediction.updateMany({
+      where: where as Prisma.PredictionWhereInput,
+      data: data as Prisma.PredictionUpdateManyMutationInput,
+    })
   }
 }
 
@@ -304,7 +308,7 @@ export class PrismaReportRepository implements IReportRepository {
   }
 
   async count(where?: Record<string, unknown>): Promise<number> {
-    return this.prisma.report.count({ where: where as unknown })
+    return this.prisma.report.count({ where: where as Prisma.ReportWhereInput })
   }
 
   async findMany(opts: {
@@ -313,11 +317,11 @@ export class PrismaReportRepository implements IReportRepository {
     take?: number
     skip?: number
   }): Promise<unknown[]> {
-    return this.prisma.report.findMany(opts as unknown)
+    return this.prisma.report.findMany(opts as Prisma.ReportFindManyArgs)
   }
 
   async update(id: string, data: Record<string, unknown>): Promise<unknown> {
-    return this.prisma.report.update({ where: { id }, data: data as unknown })
+    return this.prisma.report.update({ where: { id }, data: data as Prisma.ReportUpdateInput })
   }
 }
 

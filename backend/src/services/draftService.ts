@@ -14,10 +14,23 @@
  */
 
 import { DRAFT, RARITY_TIERS } from '../config/constants'
+import type { DatabaseClient } from '../repositories'
 import type { RarityTierName } from '../config/constants'
 import logger from '../utils/logger'
 
 // ─── Types ───────────────────────────────────────────────
+
+/** Shape of a player record from src/data/players.json or Prisma Player. */
+export interface PlayerRecord {
+  id: string
+  name: string
+  position: string
+  club: string
+  nationality: string
+  basePrice: number
+  rarityTier?: string | null
+  photoUrl?: string | null
+}
 
 export interface FormationSlot {
   position: 'GK' | 'DEF' | 'MID' | 'FWD'
@@ -39,7 +52,7 @@ export interface DraftSession {
   tournamentId: string
   formation: string
   status: DraftSessionStatus
-  ticketConsumedId: string
+  ticketConsumedId?: string
   createdAt: string
   synergyScore: number
   formationBonusApplied: boolean
@@ -94,7 +107,7 @@ export function loadFormations(): Formation[] {
     const path = require('path')
     const raw = fs.readFileSync(path.join(__dirname, '..', 'data', 'formations.json'), 'utf-8')
     _formations = JSON.parse(raw)
-  } catch (err: any) {
+  } catch (err: unknown) {
     logger.fatal(
       { event: 'draft.formations_load_failed', err: (err as Error).message },
       'Failed to load formations.json from data directory',
@@ -125,7 +138,7 @@ export function rollRarity(): RarityTierName {
 export function generateChoiceRound(
   position: string,
   excludePlayerIds: string[],
-  playersByTournament: any[],
+  playersByTournament: PlayerRecord[],
 ): {
   offeredPlayerIds: string[]
   offeredRarities: string[]
@@ -171,7 +184,7 @@ export function generateChoiceRound(
     const targetRarity = rollRarity()
 
     // Find a player of that rarity from the pool who hasn't been offered
-    const candidates = pool.filter((_, idx) => !usedIndices.has(idx) && pool[idx].rarityTier === targetRarity)
+    const candidates = pool.filter((_, idx) => !usedIndices.has(idx) && pool[idx]!.rarityTier === targetRarity)
 
     if (candidates.length === 0) {
       // Rarity not available — fall back to any eligible player
@@ -189,10 +202,10 @@ export function generateChoiceRound(
         nationality: anyCandidate.nationality,
         basePrice: anyCandidate.basePrice,
         rarityTier: anyCandidate.rarityTier || 'BRONZE',
-        photoUrl: anyCandidate.photoUrl,
+        photoUrl: anyCandidate.photoUrl ?? undefined,
       })
     } else {
-      const chosen = candidates[Math.floor(Math.random() * candidates.length)]
+      const chosen = candidates[Math.floor(Math.random() * candidates.length)]!
       const idx = pool.indexOf(chosen)
       usedIndices.add(idx)
       offeredPlayerIds.push(chosen.id)
@@ -205,7 +218,7 @@ export function generateChoiceRound(
         nationality: chosen.nationality,
         basePrice: chosen.basePrice,
         rarityTier: chosen.rarityTier || 'BRONZE',
-        photoUrl: chosen.photoUrl,
+        photoUrl: chosen.photoUrl ?? undefined,
       })
     }
   }
@@ -233,8 +246,8 @@ function getFlexPositions(position: string): string[] {
 
 // ─── Compute Synergy Score (§1.5) ───────────────────────
 
-export function computeSynergyScore(squadPlayers: SquadPlayer[], allPlayers: any[]): number {
-  const playerMap = new Map(allPlayers.map((p: any) => [p.id, p]))
+export function computeSynergyScore(squadPlayers: SquadPlayer[], allPlayers: PlayerRecord[]): number {
+  const playerMap = new Map(allPlayers.map((p) => [p.id, p]))
 
   const nationalityCounts: Record<string, number> = {}
   const clubCounts: Record<string, number> = {}
@@ -290,7 +303,7 @@ export interface StartDraftResult {
 }
 
 export async function startDraft(
-  prisma: any,
+  prisma: DatabaseClient,
   userId: string,
   tournamentId: string,
   formation: string,
@@ -320,11 +333,10 @@ export async function startDraft(
       tournamentId,
       formation,
       status: 'DRAFTING',
-      createdAt: new Date().toISOString(),
       synergyScore: 0,
       formationBonusApplied: false,
     },
-  })) as DraftSession
+  })) as unknown as DraftSession
 
   // 4. Generate the first choice round (GK first, per draft-show pacing)
   const allPlayers = await prisma.player.findMany({
@@ -358,7 +370,7 @@ export async function startDraft(
   // 6. Load full player objects for the choice round
   const playerObjects = firstRound.offeredPlayerIds
     .map((pid) => {
-      const p = allPlayers.find((ap: any) => ap.id === pid)
+      const p = allPlayers.find((ap) => ap.id === pid)
       return p
         ? {
             id: p.id,
@@ -398,7 +410,7 @@ export async function startDraft(
 // ─── Get Next Choice Round ──────────────────────────────
 
 export async function getNextRound(
-  prisma: any,
+  prisma: DatabaseClient,
   sessionId: string,
   userId: string,
 ): Promise<{ round: ChoiceRound | null; session: DraftSession | null; complete: boolean; error?: string }> {
@@ -546,7 +558,7 @@ export async function getNextRound(
   if (isDuplicate) {
     // Re-roll by swapping last offered player
     const replacement = allPlayers.find(
-      (p: any) =>
+      (p) =>
         !round.offeredPlayerIds.includes(p.id) && !excludePlayerIds.includes(p.id) && p.position === slotPosition,
     )
     if (replacement) {
@@ -560,7 +572,7 @@ export async function getNextRound(
         nationality: replacement.nationality,
         basePrice: replacement.basePrice,
         rarityTier: replacement.rarityTier || 'BRONZE',
-        photoUrl: replacement.photoUrl,
+        photoUrl: replacement.photoUrl ?? undefined,
       }
     }
   }
@@ -609,7 +621,7 @@ export async function getNextRound(
 // ─── Process Pick (§1.4) ────────────────────────────────
 
 export async function processPick(
-  prisma: any,
+  prisma: DatabaseClient,
   sessionId: string,
   userId: string,
   slotIndex: number,
@@ -746,7 +758,7 @@ export async function processPick(
 // ─── Commit Squad (§1.2 step 5) ─────────────────────────
 
 export async function commitSquad(
-  prisma: any,
+  prisma: DatabaseClient,
   sessionId: string,
   userId: string,
 ): Promise<{
@@ -839,7 +851,7 @@ export async function commitSquad(
 // ─── Get Session State ──────────────────────────────────
 
 export async function getSessionState(
-  prisma: any,
+  prisma: DatabaseClient,
   sessionId: string,
   userId: string,
 ): Promise<{ session: DraftSession | null; picks: DraftPick[]; squad: SquadPlayer[]; error?: string }> {
@@ -867,13 +879,13 @@ export async function getSessionState(
 
 // ─── List User's Draft Sessions ─────────────────────────
 
-export async function listUserDrafts(prisma: any, userId: string): Promise<DraftSession[]> {
+export async function listUserDrafts(prisma: DatabaseClient, userId: string): Promise<DraftSession[]> {
   const sessions = await prisma.draftSession.findMany({
     where: { userId },
     orderBy: { createdAt: 'desc' },
     take: 50,
   })
-  return sessions as DraftSession[]
+  return sessions as unknown as DraftSession[]
 }
 
 // ─── Helpers ─────────────────────────────────────────────
