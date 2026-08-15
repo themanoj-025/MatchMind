@@ -54,16 +54,16 @@
 
 ## 5. Blockers Log
 
-| ID      | Description                                                           | Raised     | Owner | Impact                    | Status                                                   |
-| ------- | --------------------------------------------------------------------- | ---------- | ----- | ------------------------- | -------------------------------------------------------- |
-| BLK-001 | pytest collects binary test-output*.txt as tests → UnicodeDecodeError | 2026-08-01 | Eng   | CI test collection errors | 🟢 Resolved — test-output artifacts removed in v5.0 pass |
+| ID      | Description                                                            | Raised     | Owner | Impact                    | Status                                                   |
+| ------- | ---------------------------------------------------------------------- | ---------- | ----- | ------------------------- | -------------------------------------------------------- |
+| BLK-001 | pytest collects binary test-output\*.txt as tests → UnicodeDecodeError | 2026-08-01 | Eng   | CI test collection errors | 🟢 Resolved — test-output artifacts removed in v5.0 pass |
 
 ## 6. Changelog
 
 - 2026-08-06: **Documentation suite complete** — 14-file suite consolidated into `docs/`, categorized structure, cross-linked navigation, deployment/git/auth diagrams, quality gate passed (238/238), merged to `main`.
-  | Date       | What shipped              |
+  | Date | What shipped |
   | ---------- | ------------------------- |
-  | 2026-08-06 | Docs suite v0.1           |
+  | 2026-08-06 | Docs suite v0.1 |
   | 2026-07-21 | AI draft insights shipped |
 
 ## 7. Burndown Summary

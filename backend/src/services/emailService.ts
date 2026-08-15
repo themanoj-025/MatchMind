@@ -28,17 +28,11 @@ const FROM_EMAIL = env.EMAIL_FROM || 'noreply@matchmind.gg'
  * Send an email verification link.
  * Falls back to logging the token when email sending is not configured.
  */
-export async function sendVerificationEmail(
-  to: string,
-  verificationToken: string,
-): Promise<void> {
+export async function sendVerificationEmail(to: string, verificationToken: string): Promise<void> {
   const verificationUrl = `${env.FRONTEND_URL || 'http://localhost:3000'}/verify-email?token=${verificationToken}`
 
   if (!resendClient) {
-    logger.info(
-      { event: 'email.verification_logged', to },
-      `[EMAIL] Verification link: ${verificationUrl}`,
-    )
+    logger.info({ event: 'email.verification_logged', to }, `[EMAIL] Verification link: ${verificationUrl}`)
     return
   }
 
@@ -79,17 +73,11 @@ export async function sendVerificationEmail(
  * Send a password reset email.
  * Falls back to logging the token when email sending is not configured.
  */
-export async function sendPasswordResetEmail(
-  to: string,
-  resetToken: string,
-): Promise<void> {
+export async function sendPasswordResetEmail(to: string, resetToken: string): Promise<void> {
   const resetUrl = `${env.FRONTEND_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}`
 
   if (!resendClient) {
-    logger.info(
-      { event: 'email.password_reset_logged', to },
-      `[EMAIL] Password reset link: ${resetUrl}`,
-    )
+    logger.info({ event: 'email.password_reset_logged', to }, `[EMAIL] Password reset link: ${resetUrl}`)
     return
   }
 

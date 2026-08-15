@@ -189,6 +189,7 @@ Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md).
 - ⭐ Star the repository if you love the product
 - 🐛 [Report a bug](https://github.com/themanoj-025/MatchMind/issues)
 - 💡 [Request a feature](https://github.com/themanoj-025/MatchMind/issues)
+
 ---
 
 ## ⭐ Star History

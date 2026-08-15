@@ -45,11 +45,7 @@ vi.mock('../services/authService', () => {
       const userRepository = this.deps.userRepository
       const existing = await userRepository.findByEmailOrUsername(email, username)
       if (existing) {
-        throw new MockAuthError(
-          'A user with that email or username already exists',
-          'DUPLICATE_USER',
-          409
-        )
+        throw new MockAuthError('A user with that email or username already exists', 'DUPLICATE_USER', 409)
       }
 
       const argon2Mod = require('argon2')
@@ -162,7 +158,7 @@ vi.mock('../services/authService', () => {
 
       const argon2Mod = require('argon2')
       const passwordHash = await argon2Mod.hash(newPassword)
-      
+
       const nextTokenVersion = currentVersion + 1
       await this.deps.userRepository.update(user.id, {
         passwordHash,
@@ -200,34 +196,56 @@ vi.mock('../services/authService', () => {
 vi.mock('../repositories/index', () => {
   class MockUserRepository {
     private prisma: any
-    constructor(prisma: any) { this.prisma = prisma }
+    constructor(prisma: any) {
+      this.prisma = prisma
+    }
 
     async findById(id: string) {
       try {
         return await this.prisma.user.findUnique({ where: { id } })
-      } catch { return null }
+      } catch {
+        return null
+      }
     }
     async findByEmail(email: string) {
       try {
         return await this.prisma.user.findUnique({ where: { email } })
-      } catch { return null }
+      } catch {
+        return null
+      }
     }
     async findByUsername(username: string) {
       try {
         return await this.prisma.user.findUnique({ where: { username } })
-      } catch { return null }
+      } catch {
+        return null
+      }
     }
     async findByEmailOrUsername(email: string, username: string) {
       try {
         return await this.prisma.user.findFirst({ where: { OR: [{ email }, { username }] } })
-      } catch { return null }
+      } catch {
+        return null
+      }
     }
-    async create(data: any) { return this.prisma.user.create({ data }) }
-    async update(id: string, data: any) { return this.prisma.user.update({ where: { id }, data }) }
-    async delete(id: string) { await this.prisma.user.delete({ where: { id } }) }
-    async findMany(opts: any) { return this.prisma.user.findMany(opts) }
-    async count(where?: any) { return this.prisma.user.count({ where }) }
-    async updateMany(where: any, data: any) { return this.prisma.user.updateMany({ where, data }) }
+    async create(data: any) {
+      return this.prisma.user.create({ data })
+    }
+    async update(id: string, data: any) {
+      return this.prisma.user.update({ where: { id }, data })
+    }
+    async delete(id: string) {
+      await this.prisma.user.delete({ where: { id } })
+    }
+    async findMany(opts: any) {
+      return this.prisma.user.findMany(opts)
+    }
+    async count(where?: any) {
+      return this.prisma.user.count({ where })
+    }
+    async updateMany(where: any, data: any) {
+      return this.prisma.user.updateMany({ where, data })
+    }
   }
 
   return {
@@ -276,7 +294,7 @@ async function createTestApp(prismaMock: MockPrisma) {
         if (key === 'userRepository') return (mockDeps as any).userRepository
         if (key === 'authService') return new AuthService(mockDeps)
         return null
-      }
+      },
     }
     next()
   })
@@ -295,7 +313,7 @@ async function createTestApp(prismaMock: MockPrisma) {
         error: { code: err.code || 'APP_ERROR', message: (err as Error).message },
       })
     }
-    console.error('TEST ERROR:', err);
+    console.error('TEST ERROR:', err)
     res.status(500).json({ error: { code: 'TEST_ERROR', message: (err as Error).message } })
   })
 
@@ -494,15 +512,11 @@ describe('Auth Routes', () => {
         data: { username: 'refreshtest', email: 'refresh@example.com' },
       })
 
-      const refreshToken = jwt.sign(
-        { userId: user.id, tokenVersion: 0 },
-        process.env.JWT_REFRESH_SECRET,
-        { expiresIn: '7d' }
-      )
+      const refreshToken = jwt.sign({ userId: user.id, tokenVersion: 0 }, process.env.JWT_REFRESH_SECRET, {
+        expiresIn: '7d',
+      })
 
-      const res = await request(app)
-        .post('/api/auth/refresh')
-        .send({ refreshToken })
+      const res = await request(app).post('/api/auth/refresh').send({ refreshToken })
 
       expect(res.status).toBe(200)
       expect(res.body.accessToken).toBeDefined()
@@ -512,9 +526,7 @@ describe('Auth Routes', () => {
       const prisma = createMockPrisma()
       const app = await createTestApp(prisma)
 
-      const res = await request(app)
-        .post('/api/auth/refresh')
-        .send({})
+      const res = await request(app).post('/api/auth/refresh').send({})
 
       expect(res.status).toBe(401)
       expect(res.body.error.code).toBe('NO_REFRESH_TOKEN')
@@ -524,9 +536,7 @@ describe('Auth Routes', () => {
       const prisma = createMockPrisma()
       const app = await createTestApp(prisma)
 
-      const res = await request(app)
-        .post('/api/auth/refresh')
-        .send({ refreshToken: 'invalid-token-value' })
+      const res = await request(app).post('/api/auth/refresh').send({ refreshToken: 'invalid-token-value' })
 
       expect(res.status).toBe(401)
     })
@@ -538,9 +548,7 @@ describe('Auth Routes', () => {
       const prisma = createMockPrisma()
       const app = await createTestApp(prisma)
 
-      const res = await request(app)
-        .post('/api/auth/forgot-password')
-        .send({ email: 'unknown@example.com' })
+      const res = await request(app).post('/api/auth/forgot-password').send({ email: 'unknown@example.com' })
 
       expect(res.status).toBe(200)
       expect(res.body.message).toContain('reset link has been sent')
@@ -560,7 +568,7 @@ describe('Auth Routes', () => {
       const resetToken = jwt.sign(
         { userId: user.id, purpose: 'password-reset', tokenVersion: 0 },
         process.env.JWT_RESET_SECRET,
-        { expiresIn: '1h' }
+        { expiresIn: '1h' },
       )
 
       const res = await request(app)
@@ -582,13 +590,11 @@ describe('Auth Routes', () => {
       const resetToken = jwt.sign(
         { userId: user.id, purpose: 'password-reset', tokenVersion: 0 },
         process.env.JWT_RESET_SECRET!,
-        { expiresIn: '1h' }
+        { expiresIn: '1h' },
       )
 
       // First reset works
-      await request(app)
-        .post('/api/auth/reset-password')
-        .send({ token: resetToken, password: 'NewPassword456!' })
+      await request(app).post('/api/auth/reset-password').send({ token: resetToken, password: 'NewPassword456!' })
 
       // Second reset with the exact same token should fail
       const res = await request(app)
@@ -622,8 +628,8 @@ describe('Auth Routes', () => {
       // Forge a reset token using JWT_SECRET instead of JWT_RESET_SECRET
       const forgedToken = jwt.sign(
         { userId: user.id, purpose: 'password-reset' },
-        process.env.JWT_SECRET!,  // Wrong secret — should be JWT_RESET_SECRET
-        { expiresIn: '1h' }
+        process.env.JWT_SECRET!, // Wrong secret — should be JWT_RESET_SECRET
+        { expiresIn: '1h' },
       )
 
       const res = await request(app)

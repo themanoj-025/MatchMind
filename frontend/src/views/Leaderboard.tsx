@@ -1,15 +1,12 @@
 import React from 'react'
 import { useNavigate } from 'react-router-dom'
 
-
 import { Card } from '../components/Card'
 import { Trophy, ArrowLeft, Users } from 'lucide-react'
-
 
 import { useLeaderboard } from '../hooks/useLeaderboard'
 
 export const Leaderboard: React.FC = () => {
-  
   const navigate = useNavigate()
 
   const { data: entries = [] } = useLeaderboard()
@@ -21,7 +18,10 @@ export const Leaderboard: React.FC = () => {
       {/* Header */}
       <div className="max-w-4xl mx-auto flex items-center justify-between mb-12">
         <div className="flex items-center gap-4">
-          <button onClick={() => navigate('/lobby')} className="p-2 hover:bg-white/5 rounded-lg text-foreground-muted hover:text-white transition-all cursor-pointer">
+          <button
+            onClick={() => navigate('/lobby')}
+            className="p-2 hover:bg-white/5 rounded-lg text-foreground-muted hover:text-white transition-all cursor-pointer"
+          >
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div className="flex items-center gap-2">
@@ -48,12 +48,17 @@ export const Leaderboard: React.FC = () => {
               entries.map((entry, index) => (
                 <div key={index} className="flex justify-between items-center p-4 text-sm">
                   <div className="flex items-center gap-4">
-                    <span className={`w-6 text-center font-mono font-bold ${
-                      index === 0 ? 'text-amber-400' :
-                      index === 1 ? 'text-slate-300' :
-                      index === 2 ? 'text-amber-600' :
-                      'text-foreground-muted'
-                    }`}>
+                    <span
+                      className={`w-6 text-center font-mono font-bold ${
+                        index === 0
+                          ? 'text-amber-400'
+                          : index === 1
+                            ? 'text-slate-300'
+                            : index === 2
+                              ? 'text-amber-600'
+                              : 'text-foreground-muted'
+                      }`}
+                    >
                       #{index + 1}
                     </span>
                     <span className="font-semibold">{entry.username}</span>

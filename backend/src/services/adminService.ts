@@ -47,7 +47,9 @@ export class AdminService {
 
     const [totalUsers, activeUsers, activeRooms, liveAuctions, proUsers, reports] = await Promise.all([
       userRepository.count(),
-      prisma.user.count({ where: { lastActiveAt: { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } } as unknown }),
+      prisma.user.count({
+        where: { lastActiveAt: { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } } as unknown,
+      }),
       prisma.room.count({ where: {} as unknown }),
       prisma.room.count({ where: { status: 'DRAFTING' } as unknown }),
       prisma.user.count({ where: { isPro: true } as unknown }),
@@ -89,7 +91,7 @@ export class AdminService {
     action: string,
     targetId?: string | null,
     targetType?: string | null,
-    detail: Record<string, unknown> = {}
+    detail: Record<string, unknown> = {},
   ): Promise<void> {
     try {
       await this.deps.adminLogRepository.create({

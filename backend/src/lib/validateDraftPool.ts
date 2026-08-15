@@ -38,20 +38,15 @@ function loadJSON(filename: string, dataDir: string): any[] {
 
 // ─── Validate Single Tournament ─────────────────────────
 
-export function validateTournamentDraftPool(
-  tournamentId: string,
-  dataDir?: string,
-): ValidationResult {
+export function validateTournamentDraftPool(tournamentId: string, dataDir?: string): ValidationResult {
   const effectiveDataDir = dataDir || DEFAULT_DATA_DIR
   const errors: string[] = []
   const warnings: string[] = []
   const infos: string[] = []
 
-  let players: any[];
+  let players: any[]
   try {
-    players = loadJSON('players.json', effectiveDataDir).filter(
-      (p: any) => p.tournamentId === tournamentId,
-    )
+    players = loadJSON('players.json', effectiveDataDir).filter((p: any) => p.tournamentId === tournamentId)
   } catch {
     errors.push(`Failed to read players.json from ${effectiveDataDir}`)
     return { tournamentId, passed: false, errors, warnings, infos }
@@ -65,9 +60,7 @@ export function validateTournamentDraftPool(
   // ─── Check 1: All players have basePrice ─────────────────
   const noPrice = players.filter((p: any) => p.basePrice == null)
   if (noPrice.length > 0) {
-    errors.push(
-      `${noPrice.length} player(s) missing basePrice — hard requirement for Draft Mode rarity computation`,
-    )
+    errors.push(`${noPrice.length} player(s) missing basePrice — hard requirement for Draft Mode rarity computation`)
     noPrice.slice(0, 5).forEach((p: any) => {
       errors.push(`  • ${p.name || p.id} (${p.position})`)
     })
@@ -77,9 +70,7 @@ export function validateTournamentDraftPool(
   const hasRarityData = players.some((p: any) => p.rarityTier != null)
 
   if (!hasRarityData) {
-    errors.push(
-      `No rarity tiers found — run \`npx tsx scripts/computeRarityTiers.ts ${tournamentId}\` first`,
-    )
+    errors.push(`No rarity tiers found — run \`npx tsx scripts/computeRarityTiers.ts ${tournamentId}\` first`)
   } else {
     try {
       const cache = loadJSON('playerRarityCache.json', effectiveDataDir)
@@ -92,13 +83,9 @@ export function validateTournamentDraftPool(
     }
   }
 
-  const missingRarity = players.filter(
-    (p: any) => p.rarityTier == null && p.basePrice != null,
-  )
+  const missingRarity = players.filter((p: any) => p.rarityTier == null && p.basePrice != null)
   if (missingRarity.length > 0) {
-    errors.push(
-      `${missingRarity.length} player(s) missing rarityTier — run computeRarityTiers.ts again`,
-    )
+    errors.push(`${missingRarity.length} player(s) missing rarityTier — run computeRarityTiers.ts again`)
   }
 
   // ─── Check 3: For each position × rarity, at least 8 ──
@@ -181,11 +168,7 @@ export function formatValidationResult(result: ValidationResult): string {
     lines.push(`  ❌ Errors:`)
     result.errors.forEach((e) => lines.push(`    • ${e}`))
   }
-  if (
-    result.errors.length === 0 &&
-    result.warnings.length === 0 &&
-    result.infos.length === 0
-  ) {
+  if (result.errors.length === 0 && result.warnings.length === 0 && result.infos.length === 0) {
     lines.push(`    All checks passed.`)
   }
 

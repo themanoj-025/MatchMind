@@ -31,12 +31,7 @@ export const useCreateRoom = () => {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async (newRoom: {
-      name: string
-      type: string
-      totalBudget: number
-      rosterRules: any
-    }) => {
+    mutationFn: async (newRoom: { name: string; type: string; totalBudget: number; rosterRules: any }) => {
       const response = await fetch(`${env.API_URL}/api/v1/rooms`, {
         method: 'POST',
         credentials: 'include',

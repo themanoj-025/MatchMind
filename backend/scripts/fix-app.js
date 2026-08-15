@@ -6,8 +6,11 @@ let content = fs.readFileSync(appTsPath, 'utf8')
 
 // Remove asyncHandler from app.ts
 content = content.replace("import asyncHandler from './middleware/asyncHandler'\n", '')
-content = content.replace("asyncHandler(async (_req: express.Request, res: express.Response) => {", "async (_req: express.Request, res: express.Response) => {")
-content = content.replace("  }),\n)", "  }\n)")
+content = content.replace(
+  'asyncHandler(async (_req: express.Request, res: express.Response) => {',
+  'async (_req: express.Request, res: express.Response) => {',
+)
+content = content.replace('  }),\n)', '  }\n)')
 
 // Version APIs
 content = content.replace(/app\.use\('\/api\/auth/g, "app.use('/api/v1/auth")

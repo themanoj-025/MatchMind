@@ -40,10 +40,10 @@ export class UserService {
       bio?: string | null
       favouriteSports?: string[]
       favouriteTeams?: string[]
-    }
+    },
   ): Promise<Partial<UserData>> {
     const { favouriteSports, favouriteTeams, ...updateData } = data
-    
+
     // We filter undefined keys from updateData
     const cleanedData: Partial<UserData> = {}
     if (updateData.displayName !== undefined) cleanedData.displayName = updateData.displayName

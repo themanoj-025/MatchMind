@@ -23,12 +23,7 @@ export interface Lock {
  * Acquire a distributed lock.
  * Caches local fallback mutexes if Redis is disconnected.
  */
-export async function acquireLock(
-  key: string,
-  ttlMs = 5000,
-  retries = 3,
-  retryDelayMs = 200
-): Promise<Lock> {
+export async function acquireLock(key: string, ttlMs = 5000, retries = 3, retryDelayMs = 200): Promise<Lock> {
   const token = Math.random().toString(36).substring(2) + Date.now().toString(36)
 
   // Verify Redis is connected. If not, use local-fallback mutex
@@ -43,14 +38,14 @@ export async function acquireLock(
       token,
       release: async () => {
         releaseMutex()
-      }
+      },
     }
   }
 
   // Attempt lock acquisition with retries
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
-  // @ts-ignore
+      // @ts-ignore
       const result = await redis.set(key, token, 'NX', 'PX', ttlMs)
       if (result === 'OK') {
         return {
@@ -67,11 +62,14 @@ export async function acquireLock(
             await redis.eval(releaseScript, 1, key, token).catch((err: any) => {
               logger.error({ event: 'lock.release_failed', key, err: (err as Error).message }, 'Failed to release lock')
             })
-          }
+          },
         }
       }
     } catch (err: any) {
-      logger.error({ event: 'lock.acquire_error', key, err: (err as Error).message }, 'Error attempting to acquire lock in Redis')
+      logger.error(
+        { event: 'lock.acquire_error', key, err: (err as Error).message },
+        'Error attempting to acquire lock in Redis',
+      )
     }
 
     if (attempt < retries) {

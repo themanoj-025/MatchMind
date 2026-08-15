@@ -31,7 +31,30 @@
         { "year": 2006, "winner": "Italy", "runnerUp": "France", "host": "Germany" }
       ],
       "allTimeTopScorer": "Miroslav Klose (16 goals)",
-      "hostHistory": ["Uruguay 1930", "Italy 1934", "France 1938", "Brazil 1950", "Switzerland 1954", "Sweden 1958", "Chile 1962", "England 1966", "Mexico 1970", "West Germany 1974", "Argentina 1978", "Spain 1982", "Mexico 1986", "Italy 1990", "USA 1994", "France 1998", "Korea/Japan 2002", "Germany 2006", "South Africa 2010", "Brazil 2014", "Russia 2018", "Qatar 2022"]
+      "hostHistory": [
+        "Uruguay 1930",
+        "Italy 1934",
+        "France 1938",
+        "Brazil 1950",
+        "Switzerland 1954",
+        "Sweden 1958",
+        "Chile 1962",
+        "England 1966",
+        "Mexico 1970",
+        "West Germany 1974",
+        "Argentina 1978",
+        "Spain 1982",
+        "Mexico 1986",
+        "Italy 1990",
+        "USA 1994",
+        "France 1998",
+        "Korea/Japan 2002",
+        "Germany 2006",
+        "South Africa 2010",
+        "Brazil 2014",
+        "Russia 2018",
+        "Qatar 2022"
+      ]
     },
     "formatRules": {
       "groupSize": 4,
@@ -41,7 +64,15 @@
       "substitutionRule": "5 subs per match (3 windows + HT)"
     },
     "qualification": {
-      "slotsByConfederation": { "UEFA": 16, "CAF": 9, "AFC": 8, "CONMEBOL": 6, "CONCACAF": 6, "OFC": 1, "Hosts (auto)": 3 },
+      "slotsByConfederation": {
+        "UEFA": 16,
+        "CAF": 9,
+        "AFC": 8,
+        "CONMEBOL": 6,
+        "CONCACAF": 6,
+        "OFC": 1,
+        "Hosts (auto)": 3
+      },
       "totalSlots": 48,
       "windowStart": "2023-09-01",
       "windowEnd": "2026-03-31"
@@ -235,7 +266,16 @@
       "substitutionRule": "5 subs per match (3 windows + HT)"
     },
     "qualification": {
-      "slotsByConfederation": { "UEFA": 11, "CAF": 4, "AFC": 6, "CONMEBOL": 3, "CONCACAF": 4, "OFC": 1, "Hosts (auto)": 1, "Intercontinental playoffs": 3 },
+      "slotsByConfederation": {
+        "UEFA": 11,
+        "CAF": 4,
+        "AFC": 6,
+        "CONMEBOL": 3,
+        "CONCACAF": 4,
+        "OFC": 1,
+        "Hosts (auto)": 1,
+        "Intercontinental playoffs": 3
+      },
       "totalSlots": 32,
       "windowStart": "2025-09-01",
       "windowEnd": "2027-03-31",

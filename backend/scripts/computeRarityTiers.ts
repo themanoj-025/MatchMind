@@ -23,9 +23,9 @@ const DATA_DIR = path.join(__dirname, '..', 'src', 'data')
 // ─── Rarity Tiers — must match constants.ts ─────────────
 const RARITY_TIERS = [
   { tier: 'BRONZE', maxPercentile: 60, packWeight: 0.55 },
-  { tier: 'SILVER', maxPercentile: 85, packWeight: 0.30 },
-  { tier: 'GOLD',   maxPercentile: 97, packWeight: 0.13 },
-  { tier: 'ICON',   maxPercentile: 100, packWeight: 0.02 },
+  { tier: 'SILVER', maxPercentile: 85, packWeight: 0.3 },
+  { tier: 'GOLD', maxPercentile: 97, packWeight: 0.13 },
+  { tier: 'ICON', maxPercentile: 100, packWeight: 0.02 },
 ] as const
 
 // ─── Helpers ─────────────────────────────────────────────
@@ -46,10 +46,7 @@ function atomicWrite(filePath: string, data: any): void {
 
 // ─── Assign Rarity for a Single Tournament ──────────────
 
-function assignRaritiesForTournament(
-  players: any[],
-  tournamentId: string,
-): { updated: number; icons: number } {
+function assignRaritiesForTournament(players: any[], tournamentId: string): { updated: number; icons: number } {
   // Filter to this tournament
   const tournamentPlayers = players.filter((p: any) => p.tournamentId === tournamentId)
 
@@ -62,7 +59,12 @@ function assignRaritiesForTournament(
   const noPrice = tournamentPlayers.filter((p: any) => p.basePrice == null)
   if (noPrice.length > 0) {
     console.error(`  ❌ ${noPrice.length} player(s) missing basePrice in "${tournamentId}". Aborting.`)
-    console.error(`     Examples: ${noPrice.slice(0, 3).map((p: any) => p.name || p.id).join(', ')}`)
+    console.error(
+      `     Examples: ${noPrice
+        .slice(0, 3)
+        .map((p: any) => p.name || p.id)
+        .join(', ')}`,
+    )
     process.exit(1)
   }
 

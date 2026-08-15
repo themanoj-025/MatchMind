@@ -37,7 +37,11 @@ export interface LeaderboardMapperOpts {
   pointField?: string
 }
 
-export function toLeaderboardEntry(user: LeaderboardUser, rank: number, opts: LeaderboardMapperOpts = {}): LeaderboardEntry {
+export function toLeaderboardEntry(
+  user: LeaderboardUser,
+  rank: number,
+  opts: LeaderboardMapperOpts = {},
+): LeaderboardEntry {
   const pointField = opts.pointField || 'totalPoints'
   return {
     id: user.id,
@@ -50,8 +54,6 @@ export function toLeaderboardEntry(user: LeaderboardUser, rank: number, opts: Le
     tier: user.tier,
     rank,
     ...(user.countryCode ? { countryCode: user.countryCode } : {}),
-    ...(user.totalPoints !== undefined && pointField !== 'totalPoints'
-      ? { totalPoints: user.totalPoints }
-      : {}),
+    ...(user.totalPoints !== undefined && pointField !== 'totalPoints' ? { totalPoints: user.totalPoints } : {}),
   }
 }

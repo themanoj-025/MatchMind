@@ -158,14 +158,18 @@ export async function getTicketBalance(
   const record = await getOrCreateTicketRecord(prisma, userId, tournamentId, isPro)
 
   // Persist any auto-reset that happened during getOrCreateTicketRecord
-  await prisma.draftTicket.update({
-    where: { userId_tournamentId: { userId, tournamentId } },
-    data: {
-      remaining: record.remaining,
-      lastResetAt: record.lastResetAt,
-      resetsAt: record.resetsAt,
-    },
-  }).catch(() => {/* record may not exist yet for brand new */})
+  await prisma.draftTicket
+    .update({
+      where: { userId_tournamentId: { userId, tournamentId } },
+      data: {
+        remaining: record.remaining,
+        lastResetAt: record.lastResetAt,
+        resetsAt: record.resetsAt,
+      },
+    })
+    .catch(() => {
+      /* record may not exist yet for brand new */
+    })
 
   return {
     remaining: record.remaining,

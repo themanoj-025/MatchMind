@@ -46,7 +46,7 @@ export class CacheService {
 
     logger.debug(`Cache miss: ${key}`)
     const data = await fetcher()
-    
+
     await this.set(key, data, ttlSeconds)
     return data
   }
@@ -57,7 +57,7 @@ export class CacheService {
     try {
       let cursor = '0'
       const keysToDelete: string[] = []
-      
+
       do {
         const [nextCursor, keys] = await this.redis.scan(cursor, 'MATCH', pattern, 'COUNT', 100)
         cursor = nextCursor
@@ -69,7 +69,10 @@ export class CacheService {
         logger.info({ event: 'cache.invalidated', pattern, count: keysToDelete.length }, 'Invalidated cache keys')
       }
     } catch (err: any) {
-      logger.error({ event: 'cache.invalidate_error', pattern, err: (err as Error).message }, 'Failed to invalidate cache by pattern')
+      logger.error(
+        { event: 'cache.invalidate_error', pattern, err: (err as Error).message },
+        'Failed to invalidate cache by pattern',
+      )
     }
   }
 

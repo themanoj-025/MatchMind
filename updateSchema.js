@@ -99,7 +99,8 @@ schema = schema.replace(/role\s+String\s+@default\("USER"\)/g, 'role UserRole @d
 schema = schema.replace(/tier\s+String\s+@default\("BRONZE"\)/g, 'tier UserTier @default(BRONZE)')
 schema = schema.replace(/status\s+String/g, (match, offset, full) => {
   if (full.substring(offset - 20, offset).includes('Tournament')) return 'status TournamentStatus'
-  if (full.substring(offset - 20, offset).includes('Subscription')) return 'status String // Needs SubscriptionStatus enum'
+  if (full.substring(offset - 20, offset).includes('Subscription'))
+    return 'status String // Needs SubscriptionStatus enum'
   if (full.substring(offset - 20, offset).includes('DraftSession')) return 'status DraftSessionStatus'
   if (full.substring(offset - 20, offset).includes('DraftRunResult')) return 'status DraftRunResultStatus'
   return match
@@ -122,7 +123,6 @@ schema = schema.replace(/position\s+String/g, (match, offset, full) => {
   if (full.substring(offset - 30, offset).includes('DraftPick')) return 'position PlayerPosition'
   return match
 })
-
 
 fs.writeFileSync(schemaPath, schema, 'utf8')
 console.log('Schema updated successfully.')

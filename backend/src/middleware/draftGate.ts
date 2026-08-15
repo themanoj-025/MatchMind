@@ -38,23 +38,11 @@ export function isDraftEnabledForTournament(tournamentId: string): boolean {
  *
  * Expects tournamentId in req.params.tournamentId or req.body.tournamentId.
  */
-export function requireDraftEnabled(
-  req: Request,
-  _res: Response,
-  next: NextFunction,
-): void {
-  const tournamentId =
-    (req.params as any).tournamentId ||
-    (req.body as any)?.tournamentId
+export function requireDraftEnabled(req: Request, _res: Response, next: NextFunction): void {
+  const tournamentId = (req.params as any).tournamentId || (req.body as any)?.tournamentId
 
   if (!tournamentId) {
-    return next(
-      new AppError(
-        'TOURNAMENT_ID_REQUIRED',
-        'tournamentId is required to access Draft Mode endpoints',
-        400,
-      ),
-    )
+    return next(new AppError('TOURNAMENT_ID_REQUIRED', 'tournamentId is required to access Draft Mode endpoints', 400))
   }
 
   if (!isDraftEnabledForTournament(tournamentId)) {

@@ -116,20 +116,20 @@ while ((match = regex.exec(log)) !== null) {
 for (const [file, lines] of Object.entries(files)) {
   const fullPath = path.join(__dirname, '../', file)
   if (!fs.existsSync(fullPath)) continue
-  
+
   let content = fs.readFileSync(fullPath, 'utf8').split('\n')
-  
+
   // Sort descending so insertions don't change line numbers of previous targets
   lines.sort((a, b) => b - a)
-  
+
   // Deduplicate
   const uniqueLines = [...new Set(lines)]
-  
+
   for (const line of uniqueLines) {
     const lineIndex = line - 1
     content.splice(lineIndex, 0, '  // @ts-ignore')
   }
-  
+
   fs.writeFileSync(fullPath, content.join('\n'), 'utf8')
   console.log('Fixed', file)
 }

@@ -26,13 +26,13 @@ export const PAGINATION = {
 
 // ─── Rate-Limit Tiers ──────────────────────────────────
 export const RATE_LIMIT = {
-  AUTH_WINDOW_MS: 15 * 60 * 1000,       // 15 minutes
+  AUTH_WINDOW_MS: 15 * 60 * 1000, // 15 minutes
   AUTH_MAX: 5,
   PASSWORD_RESET_WINDOW_MS: 60 * 60 * 1000, // 1 hour
   PASSWORD_RESET_MAX: 3,
-  PREDICTION_WINDOW_MS: 60 * 1000,      // 1 minute
+  PREDICTION_WINDOW_MS: 60 * 1000, // 1 minute
   PREDICTION_MAX: 30,
-  GLOBAL_WINDOW_MS: 60 * 1000,          // 1 minute
+  GLOBAL_WINDOW_MS: 60 * 1000, // 1 minute
   GLOBAL_MAX: 100,
 } as const
 
@@ -72,9 +72,9 @@ export interface RarityTier {
 
 export const RARITY_TIERS: readonly RarityTier[] = [
   { tier: 'BRONZE', maxPercentile: 60, packWeight: 0.55, badgeColor: '#CD7F32' },
-  { tier: 'SILVER', maxPercentile: 85, packWeight: 0.30, badgeColor: '#C0C0C0' },
-  { tier: 'GOLD',   maxPercentile: 97, packWeight: 0.13, badgeColor: '#FFD700' },
-  { tier: 'ICON',   maxPercentile: 100, packWeight: 0.02, badgeColor: 'linear-gradient(135deg,#FFD700,#FFFFFF)' },
+  { tier: 'SILVER', maxPercentile: 85, packWeight: 0.3, badgeColor: '#C0C0C0' },
+  { tier: 'GOLD', maxPercentile: 97, packWeight: 0.13, badgeColor: '#FFD700' },
+  { tier: 'ICON', maxPercentile: 100, packWeight: 0.02, badgeColor: 'linear-gradient(135deg,#FFD700,#FFFFFF)' },
 ] as const
 
 export type RarityTierName = (typeof RARITY_TIERS)[number]['tier']
@@ -87,27 +87,44 @@ export const DRAFT = {
   MAX_LOSSES: 3,
   SYNERGY_NATIONALITY_THRESHOLD: 3,
   SYNERGY_CLUB_THRESHOLD: 2,
-  SYNERGY_NATIONALITY_BONUS_PER: 1,   // +1% per player beyond threshold
-  SYNERGY_CLUB_BONUS_PER: 2,           // +2% per player beyond threshold
-  SYNERGY_MAX_BONUS: 15,               // cap at +15%
-  FORMATION_FILL_BONUS: 5,             // flat +5% for filling all slots
-  BENCH_SLOTS: 7,                      // max bench size
-  MIN_PLAYERS_PER_POSITION_RARITY: 8,  // floor for seeding gate (§6.3)
-  ICON_MIN_PER_POSITION: 1,            // exempt from 8-min, but need at least 1
-  FREE_TICKETS_PER_TOURNAMENT: 1,      // free tier ticket allowance per 7d
-  PRO_TICKETS_PER_DAY: 5,              // Pro tier ticket allowance per day
-  TICKET_RESET_DAYS: 7,                // rolling window for free ticket reset
+  SYNERGY_NATIONALITY_BONUS_PER: 1, // +1% per player beyond threshold
+  SYNERGY_CLUB_BONUS_PER: 2, // +2% per player beyond threshold
+  SYNERGY_MAX_BONUS: 15, // cap at +15%
+  FORMATION_FILL_BONUS: 5, // flat +5% for filling all slots
+  BENCH_SLOTS: 7, // max bench size
+  MIN_PLAYERS_PER_POSITION_RARITY: 8, // floor for seeding gate (§6.3)
+  ICON_MIN_PER_POSITION: 1, // exempt from 8-min, but need at least 1
+  FREE_TICKETS_PER_TOURNAMENT: 1, // free tier ticket allowance per 7d
+  PRO_TICKETS_PER_DAY: 5, // Pro tier ticket allowance per day
+  TICKET_RESET_DAYS: 7, // rolling window for free ticket reset
 } as const
 
 // ─── Draft Run — Reward Tiers (§2.4) ────────────────────
 export const RUN_REWARD_TIERS = [
-  { id: 'participant', name: 'Participant', description: 'Entered your first Draft Run', badgeColor: '#6B7280', minWins: 0 },
+  {
+    id: 'participant',
+    name: 'Participant',
+    description: 'Entered your first Draft Run',
+    badgeColor: '#6B7280',
+    minWins: 0,
+  },
   { id: 'bronze-run', name: 'Bronze Contender', description: 'Survived 1 matchday', badgeColor: '#CD7F32', minWins: 1 },
-  { id: 'silver-run', name: 'Silver Challenger', description: 'Survived 2 matchdays', badgeColor: '#C0C0C0', minWins: 2 },
+  {
+    id: 'silver-run',
+    name: 'Silver Challenger',
+    description: 'Survived 2 matchdays',
+    badgeColor: '#C0C0C0',
+    minWins: 2,
+  },
   { id: 'gold-run', name: 'Gold Warrior', description: 'Survived 3 matchdays', badgeColor: '#FFD700', minWins: 3 },
   { id: 'elite-run', name: 'Elite Tactician', description: 'Survived 4 matchdays', badgeColor: '#8B5CF6', minWins: 4 },
-  { id: 'icon-run', name: 'Draft Icon 🏆', description: 'Full clear — 5 wins!', badgeColor: 'linear-gradient(135deg,#FFD700,#FFFFFF)', minWins: 5 },
+  {
+    id: 'icon-run',
+    name: 'Draft Icon 🏆',
+    description: 'Full clear — 5 wins!',
+    badgeColor: 'linear-gradient(135deg,#FFD700,#FFFFFF)',
+    minWins: 5,
+  },
 ] as const
 
 export type RunRewardTierId = (typeof RUN_REWARD_TIERS)[number]['id']
-

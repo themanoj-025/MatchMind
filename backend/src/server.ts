@@ -23,7 +23,7 @@ const io = new Server(httpServer, {
     origin: env.FRONTEND_URL || 'http://localhost:3000',
     credentials: true,
   },
-  adapter: createAdapter(redis, redis.duplicate())
+  adapter: createAdapter(redis, redis.duplicate()),
 })
 
 // Make prisma and io accessible in app context
@@ -53,4 +53,3 @@ initDatabase().then(() => {
 
 // Setup Graceful Shutdown
 setupGracefulShutdown(httpServer)
-

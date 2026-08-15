@@ -7,30 +7,30 @@ const envSchema = z.object({
   REDIS_URL: z.string().url(),
   FRONTEND_URL: z.string().url().default('http://localhost:3000'),
   BACKEND_URL: z.string().url().default('http://localhost:5000'),
-  
+
   // Auth & Security
   JWT_SECRET: z.string().min(32),
   JWT_REFRESH_SECRET: z.string().min(32),
   JWT_RESET_SECRET: z.string().min(32),
   GOOGLE_CLIENT_ID: z.string().optional(),
   GOOGLE_CLIENT_SECRET: z.string().optional(),
-  
+
   // External APIs (Optional)
   RESEND_API_KEY: z.string().min(1).optional(),
   SPORTRADAR_API_KEY: z.string().min(1).optional(),
   SUPABASE_URL: z.string().url().optional(),
   SUPABASE_KEY: z.string().min(1).optional(),
   ANTHROPIC_API_KEY: z.string().optional(),
-  
+
   // Stripe
   STRIPE_SECRET_KEY: z.string().min(1).optional(),
   STRIPE_WEBHOOK_SECRET: z.string().min(1).optional(),
   STRIPE_PRICE_ANNUAL: z.string().optional(),
   STRIPE_PRICE_MONTHLY: z.string().optional(),
-  
+
   // Sentry
   SENTRY_DSN: z.string().url().optional(),
-  
+
   // App Config
   EMAIL_FROM: z.string().optional().default('noreply@matchmind.gg'),
   LOG_LEVEL: z.string().optional(),

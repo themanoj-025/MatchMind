@@ -1,0 +1,9 @@
+# tsconfig files are JSONC (comments allowed) — not valid JSON for prettier
+**/tsconfig*.json
+**/tsconfig.*.json
+
+# Build outputs / dependencies
+**/node_modules/**
+**/dist/**
+**/build/**
+package-lock.json

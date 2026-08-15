@@ -419,7 +419,7 @@ async function resolveNextRound(
     // Apply synergy bonus as percentage boost
     const synergyScore =
       result.currentRound > 0
-        ? ((await prisma.draftSession.findUnique({ where: { id: sessionId } }))?.synergyScore ?? 0)
+        ? (await prisma.draftSession.findUnique({ where: { id: sessionId } }))?.synergyScore ?? 0
         : 0
     const synergyMultiplier = 1 + synergyScore / 100
     userSquadPoints = Math.round(userSquadPoints * synergyMultiplier)

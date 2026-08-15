@@ -129,7 +129,7 @@ function getMatchResult(homeScore: number, awayScore: number): 'home' | 'away' |
 }
 
 function hasSameGD(homeScore: number, awayScore: number, predHome: number, predAway: number): boolean {
-  return (homeScore - awayScore) === (predHome - predAway)
+  return homeScore - awayScore === predHome - predAway
 }
 
 /**
@@ -203,8 +203,10 @@ export function calculatePredictionPoints(
   // Over/Under bonus
   if (totalGoalsOU && totalGoalsLine != null) {
     const totalGoals = homeScore + awayScore
-    if ((totalGoalsOU === 'OVER' && totalGoals > totalGoalsLine) ||
-        (totalGoalsOU === 'UNDER' && totalGoals < totalGoalsLine)) {
+    if (
+      (totalGoalsOU === 'OVER' && totalGoals > totalGoalsLine) ||
+      (totalGoalsOU === 'UNDER' && totalGoals < totalGoalsLine)
+    ) {
       breakdown.overUnder = ruleset.overUnder
     }
     // Note: exact line match (totalGoals === totalGoalsLine) results in a push — no bonus awarded
@@ -236,15 +238,11 @@ export function scoreMatchPredictions(
     const actualResultStr = getMatchResult(actualResult.homeScore, actualResult.awayScore)
 
     const correctResult = predictedResult === actualResultStr
-    const exactScore = prediction.homeGoals === actualResult.homeScore &&
-      prediction.awayGoals === actualResult.awayScore
+    const exactScore =
+      prediction.homeGoals === actualResult.homeScore && prediction.awayGoals === actualResult.awayScore
 
     const bothScored = actualResult.homeScore > 0 && actualResult.awayScore > 0
-    const bttsCorrect = prediction.btts === true
-      ? bothScored
-      : prediction.btts === false
-        ? !bothScored
-        : false
+    const bttsCorrect = prediction.btts === true ? bothScored : prediction.btts === false ? !bothScored : false
 
     const totalGoals = actualResult.homeScore + actualResult.awayScore
     const totalGoalsLine = prediction.totalGoalsLine ?? 2.5
@@ -333,12 +331,15 @@ export function rebuildLeaderboard(
   scoredPredictions: ScoredPrediction[],
   userMap?: Record<string, { username?: string; displayName?: string; avatar?: string | null }>,
 ): LeaderboardEntry[] {
-  const userStats: Record<string, {
-    totalPoints: number
-    correctPredictions: number
-    totalPredictions: number
-    streakCurrent: number
-  }> = {}
+  const userStats: Record<
+    string,
+    {
+      totalPoints: number
+      correctPredictions: number
+      totalPredictions: number
+      streakCurrent: number
+    }
+  > = {}
 
   for (const sp of scoredPredictions) {
     if (!userStats[sp.userId]) {
@@ -376,9 +377,8 @@ export function rebuildLeaderboard(
       totalPoints: stats.totalPoints,
       correctPredictions: stats.correctPredictions,
       totalPredictions: stats.totalPredictions,
-      accuracy: stats.totalPredictions > 0
-        ? Math.round((stats.correctPredictions / stats.totalPredictions) * 1000) / 10
-        : 0,
+      accuracy:
+        stats.totalPredictions > 0 ? Math.round((stats.correctPredictions / stats.totalPredictions) * 1000) / 10 : 0,
       streakCurrent: stats.streakCurrent,
       tier: computeTier(stats.totalPoints),
     }))
