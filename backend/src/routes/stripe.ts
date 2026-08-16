@@ -53,9 +53,7 @@ router.post(
       if (!priceId) {
         throw new Error('Stripe price ID not configured')
       }
-      const email = existingSub
-        ? undefined
-        : (await req.container.cradle.prisma.user.findUnique({ where: { id: user.id }, select: { email: true } }))?.email
+      const email = await customerEmailFor(req.container.cradle.prisma, user, existingSub)
       const checkoutSession = await stripe.checkout.sessions.create({
         customer: existingSub?.stripeCustomerId || undefined,
         customer_email: email,
@@ -117,80 +115,17 @@ router.post('/webhook', async (req, res) => {
   }
   const stripeService = req.container.cradle.stripeService
   const userService = req.container.cradle.userService
+  const services: WebhookServices = { stripeService, userService }
   switch (event.type) {
-    case 'checkout.session.completed': {
-      const session = event.data.object as Stripe.Checkout.Session
-      const userId = session.metadata?.userId
-      if (!userId) {break}
-      const subscriptionId = session.subscription
-      const customerId = session.customer
-      if (subscriptionId && customerId && typeof subscriptionId === 'string' && typeof customerId === 'string') {
-        try {
-          const stripe = loadStripe()
-          const sub = stripe
-            ? await stripe.subscriptions.retrieve(subscriptionId)
-            : ({} as Stripe.Subscription)
-          await stripeService.upsertSubscription(userId, customerId, subscriptionId, sub)
-          const item = sub.items.data[0]
-          await userService.updateUser(userId, {
-            isPro: true,
-            proExpiresAt: new Date((item?.current_period_end ?? sub.created) * 1000),
-          })
-        } catch (err: unknown) {
-          logger.error(
-            { event: 'stripe.subscription_creation_failed', err: (err as Error).message },
-            'Failed to process subscription',
-          )
-        }
-      }
+    case 'checkout.session.completed':
+      await handleCheckoutCompleted(event, services)
       break
-    }
-    case 'customer.subscription.updated': {
-      const sub = event.data.object as Stripe.Subscription
-      const subscriptionId = sub.id
-      try {
-        const existing = await stripeService.getSubscriptionByStripeId(subscriptionId)
-        if (!existing) {break}
-        await stripeService.updateSubscriptionStatus(subscriptionId, sub)
-        if (sub.status === 'active') {
-          const item = sub.items.data[0]
-          await userService.updateUser(existing.userId, {
-            isPro: true,
-            proExpiresAt: new Date((item?.current_period_end ?? sub.created) * 1000),
-          })
-        } else if (sub.status === 'past_due' || sub.status === 'canceled' || sub.status === 'unpaid') {
-          await userService.updateUser(existing.userId, {
-            isPro: false,
-            proExpiresAt: null,
-          })
-        }
-      } catch (err: unknown) {
-        logger.error(
-          { event: 'stripe.subscription_update_failed', err: (err as Error).message },
-          'Subscription update failed',
-        )
-      }
+    case 'customer.subscription.updated':
+      await handleSubscriptionUpdated(event, services)
       break
-    }
-    case 'customer.subscription.deleted': {
-      const sub = event.data.object as Stripe.Subscription
-      const subscriptionId = sub.id
-      try {
-        const existing = await stripeService.getSubscriptionByStripeId(subscriptionId)
-        if (!existing) {break}
-        await stripeService.cancelSubscription(subscriptionId)
-        await userService.updateUser(existing.userId, {
-          isPro: false,
-          proExpiresAt: null,
-        })
-      } catch (err: unknown) {
-        logger.error(
-          { event: 'stripe.subscription_deletion_failed', err: (err as Error).message },
-          'Subscription deletion failed',
-        )
-      }
+    case 'customer.subscription.deleted':
+      await handleSubscriptionDeleted(event, services)
       break
-    }
     default:
       logger.warn({ event: 'stripe.unhandled_event', eventType: event.type }, `Unhandled event type ${event.type}`)
   }
@@ -249,4 +184,115 @@ router.get('/status', authenticateToken, async (req: AuthenticatedRequest, res) 
       : null,
   })
 })
+async function customerEmailFor(
+  prisma: { user: { findUnique: (args: { where: { id: string }; select: { email: true } }) => Promise<{ email: string | null } | null> } },
+  user: { id: string },
+  existingSub: { stripeCustomerId?: string | null } | null | undefined,
+): Promise<string | undefined> {
+  // If user already has a Stripe customer, reuse it — no email needed
+  if (existingSub) {
+    return undefined
+  }
+  return (await prisma.user.findUnique({ where: { id: user.id }, select: { email: true } }))?.email || undefined
+}
+
+function isValidCheckoutRefs(subscriptionId: unknown, customerId: unknown): boolean {
+  return Boolean(subscriptionId && customerId && typeof subscriptionId === 'string' && typeof customerId === 'string')
+}
+
+async function fetchSubscriptionOrEmpty(subscriptionId: string): Promise<Stripe.Subscription> {
+  const stripe = loadStripe()
+  return stripe ? await stripe.subscriptions.retrieve(subscriptionId) : ({} as Stripe.Subscription)
+}
+
+interface WebhookServices {
+  stripeService: {
+    upsertSubscription: (userId: string, customerId: string, subscriptionId: string, sub: Stripe.Subscription) => Promise<unknown>
+    getSubscriptionByStripeId: (subscriptionId: string) => Promise<{ userId: string } | null>
+    updateSubscriptionStatus: (subscriptionId: string, sub: Stripe.Subscription) => Promise<unknown>
+    cancelSubscription: (subscriptionId: string) => Promise<unknown>
+  }
+  userService: {
+    updateUser: (userId: string, data: { isPro: boolean; proExpiresAt: Date | null }) => Promise<unknown>
+  }
+}
+
+async function handleCheckoutCompleted(event: Stripe.Event, services: WebhookServices): Promise<void> {
+  const session = event.data.object as Stripe.Checkout.Session
+  const userId = session.metadata?.userId
+  if (!userId) {
+    return
+  }
+  const subscriptionId = session.subscription
+  const customerId = session.customer
+  if (!isValidCheckoutRefs(subscriptionId, customerId)) {
+    return
+  }
+  try {
+    // Guard above guarantees both refs are non-empty strings
+    const sub = await fetchSubscriptionOrEmpty(subscriptionId as string)
+    await services.stripeService.upsertSubscription(userId, customerId as string, subscriptionId as string, sub)
+    const item = sub.items.data[0]
+    await services.userService.updateUser(userId, {
+      isPro: true,
+      proExpiresAt: new Date((item?.current_period_end ?? sub.created) * 1000),
+    })
+  } catch (err: unknown) {
+    logger.error(
+      { event: 'stripe.subscription_creation_failed', err: (err as Error).message },
+      'Failed to process subscription',
+    )
+  }
+}
+
+async function handleSubscriptionUpdated(event: Stripe.Event, services: WebhookServices): Promise<void> {
+  const sub = event.data.object as Stripe.Subscription
+  const subscriptionId = sub.id
+  try {
+    const existing = await services.stripeService.getSubscriptionByStripeId(subscriptionId)
+    if (!existing) {
+      return
+    }
+    await services.stripeService.updateSubscriptionStatus(subscriptionId, sub)
+    if (sub.status === 'active') {
+      const item = sub.items.data[0]
+      await services.userService.updateUser(existing.userId, {
+        isPro: true,
+        proExpiresAt: new Date((item?.current_period_end ?? sub.created) * 1000),
+      })
+    } else if (sub.status === 'past_due' || sub.status === 'canceled' || sub.status === 'unpaid') {
+      await services.userService.updateUser(existing.userId, {
+        isPro: false,
+        proExpiresAt: null,
+      })
+    }
+  } catch (err: unknown) {
+    logger.error(
+      { event: 'stripe.subscription_update_failed', err: (err as Error).message },
+      'Subscription update failed',
+    )
+  }
+}
+
+async function handleSubscriptionDeleted(event: Stripe.Event, services: WebhookServices): Promise<void> {
+  const sub = event.data.object as Stripe.Subscription
+  const subscriptionId = sub.id
+  try {
+    const existing = await services.stripeService.getSubscriptionByStripeId(subscriptionId)
+    if (!existing) {
+      return
+    }
+    await services.stripeService.cancelSubscription(subscriptionId)
+    await services.userService.updateUser(existing.userId, {
+      isPro: false,
+      proExpiresAt: null,
+    })
+  } catch (err: unknown) {
+    logger.error(
+      { event: 'stripe.subscription_deletion_failed', err: (err as Error).message },
+      'Subscription deletion failed',
+    )
+  }
+}
+
 export default router

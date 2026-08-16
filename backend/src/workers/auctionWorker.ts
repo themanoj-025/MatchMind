@@ -11,6 +11,120 @@ import { RoomStatus } from '@matchmind/shared-types'
 const QUEUE_NAME = 'auction-timer'
 const prisma: ExtendedPrismaClient = container.resolve('prisma')
 
+function auctionTimerDeps(prisma: ExtendedPrismaClient) {
+  return {
+    getState: async (id: string) => {
+      const state = await prisma.auctionState.findUnique({ where: { roomId: id } })
+      return state ? (state as AuctionState) : null
+    },
+    saveState: async (id: string, state: AuctionState) => {
+      const expectedVersion = state.version - 1
+      const updateRes = await prisma.auctionState.updateMany({
+        where: { roomId: id, version: expectedVersion },
+        data: { ...state },
+      })
+      if (updateRes.count === 0) {
+        throw new ConcurrencyError()
+      }
+    },
+    deductBudget: async (id: string, userId: string, amount: number) => {
+      await prisma.roomMember.update({
+        where: { roomId_userId: { roomId: id, userId } },
+        data: { remainingBudget: { increment: -amount } },
+      })
+    },
+    addRosterEntry: async (entry: { roomId: string; userId: string; playerId: string; soldPrice: number }) => {
+      await prisma.roster.create({
+        data: {
+          ...entry,
+          acquiredAt: new Date().toISOString(),
+          isCaptain: false,
+          isViceCaptain: false,
+        },
+      })
+    },
+  }
+}
+
+interface AuctionBroadcast {
+  event: string
+  payload: Record<string, unknown>
+  logEvent: string
+  markFinished?: boolean
+}
+
+function soldPayload(
+  stateBefore: { currentPlayerId?: string | null; currentBidderId?: string | null; currentBid?: number } | null,
+  roomId: string,
+): Record<string, unknown> {
+  return {
+    roomId,
+    playerId: stateBefore?.currentPlayerId,
+    buyerId: stateBefore?.currentBidderId,
+    price: stateBefore?.currentBid,
+  }
+}
+
+function unsoldPayload(
+  stateBefore: { currentPlayerId?: string | null } | null,
+  roomId: string,
+): Record<string, unknown> {
+  return { roomId, playerId: stateBefore?.currentPlayerId }
+}
+
+function broadcastFor(
+  result: { action: string; state: AuctionState | null },
+  stateBefore: { currentPlayerId?: string | null; currentBidderId?: string | null; currentBid?: number } | null,
+  roomId: string,
+): AuctionBroadcast | null {
+  if (result.action === 'SOLD_AND_NEXT') {
+    return { event: 'PLAYER_SOLD', payload: soldPayload(stateBefore, roomId), logEvent: 'auction.timer_sold' }
+  }
+  if (result.action === 'UNSOLD_AND_NEXT') {
+    return { event: 'PLAYER_UNSOLD', payload: unsoldPayload(stateBefore, roomId), logEvent: 'auction.timer_unsold' }
+  }
+  if (result.action === 'FINISHED' || result.state?.phase === 'FINISHED') {
+    return { event: 'AUCTION_FINISHED', payload: { roomId }, logEvent: 'auction.timer_finished', markFinished: true }
+  }
+  if (result.state?.phase === 'RE_AUCTION') {
+    return { event: 'RE_AUCTION_STARTED', payload: { roomId }, logEvent: 'auction.timer_re_auction' }
+  }
+  return null
+}
+
+async function rescheduleTimerIfNeeded(roomId: string, result: { action: string; state: AuctionState | null }): Promise<void> {
+  // If a new player is live, we need to schedule a new timer
+  if (result.state?.phase !== 'PLAYER_LIVE' || !result.state.timerEndsAt) {
+    return
+  }
+  const delay = new Date(result.state.timerEndsAt).getTime() - Date.now()
+  if (delay <= 0) {
+    return
+  }
+  const { auctionQueue } = await import('../lib/queue')
+  await auctionQueue.add('timerTick', { roomId }, { delay })
+  logger.info({ event: 'auction.timer.rescheduled', roomId, delayMs: delay }, 'Scheduled next timer')
+}
+
+async function broadcastAuctionResult(
+  io_instance: import('socket.io').Server,
+  prisma: ExtendedPrismaClient,
+  roomId: string,
+  result: { action: string; state: AuctionState | null },
+  stateBefore: { currentPlayerId?: string | null; currentBidderId?: string | null; currentBid?: number } | null,
+): Promise<void> {
+  // We broadcast based on the result action
+  const broadcast = broadcastFor(result, stateBefore, roomId)
+  if (broadcast) {
+    if (broadcast.markFinished) {
+      await prisma.room.update({ where: { id: roomId }, data: { status: RoomStatus.FINISHED } })
+    }
+    io_instance.to(`room:${roomId}`).emit(broadcast.event, broadcast.payload)
+    logger.info({ event: broadcast.logEvent, roomId })
+  }
+  await rescheduleTimerIfNeeded(roomId, result)
+}
+
 export const auctionWorker = new Worker(
   QUEUE_NAME,
   async (job: Job) => {
@@ -19,39 +133,8 @@ export const auctionWorker = new Worker(
 
     try {
       // Execute the timer check logic that was previously in the polling loop
-      const result = await checkAuctionTimer(
-        roomId,
-        async (id: string) => {
-          const state = await prisma.auctionState.findUnique({ where: { roomId: id } })
-          return state ? (state as AuctionState) : null
-        },
-        async (id: string, state: AuctionState) => {
-          const expectedVersion = state.version - 1
-          const updateRes = await prisma.auctionState.updateMany({
-            where: { roomId: id, version: expectedVersion },
-            data: { ...state },
-          })
-          if (updateRes.count === 0) {
-            throw new ConcurrencyError()
-          }
-        },
-        async (id: string, userId: string, amount: number) => {
-          await prisma.roomMember.update({
-            where: { roomId_userId: { roomId: id, userId } },
-            data: { remainingBudget: { increment: -amount } },
-          })
-        },
-        async (entry: { roomId: string; userId: string; playerId: string; soldPrice: number }) => {
-          await prisma.roster.create({
-            data: {
-              ...entry,
-              acquiredAt: new Date().toISOString(),
-              isCaptain: false,
-              isViceCaptain: false,
-            },
-          })
-        },
-      )
+      const deps = auctionTimerDeps(prisma)
+      const result = await checkAuctionTimer(roomId, deps.getState, deps.saveState, deps.deductBudget, deps.addRosterEntry)
 
       if (result) {
         // Retrieve socket.io instance
@@ -65,40 +148,7 @@ export const auctionWorker = new Worker(
         if (!room) {return}
 
         const stateBefore = await prisma.auctionState.findUnique({ where: { roomId } })
-
-        // We broadcast based on the result action
-        if (result.action === 'SOLD_AND_NEXT') {
-          io_instance.to(`room:${roomId}`).emit('PLAYER_SOLD', {
-            roomId: roomId,
-            playerId: stateBefore?.currentPlayerId,
-            buyerId: stateBefore?.currentBidderId,
-            price: stateBefore?.currentBid,
-          })
-          logger.info({ event: 'auction.timer_sold', roomId })
-        } else if (result.action === 'UNSOLD_AND_NEXT') {
-          io_instance.to(`room:${roomId}`).emit('PLAYER_UNSOLD', {
-            roomId: roomId,
-            playerId: stateBefore?.currentPlayerId,
-          })
-          logger.info({ event: 'auction.timer_unsold', roomId })
-        } else if (result.action === 'FINISHED' || result.state?.phase === 'FINISHED') {
-          await prisma.room.update({ where: { id: roomId }, data: { status: RoomStatus.FINISHED } })
-          io_instance.to(`room:${roomId}`).emit('AUCTION_FINISHED', { roomId })
-          logger.info({ event: 'auction.timer_finished', roomId })
-        } else if (result.state?.phase === 'RE_AUCTION') {
-          io_instance.to(`room:${roomId}`).emit('RE_AUCTION_STARTED', { roomId })
-          logger.info({ event: 'auction.timer_re_auction', roomId })
-        }
-
-        // If a new player is live, we need to schedule a new timer
-        if (result.state?.phase === 'PLAYER_LIVE' && result.state.timerEndsAt) {
-          const delay = new Date(result.state.timerEndsAt).getTime() - Date.now()
-          if (delay > 0) {
-            const { auctionQueue } = await import('../lib/queue')
-            await auctionQueue.add('timerTick', { roomId }, { delay })
-            logger.info({ event: 'auction.timer.rescheduled', roomId, delayMs: delay }, 'Scheduled next timer')
-          }
-        }
+        await broadcastAuctionResult(io_instance, prisma, roomId, result, stateBefore)
       }
 
     } catch (err: unknown) {

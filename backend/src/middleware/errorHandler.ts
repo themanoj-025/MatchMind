@@ -26,6 +26,29 @@ interface HttpErrorLike {
   message?: string
 }
 
+/** Map a known error shape to its HTTP response, or null for the generic 500 fallback. */
+function errorResponse(httpErr: HttpErrorLike): { status: number; code: string; message: string | undefined } | null {
+  // JSON DB errors (unique constraint, not found)
+  if (httpErr.code === 'CONFLICT') {
+    return { status: 409, code: 'CONFLICT', message: httpErr.message || 'A record with that value already exists' }
+  }
+  if (httpErr.code === 'NOT_FOUND') {
+    return { status: 404, code: 'NOT_FOUND', message: httpErr.message || 'The requested record was not found' }
+  }
+
+  // JWT errors
+  if (httpErr.name === 'JsonWebTokenError' || httpErr.name === 'TokenExpiredError') {
+    return { status: 401, code: 'INVALID_TOKEN', message: 'Authentication token is invalid or expired' }
+  }
+
+  // Custom AppError
+  if (httpErr.isAppError) {
+    return { status: httpErr.statusCode || 400, code: httpErr.code || 'APP_ERROR', message: httpErr.message }
+  }
+
+  return null
+}
+
 export function errorHandler(err: unknown, req: AuthenticatedRequest, res: Response, _next: NextFunction): void {
   const httpErr = (typeof err === 'object' && err !== null ? err : {}) as HttpErrorLike
   // Structured error logging with request context
@@ -41,53 +64,12 @@ export function errorHandler(err: unknown, req: AuthenticatedRequest, res: Respo
     httpErr.message || 'Unknown error',
   )
 
-  // ─── JSON DB errors (unique constraint, not found) ───────────────────
-  if (httpErr.code === 'CONFLICT') {
-    res.status(409).json({
-      error: {
-        code: 'CONFLICT',
-        message: httpErr.message || 'A record with that value already exists',
-      },
-    })
-    return
-  }
-  if (httpErr.code === 'NOT_FOUND') {
-    res.status(404).json({
-      error: {
-        code: 'NOT_FOUND',
-        message: httpErr.message || 'The requested record was not found',
-      },
-    })
-    return
-  }
-
-  // ─── JWT errors ────────────────────────────────────────────────────
-  if (httpErr.name === 'JsonWebTokenError' || httpErr.name === 'TokenExpiredError') {
-    res.status(401).json({
-      error: {
-        code: 'INVALID_TOKEN',
-        message: 'Authentication token is invalid or expired',
-      },
-    })
-    return
-  }
-
-  // ─── Custom AppError ───────────────────────────────────────────────
-  if (httpErr.isAppError) {
-    res.status(httpErr.statusCode || 400).json({
-      error: {
-        code: httpErr.code || 'APP_ERROR',
-        message: httpErr.message,
-      },
-    })
-    return
-  }
-
   // ─── Fallback: 500 Internal Server Error ──────────────────────────
-  res.status(500).json({
-    error: {
-      code: 'INTERNAL_ERROR',
-      message: 'An unexpected error occurred',
-    },
-  })
+  const mapped = errorResponse(httpErr)
+  const { status, code, message } = mapped ?? {
+    status: 500,
+    code: 'INTERNAL_ERROR',
+    message: 'An unexpected error occurred',
+  }
+  res.status(status).json({ error: { code, message } })
 }

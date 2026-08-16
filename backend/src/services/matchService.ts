@@ -104,21 +104,10 @@ export class MatchService {
     const allRosters = await this.prisma.roster.findMany({
       where: { roomId: { in: roomIds } },
     })
-    const rostersByRoom = new Map<string, typeof allRosters>()
-    for (const roster of allRosters) {
-      const existing = rostersByRoom.get(roster.roomId) || []
-      existing.push(roster)
-      rostersByRoom.set(roster.roomId, existing)
-    }
+    const rostersByRoom = groupRostersByRoom(allRosters)
 
     // Build player stats map
-    const playerStatsMap: Record<string, { stats: import('./fantasyPoints').PlayerMatchStats; position: string }> = {}
-    for (const stat of stats) {
-      const player = playerMap.get(stat.playerId)
-      if (player) {
-        playerStatsMap[stat.playerId] = { stats: stat, position: player.position }
-      }
-    }
+    const playerStatsMap = buildPlayerStatsMap(stats, playerMap)
 
     let totalEntries = 0
     for (const room of rooms) {
@@ -139,18 +128,7 @@ export class MatchService {
       )
 
       // Emit socket events for real-time updates
-      if (io) {
-        for (const result of results) {
-          io.to(`room:${room.id}`).emit('FANTASY_POINTS_UPDATE', {
-            roomId: room.id,
-            userId: result.userId,
-            delta: result.totalPoints,
-            playerId: result.playerId,
-            fixtureId,
-            breakdown: result.breakdown,
-          })
-        }
-      }
+      emitFantasyUpdates(io, room.id, results, fixtureId)
     }
 
     // Log admin action
@@ -165,5 +143,50 @@ export class MatchService {
     })
 
     return { roomsProcessed: rooms.length, fantasyEntries: totalEntries }
+  }
+}
+
+function groupRostersByRoom<T extends { roomId: string }>(allRosters: T[]): Map<string, T[]> {
+  const rostersByRoom = new Map<string, T[]>()
+  for (const roster of allRosters) {
+    const existing = rostersByRoom.get(roster.roomId) || []
+    existing.push(roster)
+    rostersByRoom.set(roster.roomId, existing)
+  }
+  return rostersByRoom
+}
+
+function buildPlayerStatsMap(
+  stats: Array<import('./fantasyPoints').PlayerMatchStats>,
+  playerMap: Map<string, { id: string; position: string; name: string }>,
+): Record<string, { stats: import('./fantasyPoints').PlayerMatchStats; position: string }> {
+  const playerStatsMap: Record<string, { stats: import('./fantasyPoints').PlayerMatchStats; position: string }> = {}
+  for (const stat of stats) {
+    const player = playerMap.get(stat.playerId)
+    if (player) {
+      playerStatsMap[stat.playerId] = { stats: stat, position: player.position }
+    }
+  }
+  return playerStatsMap
+}
+
+function emitFantasyUpdates(
+  io: { to: (room: string) => { emit: (event: string, payload: unknown) => void } } | undefined,
+  roomId: string,
+  results: Array<{ userId: string; totalPoints: number; playerId: string; breakdown: Record<string, number> }>,
+  fixtureId: string,
+): void {
+  if (!io) {
+    return
+  }
+  for (const result of results) {
+    io.to(`room:${roomId}`).emit('FANTASY_POINTS_UPDATE', {
+      roomId,
+      userId: result.userId,
+      delta: result.totalPoints,
+      playerId: result.playerId,
+      fixtureId,
+      breakdown: result.breakdown,
+    })
   }
 }

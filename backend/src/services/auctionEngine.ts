@@ -177,115 +177,158 @@ export interface AuctionDeps {
   getPlayerPool: (roomId: string) => Promise<AuctionPlayerPoolEntryLike[]>
 }
 
+type BidValidation =
+  | { ok: false; reason: string }
+  | { ok: true; state: AuctionState; member: AuctionMemberLike; player: AuctionPlayerLike }
+
+/** Validate the auction/room state and optimistic concurrency (steps 1–3). */
+async function validateAuctionContext(
+  bid: BidRequest,
+  deps: AuctionDeps,
+): Promise<{ ok: false; reason: string } | { ok: true; state: AuctionState }> {
+  const { getRoom, getAuctionState } = deps
+
+  // 1. Re-read state fresh from DB (never trust in-memory cache)
+  const state = await getAuctionState(bid.roomId)
+  if (!state) {
+    return { ok: false, reason: 'ROOM_NOT_FOUND' }
+  }
+
+  // 2. Optimistic concurrency check
+  if (state.version !== bid.expectedVersion) {
+    return { ok: false, reason: 'BID_STALE_STATE' }
+  }
+
+  // 3. Validate room state
+  const room = await getRoom(bid.roomId)
+  if (!room || (room.status !== 'DRAFTING' && room.status !== 'LIVE')) {
+    return { ok: false, reason: 'ROOM_NOT_ACTIVE' }
+  }
+  if (state.phase !== 'PLAYER_LIVE') {
+    return { ok: false, reason: 'NO_PLAYER_LIVE' }
+  }
+  if (state.currentPlayerId !== bid.playerId) {
+    return { ok: false, reason: 'WRONG_PLAYER_UNDER_HAMMER' }
+  }
+
+  return { ok: true, state }
+}
+
+/** Validate the bidder, minimum bid amount, and pool membership (steps 4–6). */
+async function validateBidder(
+  bid: BidRequest,
+  deps: AuctionDeps,
+  state: AuctionState,
+): Promise<{ ok: false; reason: string } | { ok: true; member: AuctionMemberLike; player: AuctionPlayerLike }> {
+  const { getPlayer, getRoomMember } = deps
+
+  // 4. Validate bidder is active member
+  const member = await getRoomMember(bid.roomId, bid.userId)
+  if (!member) {
+    return { ok: false, reason: 'NOT_ROOM_MEMBER' }
+  }
+
+  // 5. Validate minimum bid amount
+  const minBid = state.currentBid + requiredIncrement(state.currentBid)
+  if (bid.amount < minBid) {
+    return { ok: false, reason: `BID_TOO_LOW: Minimum bid is ${minBid}` }
+  }
+
+  // 6. Validate bidder has an entry in the pool
+  const player = await getPlayer(bid.playerId)
+  if (!player) {
+    return { ok: false, reason: 'PLAYER_NOT_FOUND' }
+  }
+
+  return { ok: true, member, player }
+}
+
+/** Validate a bid against the current auction state (steps 1–6 of processBid). */
+async function validateBid(bid: BidRequest, deps: AuctionDeps): Promise<BidValidation> {
+  const context = await validateAuctionContext(bid, deps)
+  if (!context.ok) {
+    return context
+  }
+  const bidder = await validateBidder(bid, deps, context.state)
+  if (!bidder.ok) {
+    return bidder
+  }
+  return { ok: true, state: context.state, member: bidder.member, player: bidder.player }
+}
+
 export async function processBid(bid: BidRequest, deps: AuctionDeps): Promise<BidResult> {
-  const {
-    getRoom,
-    getPlayer,
-    getRoomMember,
-    getRoster,
-    getAuctionState,
-    saveAuctionState,
-    saveBid,
-    getPlayerPool,
-  } = deps
   return runWithLock(bid.roomId, async () => {
-    // 1. Re-read state fresh from DB (never trust in-memory cache)
-    const state = await getAuctionState(bid.roomId)
-    if (!state) {
-      return { accepted: false, reason: 'ROOM_NOT_FOUND' }
+    const validation = await validateBid(bid, deps)
+    if (!validation.ok) {
+      return { accepted: false, reason: validation.reason }
     }
-
-    // 2. Optimistic concurrency check
-    if (state.version !== bid.expectedVersion) {
-      return { accepted: false, reason: 'BID_STALE_STATE' }
-    }
-
-    // 3. Validate room state
-    const room = await getRoom(bid.roomId)
-    if (!room || (room.status !== 'DRAFTING' && room.status !== 'LIVE')) {
-      return { accepted: false, reason: 'ROOM_NOT_ACTIVE' }
-    }
-    if (state.phase !== 'PLAYER_LIVE') {
-      return { accepted: false, reason: 'NO_PLAYER_LIVE' }
-    }
-    if (state.currentPlayerId !== bid.playerId) {
-      return { accepted: false, reason: 'WRONG_PLAYER_UNDER_HAMMER' }
-    }
-
-    // 4. Validate bidder is active member
-    const member = await getRoomMember(bid.roomId, bid.userId)
-    if (!member) {
-      return { accepted: false, reason: 'NOT_ROOM_MEMBER' }
-    }
-
-    // 5. Validate minimum bid amount
-    const minBid = state.currentBid + requiredIncrement(state.currentBid)
-    if (bid.amount < minBid) {
-      return { accepted: false, reason: `BID_TOO_LOW: Minimum bid is ${minBid}` }
-    }
-
-    // 6. Validate budget + roster slot constraints
-    const player = await getPlayer(bid.playerId)
-    if (!player) {
-      return { accepted: false, reason: 'PLAYER_NOT_FOUND' }
-    }
-
-    const roster = await getRoster(bid.roomId, bid.userId)
-    const playerPool = await getPlayerPool(bid.roomId)
-    const budgetValidation = validateBudgetForRemainingSlots({
-      remainingBudget: member.remainingBudget,
-      bidAmount: bid.amount,
-      playerPosition: player.position,
-      rosterRules: DEFAULT_ROSTER_RULES,
-      currentRoster: roster.map((r) => ({ position: r.position || player.position, soldPrice: r.soldPrice })),
-    })
-    if (!budgetValidation.valid) {
-      return { accepted: false, reason: budgetValidation.reason! }
-    }
-
     // 7. Apply bid — update state and persist
-    const now = new Date()
-    const timerMs = state.timerEndsAt ? new Date(state.timerEndsAt).getTime() - now.getTime() : 0
-    const timerSeconds = timerMs / 1000
-
-    // Anti-snipe: if bid is placed in last anti-snipe seconds, reset timer
-    let newTimerEnd = new Date(now.getTime() + AUCTION_DEFAULT_TIMER_SECONDS * 1000)
-    if (timerSeconds <= AUCTION_ANTI_SNIPE_SECONDS) {
-      newTimerEnd = new Date(now.getTime() + AUCTION_ANTI_SNIPE_RESET_SECONDS * 1000)
-    }
-
-    const newState: AuctionState = {
-      ...state,
-      currentBid: bid.amount,
-      currentBidderId: bid.userId,
-      timerEndsAt: newTimerEnd.toISOString(),
-      version: state.version + 1,
-    }
-
-    // Save updated state
-    await saveAuctionState(bid.roomId, newState)
-
-    // Save bid record (append-only audit log)
-    await saveBid({
-      roomId: bid.roomId,
-      playerId: bid.playerId,
-      userId: bid.userId,
-      amount: bid.amount,
-      timestamp: now.toISOString(),
-      version: newState.version,
-    })
-
-    logger.info({
-      event: 'auction.bid_placed',
-      roomId: bid.roomId,
-      playerId: bid.playerId,
-      userId: bid.userId,
-      amount: bid.amount,
-      version: newState.version,
-    })
-
-    return { accepted: true, newState }
+    return applyBid(deps, bid, validation.state, validation.member, validation.player)
   })
+}
+
+function nextTimerEnd(state: AuctionState, now: Date): Date {
+  const timerMs = state.timerEndsAt ? new Date(state.timerEndsAt).getTime() - now.getTime() : 0
+  const timerSeconds = timerMs / 1000
+  // Anti-snipe: if bid is placed in last anti-snipe seconds, reset timer
+  if (timerSeconds <= AUCTION_ANTI_SNIPE_SECONDS) {
+    return new Date(now.getTime() + AUCTION_ANTI_SNIPE_RESET_SECONDS * 1000)
+  }
+  return new Date(now.getTime() + AUCTION_DEFAULT_TIMER_SECONDS * 1000)
+}
+
+async function applyBid(
+  deps: AuctionDeps,
+  bid: BidRequest,
+  state: AuctionState,
+  member: AuctionMemberLike,
+  player: AuctionPlayerLike,
+): Promise<BidResult> {
+  const roster = await deps.getRoster(bid.roomId, bid.userId)
+  const budgetValidation = validateBudgetForRemainingSlots({
+    remainingBudget: member.remainingBudget,
+    bidAmount: bid.amount,
+    playerPosition: player.position,
+    rosterRules: DEFAULT_ROSTER_RULES,
+    currentRoster: roster.map((r) => ({ position: r.position || player.position, soldPrice: r.soldPrice })),
+  })
+  if (!budgetValidation.valid) {
+    return { accepted: false, reason: budgetValidation.reason! }
+  }
+
+  const now = new Date()
+  const newTimerEnd = nextTimerEnd(state, now)
+  const newState: AuctionState = {
+    ...state,
+    currentBid: bid.amount,
+    currentBidderId: bid.userId,
+    timerEndsAt: newTimerEnd.toISOString(),
+    version: state.version + 1,
+  }
+
+  // Save updated state
+  await deps.saveAuctionState(bid.roomId, newState)
+
+  // Save bid record (append-only audit log)
+  await deps.saveBid({
+    roomId: bid.roomId,
+    playerId: bid.playerId,
+    userId: bid.userId,
+    amount: bid.amount,
+    timestamp: now.toISOString(),
+    version: newState.version,
+  })
+
+  logger.info({
+    event: 'auction.bid_placed',
+    roomId: bid.roomId,
+    playerId: bid.playerId,
+    userId: bid.userId,
+    amount: bid.amount,
+    version: newState.version,
+  })
+
+  return { accepted: true, newState }
 }
 
 // ─── Sell Current Player ─────────────────────────────────
