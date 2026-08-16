@@ -12,8 +12,28 @@ import {
   type VerifyCallback as GoogleVerifyCallback,
 } from 'passport-google-oauth20'
 import { Strategy as JwtStrategy, ExtractJwt } from 'passport-jwt'
+import type { User } from '@prisma/client'
 import type { DatabaseClient } from '../repositories/index'
 import logger from '../utils/logger'
+
+async function findOrCreateGoogleUser(
+  prisma: DatabaseClient,
+  email: string,
+  profile: GoogleProfile,
+): Promise<User> {
+  let user = await prisma.user.findUnique({ where: { email } })
+  if (!user) {
+    user = await prisma.user.create({
+      data: {
+        email,
+        username: `google_${profile.id}`,
+        displayName: profile.displayName || profile.name?.givenName || 'Google User',
+        avatar: profile.photos?.[0]?.value || null,
+      },
+    })
+  }
+  return user
+}
 
 export function configurePassport(prisma: DatabaseClient) {
   // JWT Strategy — authenticate API requests via Bearer token
@@ -47,19 +67,7 @@ export function configurePassport(prisma: DatabaseClient) {
           try {
             const email = profile.emails?.[0]?.value
             if (!email) {return done(new Error('No email from Google'), false)}
-
-            let user = await prisma.user.findUnique({ where: { email } })
-            if (!user) {
-              user = await prisma.user.create({
-                data: {
-                  email,
-                  username: `google_${profile.id}`,
-                  displayName: profile.displayName || profile.name?.givenName || 'Google User',
-                  avatar: profile.photos?.[0]?.value || null,
-                },
-              })
-            }
-            return done(null, user)
+            return done(null, await findOrCreateGoogleUser(prisma, email, profile))
           } catch (err: unknown) {
             return done(err, false)
           }

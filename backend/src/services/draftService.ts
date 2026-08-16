@@ -155,49 +155,46 @@ export function generateChoiceRound(
   let attempts = 0
   while (offeredPlayerIds.length < DRAFT.OFFERED_PLAYERS_PER_ROUND && attempts < maxAttempts) {
     attempts++
-    // Roll rarity first
-    const targetRarity = rollRarity()
-    // Find a player of that rarity from the pool who hasn't been offered
-    const candidates = pool.filter((_, idx) => !usedIndices.has(idx) && pool[idx]!.rarityTier === targetRarity)
-    if (candidates.length === 0) {
-      // Rarity not available — fall back to any eligible player
-      const anyCandidate = pool.find((_, idx) => !usedIndices.has(idx))
-      if (!anyCandidate) {break}
-      const idx = pool.indexOf(anyCandidate)
-      usedIndices.add(idx)
-      offeredPlayerIds.push(anyCandidate.id)
-      offeredRarities.push(anyCandidate.rarityTier || 'BRONZE')
-      players.push({
-        id: anyCandidate.id,
-        name: anyCandidate.name,
-        position: anyCandidate.position,
-        club: anyCandidate.club,
-        nationality: anyCandidate.nationality,
-        basePrice: anyCandidate.basePrice,
-        rarityTier: anyCandidate.rarityTier || 'BRONZE',
-        photoUrl: anyCandidate.photoUrl ?? undefined,
-      })
-    } else {
-      const chosen = candidates[Math.floor(Math.random() * candidates.length)]!
-      const idx = pool.indexOf(chosen)
-      usedIndices.add(idx)
-      offeredPlayerIds.push(chosen.id)
-      offeredRarities.push(targetRarity)
-      players.push({
-        id: chosen.id,
-        name: chosen.name,
-        position: chosen.position,
-        club: chosen.club,
-        nationality: chosen.nationality,
-        basePrice: chosen.basePrice,
-        rarityTier: chosen.rarityTier || 'BRONZE',
-        photoUrl: chosen.photoUrl ?? undefined,
-      })
-    }
+    // Roll rarity first, then pick a matching player (or any unoffered one)
+    const picked = pickOfferedPlayer(pool, usedIndices, rollRarity())
+    if (!picked) {break}
+    offeredPlayerIds.push(picked.player.id)
+    offeredRarities.push(picked.rarity)
+    players.push({
+      id: picked.player.id,
+      name: picked.player.name,
+      position: picked.player.position,
+      club: picked.player.club,
+      nationality: picked.player.nationality,
+      basePrice: picked.player.basePrice,
+      rarityTier: picked.player.rarityTier || 'BRONZE',
+      photoUrl: picked.player.photoUrl ?? undefined,
+    })
   }
   // Deduplication check (§1.11): ensure no two identical 3-player sets
   // (This is checked at a higher level in the route handler)
   return { offeredPlayerIds, offeredRarities, players }
+}
+/**
+ * Pick an unoffered player for a choice round, preferring one of the target
+ * rarity but falling back to any remaining player. Returns null when the pool
+ * is exhausted. Marks the chosen index as used.
+ */
+function pickOfferedPlayer(
+  pool: PlayerRecord[],
+  usedIndices: Set<number>,
+  targetRarity: string,
+): { player: PlayerRecord; rarity: string } | null {
+  const candidates = pool.filter((_, idx) => !usedIndices.has(idx) && pool[idx]!.rarityTier === targetRarity)
+  const chosen =
+    candidates.length > 0
+      ? candidates[Math.floor(Math.random() * candidates.length)]
+      : pool.find((_, idx) => !usedIndices.has(idx))
+  if (!chosen) {
+    return null
+  }
+  usedIndices.add(pool.indexOf(chosen))
+  return { player: chosen, rarity: candidates.length > 0 ? targetRarity : chosen.rarityTier || 'BRONZE' }
 }
 function getFlexPositions(position: string): string[] {
   switch (position) {
@@ -214,6 +211,16 @@ function getFlexPositions(position: string): string[] {
   }
 }
 // ─── Compute Synergy Score (§1.5) ───────────────────────
+function clusterBonus(counts: Record<string, number>, threshold: number, perPlayer: number): number {
+  let bonus = 0
+  for (const count of Object.values(counts)) {
+    if (count >= threshold) {
+      bonus += (count - (threshold - 1)) * perPlayer
+    }
+  }
+  return bonus
+}
+
 export function computeSynergyScore(squadPlayers: SquadPlayer[], allPlayers: PlayerRecord[]): number {
   const playerMap = new Map(allPlayers.map((p) => [p.id, p]))
   const nationalityCounts: Record<string, number> = {}
@@ -228,19 +235,9 @@ export function computeSynergyScore(squadPlayers: SquadPlayer[], allPlayers: Pla
       clubCounts[player.club] = (clubCounts[player.club] || 0) + 1
     }
   }
-  let bonus = 0
-  // Nationality: +1% per player beyond a 3-player cluster
-  for (const count of Object.values(nationalityCounts)) {
-    if (count >= DRAFT.SYNERGY_NATIONALITY_THRESHOLD) {
-      bonus += (count - (DRAFT.SYNERGY_NATIONALITY_THRESHOLD - 1)) * DRAFT.SYNERGY_NATIONALITY_BONUS_PER
-    }
-  }
-  // Club: +2% per player beyond a 2-player cluster
-  for (const count of Object.values(clubCounts)) {
-    if (count >= DRAFT.SYNERGY_CLUB_THRESHOLD) {
-      bonus += (count - (DRAFT.SYNERGY_CLUB_THRESHOLD - 1)) * DRAFT.SYNERGY_CLUB_BONUS_PER
-    }
-  }
+  // Nationality: +1% per player beyond a 3-player cluster; club: +2% beyond a 2-player cluster
+  let bonus = clusterBonus(nationalityCounts, DRAFT.SYNERGY_NATIONALITY_THRESHOLD, DRAFT.SYNERGY_NATIONALITY_BONUS_PER)
+  bonus += clusterBonus(clubCounts, DRAFT.SYNERGY_CLUB_THRESHOLD, DRAFT.SYNERGY_CLUB_BONUS_PER)
   return Math.min(bonus, DRAFT.SYNERGY_MAX_BONUS)
 }
 // ─── Check Formation Fill Bonus (§1.6) ──────────────────
@@ -303,9 +300,38 @@ export async function startDraft(
     allPlayers,
   )
   // 5. Create the first draft pick record
+  const { expiresAt } = await createFirstPickRecord(prisma, session, firstSlot, firstRound)
+  // 6. Load full player objects for the choice round
+  const playerObjects = buildPlayerObjects(allPlayers, firstRound.offeredPlayerIds)
+  logger.info({
+    event: 'draft.started',
+    sessionId: session.id,
+    userId,
+    tournamentId,
+    formation,
+  })
+  return {
+    success: true,
+    session,
+    nextRound: {
+      slotIndex: 0,
+      position: firstSlot.position,
+      playerIds: firstRound.offeredPlayerIds,
+      players: playerObjects,
+      expiresAt: expiresAt.toISOString(),
+    },
+  }
+}
+
+async function createFirstPickRecord(
+  prisma: DatabaseClient,
+  session: DraftSession,
+  firstSlot: FormationSlot,
+  firstRound: { offeredPlayerIds: string[]; offeredRarities: string[] },
+): Promise<{ expiresAt: Date }> {
   const now = new Date()
   const expiresAt = new Date(now.getTime() + DRAFT.PICK_TIMER_SECONDS * 1000)
-  const pickRecord = (await prisma.draftPick.create({
+  await prisma.draftPick.create({
     data: {
       draftSessionId: session.id,
       slotIndex: 0,
@@ -316,9 +342,43 @@ export async function startDraft(
       autoPicked: false,
       pickedAt: null,
     },
-  })) as DraftPick
-  // 6. Load full player objects for the choice round
-  const playerObjects = firstRound.offeredPlayerIds
+  })
+  return { expiresAt }
+}
+// ─── Helpers ────────────────────────────────────────────
+function findNextSlot(picks: DraftPick[], totalSlots: number): number | null {
+  for (let i = 0; i < totalSlots; i++) {
+    const pick = picks.find((p) => p.slotIndex === i)
+    if (!pick || (pick.pickedPlayerId == null && !pick.autoPicked)) {
+      return i
+    }
+  }
+  return null
+}
+
+function positionForSlot(formationDef: Formation, nextSlot: number, picks: DraftPick[]): string {
+  let accumulatedSlots = 0
+  for (const slot of formationDef.slots) {
+    if (nextSlot < accumulatedSlots + slot.count) {
+      return slot.position
+    }
+    accumulatedSlots += slot.count
+  }
+  // Bench slots (after all formation slots): flex position based on remaining needs
+  const formationPositions = formationDef.slots.flatMap((s) => Array(s.count).fill(s.position))
+  const usedInPosition = picks.filter((p) => p.pickedPlayerId != null).map((p) => p.position)
+  const positionNeeds: Record<string, number> = { GK: 0, DEF: 0, MID: 0, FWD: 0 }
+  for (const pos of formationPositions) {
+    positionNeeds[pos] = (positionNeeds[pos] || 0) + 1
+  }
+  for (const pos of usedInPosition) {
+    if (positionNeeds[pos]) {positionNeeds[pos]--}
+  }
+  return Object.entries(positionNeeds).sort((a, b) => b[1] - a[1])[0]?.[0] || 'MID'
+}
+
+function buildPlayerObjects(allPlayers: PlayerRecord[], offeredPlayerIds: string[]): ChoiceRound['players'] {
+  return offeredPlayerIds
     .map((pid) => {
       const p = allPlayers.find((ap) => ap.id === pid)
       return p
@@ -334,39 +394,125 @@ export async function startDraft(
           }
         : null
     })
-    .filter(Boolean)
-  logger.info({
-    event: 'draft.started',
-    sessionId: session.id,
-    userId,
-    tournamentId,
-    formation,
-  })
-  return {
-    success: true,
-    session,
-    nextRound: {
-      slotIndex: 0,
-      position: firstSlot.position,
-      playerIds: firstRound.offeredPlayerIds,
-      players: playerObjects as ChoiceRound['players'],
-      expiresAt: expiresAt.toISOString(),
-    },
+    .filter(Boolean) as ChoiceRound['players']
+}
+
+function isDuplicateOffer(picks: DraftPick[], round: { offeredPlayerIds: string[] }): boolean {
+  const previousPicks = picks.filter((p) => p.offeredPlayerIds.length === 3)
+  return previousPicks.some(
+    (p) =>
+      p.offeredPlayerIds.every((id) => round.offeredPlayerIds.includes(id)) &&
+      round.offeredPlayerIds.every((id) => p.offeredPlayerIds.includes(id)),
+  )
+}
+
+function rerollDuplicateOffer(
+  round: { offeredPlayerIds: string[]; offeredRarities: string[]; players: ChoiceRound['players'] },
+  allPlayers: PlayerRecord[],
+  excludePlayerIds: string[],
+  slotPosition: string,
+): void {
+  // Re-roll by swapping the last offered player
+  const replacement = allPlayers.find(
+    (p) =>
+      !round.offeredPlayerIds.includes(p.id) && !excludePlayerIds.includes(p.id) && p.position === slotPosition,
+  )
+  if (!replacement) {return}
+  round.offeredPlayerIds[2] = replacement.id
+  round.offeredRarities[2] = replacement.rarityTier || 'BRONZE'
+  round.players[2] = {
+    id: replacement.id,
+    name: replacement.name,
+    position: replacement.position,
+    club: replacement.club,
+    nationality: replacement.nationality,
+    basePrice: replacement.basePrice,
+    rarityTier: replacement.rarityTier || 'BRONZE',
+    photoUrl: replacement.photoUrl ?? undefined,
   }
 }
-// ─── Get Next Choice Round ──────────────────────────────
-export async function getNextRound(
+
+interface ExistingRoundContext {
+  prisma: DatabaseClient
+  session: DraftSession
+  allPlayers: PlayerRecord[]
+}
+
+async function resolveExistingRound(
+  ctx: ExistingRoundContext,
+  pickRecord: DraftPick,
+  nextSlot: number,
+  expiresAtTime: number,
+): Promise<{ round: ChoiceRound | null; session: DraftSession | null; complete: boolean; error?: string }> {
+  const { prisma, session } = ctx
+  if (Date.now() >= expiresAtTime) {
+    // Auto-pick: choose the highest-rarity offered player
+    const highestRarityIdx = findHighestRarityIndex(pickRecord.offeredRarities)
+    const autoPickPlayerId = pickRecord.offeredPlayerIds[highestRarityIdx]
+    await prisma.draftPick.update({
+      where: { id: pickRecord.id },
+      data: {
+        pickedPlayerId: autoPickPlayerId,
+        autoPicked: true,
+        pickedAt: new Date().toISOString(),
+      },
+    })
+    // Return next round
+    return getNextRound(prisma, session.id, session.userId)
+  }
+  // Timer still running — return existing round
+  const existingPlayers = buildPlayerObjects(ctx.allPlayers, pickRecord.offeredPlayerIds)
+  const newExpiresAt = new Date(expiresAtTime).toISOString()
+  return {
+    round: {
+      slotIndex: nextSlot,
+      position: pickRecord.position,
+      playerIds: pickRecord.offeredPlayerIds,
+      players: existingPlayers,
+      expiresAt: newExpiresAt,
+    },
+    session,
+    complete: false,
+  }
+}
+
+interface RoundContext {
+  session: DraftSession
+  picks: DraftPick[]
+  nextSlot: number
+  slotPosition: string
+  allPlayers: PlayerRecord[]
+  excludePlayerIds: string[]
+  pickRecord: DraftPick | undefined
+}
+
+type RoundContextResult =
+  | { ok: true; ctx: RoundContext }
+  | { ok: false; result: { round: null; session: DraftSession | null; complete: boolean; error?: string } }
+
+/**
+ * Load the session and derive the next unfilled slot, or return the
+ * terminal/error result when the draft cannot continue.
+ */
+async function loadRoundContext(
   prisma: DatabaseClient,
   sessionId: string,
   userId: string,
-): Promise<{ round: ChoiceRound | null; session: DraftSession | null; complete: boolean; error?: string }> {
+): Promise<RoundContextResult> {
   const session = (await prisma.draftSession.findUnique({ where: { id: sessionId } })) as DraftSession | null
-  if (!session) {return { round: null, session: null, complete: false, error: 'Session not found' }}
-  if (session.userId !== userId) {return { round: null, session: null, complete: false, error: 'Not your draft session' }}
-  if (session.status !== 'DRAFTING')
-    {return { round: null, session, complete: session.status === 'SQUAD_COMPLETE', error: undefined }}
+  if (!session) {
+    return { ok: false, result: { round: null, session: null, complete: false, error: 'Session not found' } }
+  }
+  if (session.userId !== userId) {
+    return { ok: false, result: { round: null, session: null, complete: false, error: 'Not your draft session' } }
+  }
+  if (session.status !== 'DRAFTING') {
+    return { ok: false, result: { round: null, session, complete: session.status === 'SQUAD_COMPLETE', error: undefined } }
+  }
   const formationDef = getFormation(session.formation)
-  if (!formationDef) {return { round: null, session, complete: false, error: 'Invalid formation' }}
+  if (!formationDef) {
+    return { ok: false, result: { round: null, session, complete: false, error: 'Invalid formation' } }
+  }
   // Get all picks for this session
   const picks = (await prisma.draftPick.findMany({
     where: { draftSessionId: sessionId },
@@ -374,137 +520,81 @@ export async function getNextRound(
   })) as DraftPick[]
   // Find the first unfilled slot
   const totalSlots = formationDef.slots.reduce((sum, s) => sum + s.count, 0) + formationDef.benchSlots
-  let nextSlot: number | null = null
-  for (let i = 0; i < totalSlots; i++) {
-    const pick = picks.find((p) => p.slotIndex === i)
-    if (!pick || (pick.pickedPlayerId == null && !pick.autoPicked)) {
-      nextSlot = i
-      break
-    }
-  }
+  const nextSlot = findNextSlot(picks, totalSlots)
   if (nextSlot === null) {
     // All slots filled — session is squad complete (but not yet committed)
-    return { round: null, session, complete: true, error: undefined }
+    return { ok: false, result: { round: null, session, complete: true, error: undefined } }
   }
   // Determine position for this slot
-  let slotPosition = 'MID' // default
-  let accumulatedSlots = 0
-  for (const slot of formationDef.slots) {
-    if (nextSlot < accumulatedSlots + slot.count) {
-      slotPosition = slot.position
-      break
-    }
-    accumulatedSlots += slot.count
-  }
-  // Bench slots (after all formation slots)
-  if (nextSlot >= accumulatedSlots) {
-    // Bench slots: flex position based on remaining formation positions
-    const formationPositions = formationDef.slots.flatMap((s) => Array(s.count).fill(s.position))
-    const usedInPosition = picks.filter((p) => p.pickedPlayerId != null).map((p) => p.position)
-    // Suggest a position with the most remaining need
-    const positionNeeds: Record<string, number> = { GK: 0, DEF: 0, MID: 0, FWD: 0 }
-    for (const pos of formationPositions) {
-      positionNeeds[pos] = (positionNeeds[pos] || 0) + 1
-    }
-    for (const pos of usedInPosition) {
-      if (positionNeeds[pos]) {positionNeeds[pos]--}
-    }
-    slotPosition = Object.entries(positionNeeds).sort((a, b) => b[1] - a[1])[0]?.[0] || 'MID'
-  }
+  const slotPosition = positionForSlot(formationDef, nextSlot, picks)
   // Get all players for this tournament
-  const allPlayers = await prisma.player.findMany({
+  const allPlayers = (await prisma.player.findMany({
     where: { tournamentId: session.tournamentId },
-  })
+  })) as PlayerRecord[]
   // Build exclusion list (already picked in this session)
   const excludePlayerIds = picks.filter((p) => p.pickedPlayerId != null).map((p) => p.pickedPlayerId!)
   // Check if a pick record already exists for this slot (was started but not completed)
   const pickRecord = picks.find((p) => p.slotIndex === nextSlot)
+  return {
+    ok: true,
+    ctx: { session, picks, nextSlot, slotPosition, allPlayers, excludePlayerIds, pickRecord },
+  }
+}
+
+// ─── Get Next Choice Round ──────────────────────────────
+export async function getNextRound(
+  prisma: DatabaseClient,
+  sessionId: string,
+  userId: string,
+): Promise<{ round: ChoiceRound | null; session: DraftSession | null; complete: boolean; error?: string }> {
+  const loaded = await loadRoundContext(prisma, sessionId, userId)
+  if (!loaded.ok) {
+    return loaded.result
+  }
+  const { session, picks, nextSlot, slotPosition, allPlayers, excludePlayerIds, pickRecord } = loaded.ctx
   if (pickRecord && pickRecord.pickedPlayerId == null && !pickRecord.autoPicked) {
     // This round was already generated — check if timer expired
     const roundCreatedAt = pickRecord.pickedAt ? new Date(pickRecord.pickedAt).getTime() : Date.now()
     const expiresAtTime = roundCreatedAt + DRAFT.PICK_TIMER_SECONDS * 1000
-    if (Date.now() >= expiresAtTime) {
-      // Auto-pick: choose the highest-rarity offered player
-      const highestRarityIdx = findHighestRarityIndex(pickRecord.offeredRarities)
-      const autoPickPlayerId = pickRecord.offeredPlayerIds[highestRarityIdx]
-      await prisma.draftPick.update({
-        where: { id: pickRecord.id },
-        data: {
-          pickedPlayerId: autoPickPlayerId,
-          autoPicked: true,
-          pickedAt: new Date().toISOString(),
-        },
-      })
-      // Return next round
-      return getNextRound(prisma, sessionId, userId)
-    }
-    // Timer still running — return existing round
-    const allPlayersForExisting = await prisma.player.findMany({
-      where: { tournamentId: session.tournamentId },
-    })
-    const existingPlayers = pickRecord.offeredPlayerIds
-      .map((pid) => {
-        const p = allPlayersForExisting.find((ap) => ap.id === pid)
-        return p
-          ? {
-              id: p.id,
-              name: p.name,
-              position: p.position,
-              club: p.club,
-              nationality: p.nationality,
-              basePrice: p.basePrice,
-              rarityTier: p.rarityTier || 'BRONZE',
-              photoUrl: p.photoUrl,
-            }
-          : null
-      })
-      .filter(Boolean)
-    const newExpiresAt = new Date(expiresAtTime).toISOString()
-    return {
-      round: {
-        slotIndex: nextSlot,
-        position: pickRecord.position,
-        playerIds: pickRecord.offeredPlayerIds,
-        players: existingPlayers as ChoiceRound['players'],
-        expiresAt: newExpiresAt,
-      },
-      session,
-      complete: false,
-    }
+    return resolveExistingRound({ prisma, session, allPlayers }, pickRecord, nextSlot, expiresAtTime)
   }
   // Generate new round
   const round = generateChoiceRound(slotPosition, excludePlayerIds, allPlayers)
   // Deduplication check (§1.11): ensure no identical 3-player set was already offered
-  const previousPicks = picks.filter((p) => p.offeredPlayerIds.length === 3)
-  const isDuplicate = previousPicks.some(
-    (p) =>
-      p.offeredPlayerIds.every((id) => round.offeredPlayerIds.includes(id)) &&
-      round.offeredPlayerIds.every((id) => p.offeredPlayerIds.includes(id)),
-  )
-  if (isDuplicate) {
-    // Re-roll by swapping last offered player
-    const replacement = allPlayers.find(
-      (p) =>
-        !round.offeredPlayerIds.includes(p.id) && !excludePlayerIds.includes(p.id) && p.position === slotPosition,
-    )
-    if (replacement) {
-      round.offeredPlayerIds[2] = replacement.id
-      round.offeredRarities[2] = replacement.rarityTier || 'BRONZE'
-      round.players[2] = {
-        id: replacement.id,
-        name: replacement.name,
-        position: replacement.position,
-        club: replacement.club,
-        nationality: replacement.nationality,
-        basePrice: replacement.basePrice,
-        rarityTier: replacement.rarityTier || 'BRONZE',
-        photoUrl: replacement.photoUrl ?? undefined,
-      }
-    }
+  if (isDuplicateOffer(picks, round)) {
+    rerollDuplicateOffer(round, allPlayers, excludePlayerIds, slotPosition)
   }
   // Create or update the pick record
   const now = new Date()
   const expiresAt = new Date(now.getTime() + DRAFT.PICK_TIMER_SECONDS * 1000)
+  await persistOfferedRound({ prisma, sessionId, nextSlot, slotPosition }, pickRecord, round, now)
+  return {
+    round: {
+      slotIndex: nextSlot,
+      position: slotPosition,
+      playerIds: round.offeredPlayerIds,
+      players: round.players,
+      expiresAt: expiresAt.toISOString(),
+    },
+    session,
+    complete: false,
+  }
+}
+
+interface PersistOfferedRoundContext {
+  prisma: DatabaseClient
+  sessionId: string
+  nextSlot: number
+  slotPosition: string
+}
+
+async function persistOfferedRound(
+  ctx: PersistOfferedRoundContext,
+  pickRecord: DraftPick | undefined,
+  round: { offeredPlayerIds: string[]; offeredRarities: string[] },
+  now: Date,
+): Promise<void> {
+  const { prisma, sessionId, nextSlot, slotPosition } = ctx
   if (pickRecord) {
     await prisma.draftPick.update({
       where: { id: pickRecord.id },
@@ -528,18 +618,42 @@ export async function getNextRound(
       },
     })
   }
+}
+// ─── Post-pick progression: filled-check + next round ──
+async function afterPick(
+  prisma: DatabaseClient,
+  session: DraftSession,
+  sessionId: string,
+  userId: string,
+): Promise<{
+  success: boolean
+  nextRound?: ChoiceRound | null
+  session?: DraftSession
+  complete?: boolean
+  error?: string
+}> {
+  const formationDef = getFormation(session.formation)
+  if (!formationDef) {return { success: false, error: 'Invalid formation' }}
+  const totalSlots = formationDef.slots.reduce((sum, s) => sum + s.count, 0) + formationDef.benchSlots
+  const updatedPicks = (await prisma.draftPick.findMany({
+    where: { draftSessionId: sessionId },
+  })) as DraftPick[]
+  const filledSlots = updatedPicks.filter((p) => p.pickedPlayerId != null).length
+  const allFilled = filledSlots >= totalSlots
+  if (allFilled) {
+    // Don't auto-commit — user must manually commit
+    return { success: true, nextRound: null, session: session ?? undefined, complete: true }
+  }
+  // Return next round
+  const nextResult = await getNextRound(prisma, sessionId, userId)
   return {
-    round: {
-      slotIndex: nextSlot,
-      position: slotPosition,
-      playerIds: round.offeredPlayerIds,
-      players: round.players,
-      expiresAt: expiresAt.toISOString(),
-    },
-    session,
-    complete: false,
+    success: true,
+    nextRound: nextResult.round,
+    session: nextResult.session ?? undefined,
+    complete: nextResult.complete,
   }
 }
+
 // ─── Process Pick (§1.4) ────────────────────────────────
 export async function processPick(
   prisma: DatabaseClient,
@@ -592,25 +706,7 @@ export async function processPick(
         autoPickPlayerId,
         reason: 'Timer expired before user picked',
       })
-      // Check if all slots are now filled
-      const formationDef = getFormation(session.formation)
-      if (!formationDef) {return { success: false, error: 'Invalid formation' }}
-      const totalSlots = formationDef.slots.reduce((sum, s) => sum + s.count, 0) + formationDef.benchSlots
-      const updatedPicks = (await prisma.draftPick.findMany({
-        where: { draftSessionId: sessionId },
-      })) as DraftPick[]
-      const filledSlots = updatedPicks.filter((p) => p.pickedPlayerId != null).length
-      const allFilled = filledSlots >= totalSlots
-      if (allFilled) {
-        return { success: true, nextRound: null, session: session ?? undefined, complete: true }
-      }
-      const nextResult = await getNextRound(prisma, sessionId, userId)
-      return {
-        success: true,
-        nextRound: nextResult.round,
-        session: nextResult.session ?? undefined,
-        complete: nextResult.complete,
-      }
+      return afterPick(prisma, session, sessionId, userId)
     }
   }
   // Update the pick record
@@ -630,32 +726,7 @@ export async function processPick(
     userId,
     autoPicked: false,
   })
-  // Check if all slots are now filled
-  const formationDef = getFormation(session.formation)
-  if (!formationDef) {return { success: false, error: 'Invalid formation' }}
-  const totalSlots = formationDef.slots.reduce((sum, s) => sum + s.count, 0) + formationDef.benchSlots
-  const updatedPicks = (await prisma.draftPick.findMany({
-    where: { draftSessionId: sessionId },
-  })) as DraftPick[]
-  const filledSlots = updatedPicks.filter((p) => p.pickedPlayerId != null).length
-  const allFilled = filledSlots >= totalSlots
-  if (allFilled) {
-    // Don't auto-commit — user must manually commit
-    return {
-      success: true,
-      nextRound: null,
-      session: session ?? undefined,
-      complete: true,
-    }
-  }
-  // Return next round
-  const nextResult = await getNextRound(prisma, sessionId, userId)
-  return {
-    success: true,
-    nextRound: nextResult.round,
-    session: nextResult.session ?? undefined,
-    complete: nextResult.complete,
-  }
+  return afterPick(prisma, session, sessionId, userId)
 }
 // ─── Commit Squad (§1.2 step 5) ─────────────────────────
 export async function commitSquad(
