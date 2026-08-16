@@ -67,4 +67,12 @@ export default tseslint.config(
       'max-params': ['warn', 5],
     },
   },
+  {
+    // Test files contain long setup/assertion scenarios by nature —
+    // exempt them from max-lines-per-function only (complexity still applies).
+    files: ['**/*.test.ts', '**/e2e/**/*.ts'],
+    rules: {
+      'max-lines-per-function': 'off',
+    },
+  },
 )

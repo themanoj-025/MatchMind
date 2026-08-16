@@ -84,15 +84,28 @@ function goalPointsForPosition(position: string): number {
   return SCORING_RULES.GOAL_DEF_GK // DEF or GK
 }
 
-function applyDefensiveBonuses(breakdown: Record<string, number>, stats: PlayerMatchStats, position: string): void {
+function applyCleanSheet(breakdown: Record<string, number>, stats: PlayerMatchStats, position: string): void {
   // Clean sheet (DEF/GK: +4, MID: +1, only if played 60+ minutes)
-  if (stats.cleanSheet && stats.minutesPlayed >= 60) {
-    if (position === 'DEF' || position === 'GK') {
-      breakdown.cleanSheet = SCORING_RULES.CLEAN_SHEET_DEF_GK
-    } else if (position === 'MID') {
-      breakdown.cleanSheet = SCORING_RULES.CLEAN_SHEET_MID
-    }
+  if (!stats.cleanSheet || stats.minutesPlayed < 60) {
+    return
   }
+  if (position === 'DEF' || position === 'GK') {
+    breakdown.cleanSheet = SCORING_RULES.CLEAN_SHEET_DEF_GK
+  } else if (position === 'MID') {
+    breakdown.cleanSheet = SCORING_RULES.CLEAN_SHEET_MID
+  }
+}
+
+function applyGoalsConceded(breakdown: Record<string, number>, stats: PlayerMatchStats, position: string): void {
+  // Goals conceded (DEF/GK only, only if played)
+  const eligible = (position === 'DEF' || position === 'GK') && stats.minutesPlayed > 0
+  if (eligible && stats.goalsConceded >= 2) {
+    breakdown.goalsConceded = Math.floor(stats.goalsConceded / 2) * SCORING_RULES.GOALS_CONCEDED_PER_2
+  }
+}
+
+function applyDefensiveBonuses(breakdown: Record<string, number>, stats: PlayerMatchStats, position: string): void {
+  applyCleanSheet(breakdown, stats, position)
 
   // Saves (GK only)
   if (stats.saves >= 3) {
@@ -104,10 +117,7 @@ function applyDefensiveBonuses(breakdown: Record<string, number>, stats: PlayerM
     breakdown.penaltySave = stats.penaltiesSaved * SCORING_RULES.PENALTY_SAVE
   }
 
-  // Goals conceded (DEF/GK only, only if played)
-  if ((position === 'DEF' || position === 'GK') && stats.minutesPlayed > 0 && stats.goalsConceded >= 2) {
-    breakdown.goalsConceded = Math.floor(stats.goalsConceded / 2) * SCORING_RULES.GOALS_CONCEDED_PER_2
-  }
+  applyGoalsConceded(breakdown, stats, position)
 }
 
 function applyDisciplinePenalties(breakdown: Record<string, number>, stats: PlayerMatchStats): void {
@@ -177,6 +187,26 @@ export function applyCaptainMultiplier(
 
 // ─── Compute Fantasy Points for a Fixture ────────────────
 
+function didCaptainPlay(
+  rosters: RosterEntry[],
+  playerStats: Record<string, { stats: PlayerMatchStats; position: string }>,
+): boolean {
+  const captainEntry = rosters.find((r) => r.isCaptain)
+  return captainEntry
+    ? (playerStats[captainEntry.playerId]?.stats.minutesPlayed ?? 0) > 0
+    : false
+}
+
+function captainMultiplierFor(isCaptain: boolean, isViceCaptain: boolean, captainPlayed: boolean): number {
+  if (isCaptain) {
+    return SCORING_RULES.CAPTAIN_MULTIPLIER
+  }
+  if (isViceCaptain && !captainPlayed) {
+    return SCORING_RULES.VICE_CAPTAIN_MULTIPLIER
+  }
+  return 1
+}
+
 export async function computeFantasyPoints(
   fixtureId: string,
   playerStats: Record<string, { stats: PlayerMatchStats; position: string }>,
@@ -187,10 +217,7 @@ export async function computeFantasyPoints(
   const results: FantasyPointsResult[] = []
 
   // Determine which captain actually played
-  const captainEntry = rosters.find((r) => r.isCaptain)
-  const captainPlayed = captainEntry
-    ? (playerStats[captainEntry.playerId]?.stats.minutesPlayed ?? 0) > 0
-    : false
+  const captainPlayed = didCaptainPlay(rosters, playerStats)
 
   for (const roster of rosters) {
     const stats = playerStats[roster.playerId]?.stats
@@ -209,11 +236,7 @@ export async function computeFantasyPoints(
       roomId: roster.roomId,
       fixtureId,
       basePoints,
-      captainMultiplier: roster.isCaptain
-        ? SCORING_RULES.CAPTAIN_MULTIPLIER
-        : roster.isViceCaptain && !captainPlayed
-          ? SCORING_RULES.VICE_CAPTAIN_MULTIPLIER
-          : 1,
+      captainMultiplier: captainMultiplierFor(roster.isCaptain, roster.isViceCaptain, captainPlayed),
       totalPoints,
       breakdown,
     }

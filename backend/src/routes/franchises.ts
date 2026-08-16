@@ -1,8 +1,39 @@
 import express from 'express'
 import { authenticateToken, type AuthenticatedRequest } from '../middleware/auth'
 import { openapiRegistry } from '../config/openapi'
+import type { ExtendedPrismaClient } from '../lib/prisma'
 
 const router = express.Router()
+
+/**
+ * Apply captain/vice-captain flags to a roster. Resets the existing flags on
+ * every roster entry first, then sets the target player's flag.
+ */
+async function applyCaptainRoles(
+  prisma: ExtendedPrismaClient,
+  roster: { id: string; playerId: string }[],
+  playerId: string,
+  isViceCaptain: boolean,
+): Promise<void> {
+  if (isViceCaptain) {
+    for (const entry of roster) {
+      await prisma.roster.update({ where: { id: entry.id }, data: { isViceCaptain: false } })
+    }
+    const entry = roster.find((r) => r.playerId === playerId)
+    if (entry) {
+      await prisma.roster.update({ where: { id: entry.id }, data: { isViceCaptain: true } })
+    }
+    return
+  }
+  // Captain — clear both flags on everyone, then set the new captain
+  for (const entry of roster) {
+    await prisma.roster.update({ where: { id: entry.id }, data: { isCaptain: false, isViceCaptain: false } })
+  }
+  const entry = roster.find((r) => r.playerId === playerId)
+  if (entry) {
+    await prisma.roster.update({ where: { id: entry.id }, data: { isCaptain: true } })
+  }
+}
 
 // GET /api/rooms/:roomId/franchises/:userId — view roster (read-only for other users)
 
@@ -70,37 +101,7 @@ router.patch('/:roomId/franchises/me/captain', authenticateToken, async (req: Au
     return res.status(400).json({ error: { code: 'PLAYER_NOT_IN_ROSTER', message: 'Player must be in your roster' } })
   }
 
-  if (isViceCaptain) {
-    // Set vice-captain — reset all vice-captains, then set the new one
-    for (const entry of roster) {
-      await prisma.roster.update({
-        where: { id: entry.id },
-        data: { isViceCaptain: false },
-      })
-    }
-    const entry = roster.find((r) => r.playerId === playerId)
-    if (entry) {
-      await prisma.roster.update({
-        where: { id: entry.id },
-        data: { isViceCaptain: true },
-      })
-    }
-  } else {
-    // Set captain — reset all, set new captain, clear previous captain from VC
-    for (const entry of roster) {
-      await prisma.roster.update({
-        where: { id: entry.id },
-        data: { isCaptain: false, isViceCaptain: false },
-      })
-    }
-    const entry = roster.find((r) => r.playerId === playerId)
-    if (entry) {
-      await prisma.roster.update({
-        where: { id: entry.id },
-        data: { isCaptain: true },
-      })
-    }
-  }
+  await applyCaptainRoles(prisma, roster, playerId, isViceCaptain === true)
 
   // Return updated roster
   const updated = await prisma.roster.findMany({

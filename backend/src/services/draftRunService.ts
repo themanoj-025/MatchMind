@@ -163,35 +163,14 @@ export async function getRunStatus(
     where: { draftSessionId: sessionId },
   })) as DraftPick[]
 
-  const squad: SquadPlayer[] = picks
-    .filter((p) => p.pickedPlayerId != null)
-    .map((p) => ({
-      playerId: p.pickedPlayerId!,
-      position: p.position,
-      slotIndex: p.slotIndex,
-      isAutoPicked: p.autoPicked,
-      rarityTier: p.offeredRarities[p.offeredPlayerIds.indexOf(p.pickedPlayerId!)] || 'BRONZE',
-    }))
+  const squad = buildSquadFromPicks(picks)
 
   const isEliminated = result.totalLosses >= DRAFT.MAX_LOSSES && result.status === 'COMPLETE'
   const isFullClear = result.totalWins >= DRAFT.MAX_WINS && result.status === 'COMPLETE'
 
   // Build current round info from result's internal rounds array
-  let currentRound: DraftRunRound | null = null
   const rounds = result.rounds || []
-
-  if (rounds.length > 0) {
-    const lastRound = rounds[rounds.length - 1]!
-    currentRound = {
-      roundNumber: lastRound.roundNumber,
-      matchdayId: lastRound.matchdayId,
-      matchdayName: lastRound.matchdayName,
-      outcome: lastRound.outcome,
-      userPoints: lastRound.userPoints,
-      benchmarkPoints: lastRound.benchmarkPoints,
-      breakdown: lastRound.breakdown || {},
-    }
-  }
+  const currentRound = buildCurrentRound(rounds)
 
   // Next matchday label
   const nextMatchdayLabel =
@@ -250,15 +229,7 @@ export async function resolveNextMatchday(
     where: { draftSessionId: sessionId },
   })) as DraftPick[]
 
-  const squad: SquadPlayer[] = picks
-    .filter((p) => p.pickedPlayerId != null)
-    .map((p) => ({
-      playerId: p.pickedPlayerId!,
-      position: p.position,
-      slotIndex: p.slotIndex,
-      isAutoPicked: p.autoPicked,
-      rarityTier: p.offeredRarities[p.offeredPlayerIds.indexOf(p.pickedPlayerId!)] || 'BRONZE',
-    }))
+  const squad = buildSquadFromPicks(picks)
 
   // Find completed fixtures that haven't been processed
   const unresolvedFixtures = await findUnresolvedFixtures(prisma, session.tournamentId, result.currentRound)
@@ -296,7 +267,23 @@ export async function resolveNextMatchday(
     return { success: false, error: 'Run result lost after resolution — unexpected.' }
   }
 
-  const resolvedRound: DraftRunRound = {
+  const resolvedRound = buildResolvedRound(outcome, result, nextFixture)
+
+  return {
+    success: true,
+    round: resolvedRound,
+    state: buildResolvedState(updatedResult, resolvedRound, squad),
+  }
+}
+
+// ─── Find Unresolved Fixtures ────────────────────────────
+
+function buildResolvedRound(
+  outcome: { roundNumber: number; newWins: number; newLosses: number; userPoints?: number; benchmarkPoints?: number; breakdown?: Record<string, number> },
+  result: DraftRunResult,
+  nextFixture: { id: string },
+): DraftRunRound {
+  return {
     roundNumber: outcome.roundNumber,
     matchdayId: nextFixture.id,
     matchdayName: `Matchday ${outcome.roundNumber}`,
@@ -305,29 +292,52 @@ export async function resolveNextMatchday(
     benchmarkPoints: outcome.benchmarkPoints ?? 0,
     breakdown: outcome.breakdown || {},
   }
+}
 
+function buildResolvedState(updatedResult: DraftRunResult, resolvedRound: DraftRunRound, squad: SquadPlayer[]): DraftRunState {
   const isEliminated = updatedResult.totalLosses >= DRAFT.MAX_LOSSES && updatedResult.status === 'COMPLETE'
   const isFullClear = updatedResult.totalWins >= DRAFT.MAX_WINS && updatedResult.status === 'COMPLETE'
-
   return {
-    success: true,
-    round: resolvedRound,
-    state: {
-      result: updatedResult,
-      rounds: (updatedResult.rounds || []).concat(resolvedRound),
-      squad,
-      currentRound: resolvedRound,
-      isEliminated,
-      isFullClear,
-      nextMatchdayLabel:
-        updatedResult.status === 'WAITING_FOR_MATCHDAY'
-          ? `Waiting for Matchday ${updatedResult.currentRound + 1}`
-          : null,
-    },
+    result: updatedResult,
+    rounds: (updatedResult.rounds || []).concat(resolvedRound),
+    squad,
+    currentRound: resolvedRound,
+    isEliminated,
+    isFullClear,
+    nextMatchdayLabel:
+      updatedResult.status === 'WAITING_FOR_MATCHDAY'
+        ? `Waiting for Matchday ${updatedResult.currentRound + 1}`
+        : null,
   }
 }
 
-// ─── Find Unresolved Fixtures ────────────────────────────
+function buildSquadFromPicks(picks: DraftPick[]): SquadPlayer[] {
+  return picks
+    .filter((p) => p.pickedPlayerId != null)
+    .map((p) => ({
+      playerId: p.pickedPlayerId!,
+      position: p.position,
+      slotIndex: p.slotIndex,
+      isAutoPicked: p.autoPicked,
+      rarityTier: p.offeredRarities[p.offeredPlayerIds.indexOf(p.pickedPlayerId!)] || 'BRONZE',
+    }))
+}
+
+function buildCurrentRound(rounds: DraftRunRound[]): DraftRunRound | null {
+  if (rounds.length === 0) {
+    return null
+  }
+  const lastRound = rounds[rounds.length - 1]!
+  return {
+    roundNumber: lastRound.roundNumber,
+    matchdayId: lastRound.matchdayId,
+    matchdayName: lastRound.matchdayName,
+    outcome: lastRound.outcome,
+    userPoints: lastRound.userPoints,
+    benchmarkPoints: lastRound.benchmarkPoints,
+    breakdown: lastRound.breakdown || {},
+  }
+}
 
 async function findUnresolvedFixtures(prisma: DatabaseClient, tournamentId: string, processedRoundCount: number) {
   // Find FINISHED fixtures for this tournament that haven't been resolved yet
@@ -406,15 +416,143 @@ function determineRunStatus(
   return { newStatus: 'WAITING_FOR_MATCHDAY', eliminatedAt: null, clearedAt: null }
 }
 
-// ─── Resolve Next Round ─────────────────────────────────
+async function synergyMultiplierFor(prisma: DatabaseClient, sessionId: string, currentRound: number): Promise<number> {
+  const synergyScore =
+    currentRound > 0
+      ? (await prisma.draftSession.findUnique({ where: { id: sessionId } }))?.synergyScore ?? 0
+      : 0
+  return 1 + synergyScore / 100
+}
 
-async function resolveNextRound(
+async function loadFixtureContext(
+  prisma: DatabaseClient,
+  fixture: { id: string },
+  tournamentId: string,
+): Promise<{
+  playerStats: Array<{ playerId: string }>
+  playerMap: Map<string, { id: string; position: string | null }>
+  statsMap: Map<string, { playerId: string }>
+}> {
+  // Get player match stats for this fixture
+  const playerStats = await prisma.playerMatchStat.findMany({
+    where: { fixtureId: fixture.id },
+  })
+  // Get all players for this tournament to look up positions
+  const allPlayers = await prisma.player.findMany({
+    where: { tournamentId },
+  })
+  const playerMap = new Map(allPlayers.map((p) => [p.id, p]))
+  const statsMap = new Map(playerStats.map((s) => [s.playerId, s]))
+  return { playerStats, playerMap, statsMap }
+}
+
+function outcomeTotals(result: DraftRunResult, outcome: RunOutcome) {
+  return {
+    newWins: result.totalWins + (outcome === 'WIN' ? 1 : 0),
+    newLosses: result.totalLosses + (outcome === 'LOSS' ? 1 : 0),
+    newTies: result.totalTies + (outcome === 'TIE' ? 1 : 0),
+  }
+}
+
+function logRoundResolved(
+  sessionId: string,
+  roundEntry: DraftRunRound,
+  data: {
+    outcome: RunOutcome
+    userSquadPoints: number
+    benchmarkPoints: number
+    newWins: number
+    newLosses: number
+    eliminatedAt: string | null
+    clearedAt: string | null
+  },
+): void {
+  logger.info({
+    event: 'draft_run.round_resolved',
+    sessionId,
+    roundNumber: roundEntry.roundNumber,
+    outcome: data.outcome,
+    userPoints: data.userSquadPoints,
+    benchmarkPoints: data.benchmarkPoints,
+    newWins: data.newWins,
+    newLosses: data.newLosses,
+    eliminated: !!data.eliminatedAt,
+    cleared: !!data.clearedAt,
+  })
+}
+
+function buildRoundEntry(
+  fixture: { id: string },
+  roundNumber: number,
+  outcome: RunOutcome,
+  points: { userPoints: number; benchmarkPoints: number; breakdown: Record<string, number> },
+): DraftRunRound {
+  return {
+    roundNumber,
+    matchdayId: fixture.id,
+    matchdayName: `Matchday ${roundNumber}`,
+    outcome,
+    userPoints: points.userPoints,
+    benchmarkPoints: points.benchmarkPoints,
+    breakdown: points.breakdown,
+  }
+}
+
+interface RoundOutcome {
+  roundEntry: DraftRunRound
+  newWins: number
+  newLosses: number
+  newTies: number
+  newStatus: DraftRunStatus
+  earnedRewards: string[]
+  eliminatedAt: string | null
+  clearedAt: string | null
+}
+
+async function persistRoundOutcome(
   prisma: DatabaseClient,
   result: DraftRunResult,
-  squad: SquadPlayer[],
   sessionId: string,
-  fixture: { id: string; tournamentId: string },
-): Promise<{
+  outcome: RoundOutcome,
+): Promise<void> {
+  const updatedRounds = [...(result.rounds || []), outcome.roundEntry]
+  await prisma.draftRunResult.update({
+    where: { id: result.id },
+    data: {
+      currentRound: outcome.roundEntry.roundNumber,
+      totalWins: outcome.newWins,
+      totalLosses: outcome.newLosses,
+      totalTies: outcome.newTies,
+      status: outcome.newStatus,
+      rewards: [...new Set([...result.rewards, ...outcome.earnedRewards])],
+      rounds: updatedRounds,
+      eliminatedAt: outcome.eliminatedAt,
+      clearedAt: outcome.clearedAt,
+      updatedAt: new Date().toISOString(),
+    },
+  })
+  // If run is complete, update session status
+  await completeSessionIfDone(prisma, sessionId, outcome.newStatus)
+}
+
+function rewardsEarnedFor(newWins: number, previousWins: number): string[] {
+  return RUN_REWARD_TIERS.filter((t) => newWins >= t.minWins && previousWins < t.minWins).map((t) => t.id)
+}
+
+async function completeSessionIfDone(prisma: DatabaseClient, sessionId: string, newStatus: DraftRunStatus): Promise<void> {
+  // If run is complete, update session status
+  if (newStatus !== 'COMPLETE') {
+    return
+  }
+  await prisma.draftSession.update({
+    where: { id: sessionId },
+    data: { status: 'RUN_COMPLETE' },
+  })
+}
+
+// ─── Resolve Next Round ─────────────────────────────────
+
+interface ResolveNextRoundResult {
   roundNumber: number
   newWins: number
   newLosses: number
@@ -426,12 +564,18 @@ async function resolveNextRound(
   userPoints: number
   benchmarkPoints: number
   breakdown: Record<string, number>
-} | null> {
+}
+
+async function resolveNextRound(
+  prisma: DatabaseClient,
+  result: DraftRunResult,
+  squad: SquadPlayer[],
+  sessionId: string,
+  fixture: { id: string; tournamentId: string },
+): Promise<ResolveNextRoundResult | null> {
   try {
-    // Get player match stats for this fixture
-    const playerStats = await prisma.playerMatchStat.findMany({
-      where: { fixtureId: fixture.id },
-    })
+    // Get player match stats + player map for this fixture
+    const { playerStats, playerMap, statsMap } = await loadFixtureContext(prisma, fixture, result.tournamentId)
 
     if (!playerStats || playerStats.length === 0) {
       logger.warn({
@@ -442,14 +586,7 @@ async function resolveNextRound(
       return null
     }
 
-    // Get all players for this tournament to look up positions
-    const allPlayers = await prisma.player.findMany({
-      where: { tournamentId: result.tournamentId },
-    })
-    const playerMap = new Map(allPlayers.map((p) => [p.id, p]))
-
     // Compute fantasy points for each squad player using real match stats
-    const statsMap = new Map(playerStats.map((s) => [s.playerId, s]))
     const { userSquadPoints: rawSquadPoints, breakdown } = await computeSquadPoints(
       prisma,
       squad,
@@ -459,11 +596,7 @@ async function resolveNextRound(
     )
 
     // Apply synergy bonus as percentage boost
-    const synergyScore =
-      result.currentRound > 0
-        ? (await prisma.draftSession.findUnique({ where: { id: sessionId } }))?.synergyScore ?? 0
-        : 0
-    const synergyMultiplier = 1 + synergyScore / 100
+    const synergyMultiplier = await synergyMultiplierFor(prisma, sessionId, result.currentRound)
     const userSquadPoints = Math.round(rawSquadPoints * synergyMultiplier)
 
     // Generate benchmark score: base + variance
@@ -471,74 +604,45 @@ async function resolveNextRound(
 
     // Determine outcome
     const outcome = determineRunOutcome(userSquadPoints, benchmarkPoints)
-
-    const newWins = result.totalWins + (outcome === 'WIN' ? 1 : 0)
-    const newLosses = result.totalLosses + (outcome === 'LOSS' ? 1 : 0)
-    const newTies = result.totalTies + (outcome === 'TIE' ? 1 : 0)
+    const { newWins, newLosses, newTies } = outcomeTotals(result, outcome)
 
     // Check elimination / full clear
     const { newStatus, eliminatedAt, clearedAt } = determineRunStatus(newWins, newLosses)
 
     // Compute rewards earned
-    const earnedRewards = RUN_REWARD_TIERS.filter((t) => newWins >= t.minWins && result.totalWins < t.minWins).map(
-      (t) => t.id,
-    )
+    const earnedRewards = rewardsEarnedFor(newWins, result.totalWins)
 
     // Save round to DB as sub-document within the result
-    const roundNumber = result.currentRound + 1
-    const roundEntry = {
-      roundNumber,
-      matchdayId: fixture.id,
-      matchdayName: `Matchday ${roundNumber}`,
-      outcome,
+    const roundEntry = buildRoundEntry(fixture, result.currentRound + 1, outcome, {
       userPoints: userSquadPoints,
       benchmarkPoints,
       breakdown,
-    }
-
-    const existingRounds = result.rounds || []
-    const updatedRounds = [...existingRounds, roundEntry]
-
-    // Update the DraftRunResult (include rounds as sub-document)
-    await prisma.draftRunResult.update({
-      where: { id: result.id },
-      data: {
-        currentRound: roundNumber,
-        totalWins: newWins,
-        totalLosses: newLosses,
-        totalTies: newTies,
-        status: newStatus,
-        rewards: [...new Set([...result.rewards, ...earnedRewards])],
-        rounds: updatedRounds,
-        eliminatedAt,
-        clearedAt,
-        updatedAt: new Date().toISOString(),
-      },
     })
 
-    // If run is complete, update session status
-    if (newStatus === 'COMPLETE') {
-      await prisma.draftSession.update({
-        where: { id: sessionId },
-        data: { status: 'RUN_COMPLETE' },
-      })
-    }
+    // Update the DraftRunResult (include rounds as sub-document) and, if complete, the session
+    await persistRoundOutcome(prisma, result, sessionId, {
+      roundEntry,
+      newWins,
+      newLosses,
+      newTies,
+      newStatus,
+      earnedRewards,
+      eliminatedAt,
+      clearedAt,
+    })
 
-    logger.info({
-      event: 'draft_run.round_resolved',
-      sessionId,
-      roundNumber,
+    logRoundResolved(sessionId, roundEntry, {
       outcome,
-      userPoints: userSquadPoints,
+      userSquadPoints,
       benchmarkPoints,
       newWins,
       newLosses,
-      eliminated: !!eliminatedAt,
-      cleared: !!clearedAt,
+      eliminatedAt,
+      clearedAt,
     })
 
     return {
-      roundNumber,
+      roundNumber: roundEntry.roundNumber,
       newWins,
       newLosses,
       newTies,
@@ -577,12 +681,25 @@ interface ApproxStats {
   goalsConceded?: number
 }
 
+function defensiveCleanSheetAdjustment(stats: ApproxStats, minutesPlayed: number, position: string): number {
+  // Clean sheet (DEF/GK only, played 60+)
+  if (!stats.cleanSheet || minutesPlayed < 60) {
+    return 0
+  }
+  return position === 'DEF' || position === 'GK' ? 4 : 1
+}
+
+function goalsConcededAdjustment(stats: ApproxStats, minutesPlayed: number, position: string): number {
+  // Goals conceded (DEF/GK)
+  if ((position === 'DEF' || position === 'GK') && minutesPlayed > 0 && (stats.goalsConceded ?? 0) >= 2) {
+    return Math.floor((stats.goalsConceded ?? 0) / 2)
+  }
+  return 0
+}
+
 function addDefensiveAdjustments(points: number, stats: ApproxStats, position: string, minutesPlayed: number): number {
   let p = points
-  // Clean sheet (DEF/GK only, played 60+)
-  if (stats.cleanSheet && minutesPlayed >= 60) {
-    p += position === 'DEF' || position === 'GK' ? 4 : 1
-  }
+  p += defensiveCleanSheetAdjustment(stats, minutesPlayed, position)
 
   // Saves (GK)
   if ((stats.saves ?? 0) >= 3) {
@@ -592,10 +709,7 @@ function addDefensiveAdjustments(points: number, stats: ApproxStats, position: s
   // Penalty saves
   p += (stats.penaltiesSaved || 0) * 5
 
-  // Goals conceded (DEF/GK)
-  if ((position === 'DEF' || position === 'GK') && minutesPlayed > 0 && (stats.goalsConceded ?? 0) >= 2) {
-    p -= Math.floor((stats.goalsConceded ?? 0) / 2)
-  }
+  p -= goalsConcededAdjustment(stats, minutesPlayed, position)
   return p
 }
 

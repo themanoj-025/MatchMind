@@ -33,24 +33,51 @@ function validateDataPackage(
   },
 ): ValidationResult {
   const { teams, players, fixtures, venues, history } = data
-  const errors: string[] = []
-  const warnings: string[] = []
 
-  // 1. Team count
+  const teamIds = new Set(teams.map((t) => t.id))
+  const venueIds = new Set(venues.map((v) => v.id))
+  const results = [
+    validateTeamCount(teams, registryTeamCount, tournamentId),
+    validateSquadSize(players, registrySquadSize),
+    validateFixtureRefs(fixtures, teamIds),
+    validateVenueRefs(fixtures, venueIds),
+    validateHistory(history, tournamentId),
+  ]
+  const errors = results.flatMap((r) => r.errors)
+  const warnings = results.flatMap((r) => r.warnings)
+  return { tournamentId, passed: errors.length === 0, errors, warnings }
+}
+
+function validateTeamCount(
+  teams: Record<string, unknown>[],
+  registryTeamCount: number,
+  tournamentId: string,
+): { errors: string[]; warnings: string[] } {
   if (teams.length === 0) {
-    errors.push(`No teams found for tournament "${tournamentId}"`)
-  } else if (registryTeamCount && teams.length < registryTeamCount) {
-    warnings.push(`Expected ${registryTeamCount} teams, found ${teams.length}`)
+    return { errors: [`No teams found for tournament "${tournamentId}"`], warnings: [] }
   }
+  if (registryTeamCount && teams.length < registryTeamCount) {
+    return { errors: [], warnings: [`Expected ${registryTeamCount} teams, found ${teams.length}`] }
+  }
+  return { errors: [], warnings: [] }
+}
 
-  // 2. Squad size
+function validateSquadSize(
+  players: Record<string, unknown>[],
+  registrySquadSize: number,
+): { errors: string[]; warnings: string[] } {
   const minSquadSize = Math.min(registrySquadSize || 23, 20)
   if (players.length < minSquadSize) {
-    errors.push(`Expected at least ${minSquadSize} players, found ${players.length}`)
+    return { errors: [`Expected at least ${minSquadSize} players, found ${players.length}`], warnings: [] }
   }
+  return { errors: [], warnings: [] }
+}
 
-  // 3. Fixture team refs
-  const teamIds = new Set(teams.map((t) => t.id))
+function validateFixtureRefs(
+  fixtures: Record<string, unknown>[],
+  teamIds: Set<unknown>,
+): { errors: string[]; warnings: string[] } {
+  const errors: string[] = []
   for (const fixture of fixtures) {
     if (fixture.homeTeamId && !teamIds.has(fixture.homeTeamId)) {
       errors.push(`Fixture "${fixture.id}" references unknown homeTeamId "${fixture.homeTeamId}"`)
@@ -59,26 +86,34 @@ function validateDataPackage(
       errors.push(`Fixture "${fixture.id}" references unknown awayTeamId "${fixture.awayTeamId}"`)
     }
   }
+  return { errors, warnings: [] }
+}
 
-  // 4. Venue refs
-  const venueIds = new Set(venues.map((v) => v.id))
+function validateVenueRefs(
+  fixtures: Record<string, unknown>[],
+  venueIds: Set<unknown>,
+): { errors: string[]; warnings: string[] } {
+  const warnings: string[] = []
   for (const fixture of fixtures) {
     if (fixture.venueId && !venueIds.has(fixture.venueId)) {
       warnings.push(`Fixture "${fixture.id}" references unknown venueId "${fixture.venueId}"`)
     }
   }
+  return { errors: [], warnings }
+}
 
-  // 5. History
+function validateHistory(
+  history: Record<string, unknown>[],
+  tournamentId: string,
+): { errors: string[]; warnings: string[] } {
   if (history.length === 0) {
-    warnings.push(`No history record found for "${tournamentId}"`)
-  } else {
-    const pastWinners = history[0]?.pastWinners
-    if (!pastWinners || pastWinners.length < 3) {
-      warnings.push(`Expected at least 3 past winners, found ${pastWinners?.length || 0}`)
-    }
+    return { errors: [], warnings: [`No history record found for "${tournamentId}"`] }
   }
-
-  return { tournamentId, passed: errors.length === 0, errors, warnings }
+  const pastWinners = history[0]?.pastWinners
+  if (!pastWinners || pastWinners.length < 3) {
+    return { errors: [], warnings: [`Expected at least 3 past winners, found ${pastWinners?.length || 0}`] }
+  }
+  return { errors: [], warnings: [] }
 }
 
 describe('validateLeagueDataPackage', () => {

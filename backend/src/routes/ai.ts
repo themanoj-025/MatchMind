@@ -15,6 +15,7 @@ import { authenticateToken, type AuthenticatedRequest } from '../middleware/auth
 import { aiPredictionLimiter } from '../middleware/rateLimiter'
 import logger from '../utils/logger'
 import type { ExtendedPrismaClient } from '../lib/prisma'
+import type { CacheService } from '../services/cacheService'
 import CircuitBreaker from 'opossum'
 /** Shape of a roster entry with its joined player (as queried in the advice route). */
 interface RosterEntry {
@@ -93,6 +94,49 @@ router.post('/auction-advice', authenticateToken, aiPredictionLimiter, async (re
       },
     },
   })
+  const defaultRosterRules: Record<string, number> = { GK: 2, DEF: 5, MID: 5, FWD: 3, total: 15 }
+  const positionNeeds = computePositionNeeds(roster, defaultRosterRules)
+  // Try Anthropic SDK if configured (with Redis caching)
+  const rosterStr = JSON.stringify(roster.map((r) => `${r.playerId}:${r.soldPrice}`))
+  const poolStr = JSON.stringify(poolPlayers.map((p) => p.id).sort())
+  const hashInput = `${rosterStr}:${member.remainingBudget}:${poolStr}`
+  const hash = crypto.createHash('sha256').update(hashInput).digest('hex').substring(0, 16)
+  const cacheKey = `ai:advice:${roomId}:${req.userId}:${hash}`
+  const { advice: finalAdvice, cacheHit } = await getCachedAdvice(cacheService, cacheKey, async () => {
+    let freshAdvice: AiAdvice | null = null
+    if (env.ANTHROPIC_API_KEY) {
+      try {
+        freshAdvice = await aiBreaker.fire(
+          roster,
+          member.remainingBudget,
+          positionNeeds,
+          poolPlayers,
+          defaultRosterRules,
+        )
+      } catch (err: unknown) {
+        logger.error(
+          { event: 'ai.anthropic_advice_error', roomId, err: (err as Error).message },
+          'Anthropic API error',
+        )
+      }
+    }
+    if (!freshAdvice) {
+      freshAdvice = generateHeuristicAdvice(roster, member.remainingBudget, positionNeeds, poolPlayers)
+    }
+    return freshAdvice
+  })
+  return res.json({
+    isProFeature: false,
+    advice: finalAdvice,
+    cacheHit,
+  })
+})
+
+/** Compute which positions still need filling given the current roster. */
+function computePositionNeeds(
+  roster: RosterEntry[],
+  rosterRules: Record<string, number>,
+): Record<string, number> {
   const rosterPositions: Record<string, number> = { GK: 0, DEF: 0, MID: 0, FWD: 0 }
   for (const entry of roster) {
     if (entry.player?.position) {
@@ -100,8 +144,7 @@ router.post('/auction-advice', authenticateToken, aiPredictionLimiter, async (re
     }
   }
   const positionNeeds: Record<string, number> = {}
-  const defaultRosterRules: Record<string, number> = { GK: 2, DEF: 5, MID: 5, FWD: 3, total: 15 }
-  for (const [pos, limit] of Object.entries(defaultRosterRules)) {
+  for (const [pos, limit] of Object.entries(rosterRules)) {
     if (pos === 'total') {
       continue
     }
@@ -111,47 +154,24 @@ router.post('/auction-advice', authenticateToken, aiPredictionLimiter, async (re
       positionNeeds[pos] = need
     }
   }
-  // Try Anthropic SDK if configured (with Redis caching)
-  const rosterStr = JSON.stringify(roster.map((r) => `${r.playerId}:${r.soldPrice}`))
-  const poolStr = JSON.stringify(poolPlayers.map((p) => p.id).sort())
-  const hashInput = `${rosterStr}:${member.remainingBudget}:${poolStr}`
-  const hash = crypto.createHash('sha256').update(hashInput).digest('hex').substring(0, 16)
-  const cacheKey = `ai:advice:${roomId}:${req.userId}:${hash}`
+  return positionNeeds
+}
+
+/** Fetch AI advice through the cache, reporting whether it was a cache hit. */
+async function getCachedAdvice(
+  cacheService: CacheService,
+  cacheKey: string,
+  fetcher: () => Promise<AiAdvice | null>,
+): Promise<{ advice: AiAdvice | null; cacheHit: boolean }> {
   let cacheHit = false
-  let finalAdvice = await cacheService.get(cacheKey)
+  let finalAdvice = await cacheService.get<AiAdvice>(cacheKey)
   if (finalAdvice) {
     cacheHit = true
   } else {
-    finalAdvice = await cacheService.getOrFetch(cacheKey, 600, async () => {
-      let freshAdvice: AiAdvice | null = null
-      if (env.ANTHROPIC_API_KEY) {
-        try {
-          freshAdvice = await aiBreaker.fire(
-            roster,
-            member.remainingBudget,
-            positionNeeds,
-            poolPlayers,
-            defaultRosterRules,
-          )
-        } catch (err: unknown) {
-          logger.error(
-            { event: 'ai.anthropic_advice_error', roomId, err: (err as Error).message },
-            'Anthropic API error',
-          )
-        }
-      }
-      if (!freshAdvice) {
-        freshAdvice = generateHeuristicAdvice(roster, member.remainingBudget, positionNeeds, poolPlayers)
-      }
-      return freshAdvice
-    })
+    finalAdvice = await cacheService.getOrFetch<AiAdvice | null>(cacheKey, 600, fetcher)
   }
-  return res.json({
-    isProFeature: false,
-    advice: finalAdvice,
-    cacheHit,
-  })
-})
+  return { advice: finalAdvice, cacheHit }
+}
 async function checkProStatus(prisma: ExtendedPrismaClient, userId: string): Promise<boolean> {
   const user = await prisma.user.findUnique({
     where: { id: userId },

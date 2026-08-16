@@ -96,6 +96,80 @@ const auditLogMiddleware = (req: express.Request, res: express.Response, next: e
   next()
 }
 router.use(auditLogMiddleware)
+const RARITY_TIERS_FN = [
+  { tier: 'BRONZE', maxPercentile: 60 },
+  { tier: 'SILVER', maxPercentile: 85 },
+  { tier: 'GOLD', maxPercentile: 97 },
+  { tier: 'ICON', maxPercentile: 100 },
+]
+
+/** Compute the rarity tier for a player at `index` (0-based) in a sorted pool. */
+function tierForPercentile(player: PlayerRecord, total: number, index: number): string {
+  const percentile = ((index + 1) / total) * 100
+  const bottomPct = 100 - percentile
+  let assignedTier: string = 'BRONZE'
+  for (const t of RARITY_TIERS_FN) {
+    if (bottomPct <= t.maxPercentile) {
+      assignedTier = t.tier
+      break
+    }
+  }
+  // ICON requires isEligibleForIcon flag
+  if (assignedTier === 'ICON' && !player.isEligibleForIcon) {
+    assignedTier = 'GOLD'
+  }
+  return assignedTier
+}
+
+/**
+ * Re-assign rarity tiers per tournament: sort each tournament's players by
+ * basePrice descending and bucket into BRONZE/SILVER/GOLD/ICON by percentile.
+ */
+function assignRarityTiers(allPlayers: PlayerRecord[], tournamentIds: string[]): PlayerRecord[] {
+  let updated = allPlayers
+  for (const tid of tournamentIds) {
+    const tournamentPlayers = updated.filter((p) => p.tournamentId === tid)
+    if (tournamentPlayers.length === 0) {continue}
+    const sorted = [...tournamentPlayers].sort((a, b) => (b.basePrice ?? 0) - (a.basePrice ?? 0))
+    const total = sorted.length
+    // Build a map of { playerId: rarityTier }
+    const rarityMap = new Map<string, string>()
+    for (let i = 0; i < total; i++) {
+      const player = sorted[i]
+      if (!player) {continue}
+      rarityMap.set(player.id, tierForPercentile(player, total, i))
+    }
+    updated = updated.map((p) =>
+      p.tournamentId === tid && rarityMap.has(p.id) ? { ...p, rarityTier: rarityMap.get(p.id) as string } : p,
+    )
+  }
+  return updated
+}
+
+/** Read the comma-separated DRAFT_ENABLED_TOURNAMENTS env list. */
+function readEnabledTournaments(): string[] {
+  return (env.DRAFT_ENABLED_TOURNAMENTS || '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean)
+}
+
+/** Add a tournament to the env-controlled draft-mode list. */
+function enableDraftMode(tournamentId: string): void {
+  const current = readEnabledTournaments()
+  if (!current.includes(tournamentId)) {
+    current.push(tournamentId)
+    env.DRAFT_ENABLED_TOURNAMENTS = current.join(',')
+  }
+}
+
+/** Remove a tournament from the env-controlled draft-mode list. */
+function disableDraftMode(tournamentId: string): void {
+  env.DRAFT_ENABLED_TOURNAMENTS = readEnabledTournaments()
+    .filter((id) => id !== tournamentId)
+    .join(',')
+}
+
 /** Create an AdminService instance from the Express app's prisma client */
 function getAdminService(req: AuthenticatedRequest) {
   const prisma = req.container.cradle.prisma
@@ -451,11 +525,7 @@ openapiRegistry.registerPath({
 })
 router.get('/settings', (_req, res) => {
   // Parse draft-enabled tournaments from env (comma-separated ids, e.g. "fifa-wc-2026,uefa-ucl-2026-27")
-  const draftEnabledRaw = env.DRAFT_ENABLED_TOURNAMENTS || ''
-  const draftEnabledTournaments = draftEnabledRaw
-    .split(',')
-    .map((s) => s.trim())
-    .filter(Boolean)
+  const draftEnabledTournaments = readEnabledTournaments()
   res.json({
     settings: [
       { flag: 'AI Hints', key: 'FLAG_AI_HINTS', enabled: env.FLAG_AI_HINTS !== 'false' },
@@ -499,14 +569,7 @@ router.post('/settings/draft-mode/:tournamentId/:action', async (req: Authentica
       })
     }
     // Add to env-controlled list (in production this would update a DB/config store)
-    const current = (env.DRAFT_ENABLED_TOURNAMENTS || '')
-      .split(',')
-      .map((s) => s.trim())
-      .filter(Boolean)
-    if (!current.includes(tournamentId)) {
-      current.push(tournamentId)
-      env.DRAFT_ENABLED_TOURNAMENTS = current.join(',')
-    }
+    enableDraftMode(tournamentId)
     getAdminService(req).logAction(req.userId!, 'DRAFT_MODE_ENABLED', tournamentId, 'tournament', {
       validationPassed: true,
     })
@@ -516,11 +579,7 @@ router.post('/settings/draft-mode/:tournamentId/:action', async (req: Authentica
       validation: validationResult,
     })
   } else if (action === 'disable') {
-    const current = (env.DRAFT_ENABLED_TOURNAMENTS || '')
-      .split(',')
-      .map((s) => s.trim())
-      .filter(Boolean)
-    env.DRAFT_ENABLED_TOURNAMENTS = current.filter((id) => id !== tournamentId).join(',')
+    disableDraftMode(tournamentId)
     getAdminService(req).logAction(req.userId!, 'DRAFT_MODE_DISABLED', tournamentId, 'tournament', {})
     return res.json({ message: `Draft Mode disabled for ${tournamentId}` })
   } else if (action === 'validate') {
@@ -555,11 +614,7 @@ router.get('/draft/pool-validation', async (_req: AuthenticatedRequest, res) => 
       status: t.status,
       iconCount: 0, // populated below
       playerCount: 0,
-      enabled: (env.DRAFT_ENABLED_TOURNAMENTS || '')
-        .split(',')
-        .map((s: string) => s.trim())
-        .filter(Boolean)
-        .includes(t.id),
+      enabled: readEnabledTournaments().includes(t.id),
     }
   })
   // Enrich with icon counts from player data
@@ -666,49 +721,12 @@ openapiRegistry.registerPath({
 router.post('/draft/revalidate', async (req: AuthenticatedRequest, res) => {
   const tournamentId = req.body.tournamentId as string | undefined
   // 1. Re-compute rarity tiers
-  let allPlayers = readPlayers()
-  if (allPlayers.length === 0) {
+  const initialPlayers = readPlayers()
+  if (initialPlayers.length === 0) {
     return res.status(404).json({ error: { code: 'PLAYERS_NOT_FOUND', message: 'players.json not found' } })
   }
-  const tournamentIds = tournamentId ? [tournamentId] : [...new Set(allPlayers.map((p) => p.tournamentId))]
-  // Re-assign rarity tiers
-  // Sort each tournament's players by basePrice descending, assign BRONZE/SILVER/GOLD/ICON per percentiles
-  const RARITY_TIERS_FN = [
-    { tier: 'BRONZE', maxPercentile: 60 },
-    { tier: 'SILVER', maxPercentile: 85 },
-    { tier: 'GOLD', maxPercentile: 97 },
-    { tier: 'ICON', maxPercentile: 100 },
-  ]
-  for (const tid of tournamentIds) {
-    const tournamentPlayers = allPlayers.filter((p) => p.tournamentId === tid)
-    if (tournamentPlayers.length === 0) {continue}
-    const sorted = [...tournamentPlayers].sort((a, b) => (b.basePrice ?? 0) - (a.basePrice ?? 0))
-    const total = sorted.length
-    // Build a map of { playerId: rarityTier }
-    const rarityMap = new Map<string, string>()
-    for (let i = 0; i < total; i++) {
-      const player = sorted[i]
-      if (!player) {continue}
-      const percentile = ((i + 1) / total) * 100
-      const bottomPct = 100 - percentile
-      let assignedTier: string = 'BRONZE'
-      for (const t of RARITY_TIERS_FN) {
-        if (bottomPct <= t.maxPercentile) {
-          assignedTier = t.tier
-          break
-        }
-      }
-      // ICON requires isEligibleForIcon flag
-      if (assignedTier === 'ICON' && !player.isEligibleForIcon) {
-        assignedTier = 'GOLD'
-      }
-      rarityMap.set(player.id, assignedTier)
-    }
-    // Apply to allPlayers
-    allPlayers = allPlayers.map((p) =>
-      p.tournamentId === tid && rarityMap.has(p.id) ? { ...p, rarityTier: rarityMap.get(p.id) as string } : p,
-    )
-  }
+  const tournamentIds = tournamentId ? [tournamentId] : [...new Set(initialPlayers.map((p) => p.tournamentId))]
+  const allPlayers = assignRarityTiers(initialPlayers, Array.from(tournamentIds) as string[])
   // Write back atomically
   writePlayers(allPlayers)
   // 2. Re-validate
