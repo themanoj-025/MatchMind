@@ -85,3 +85,6 @@ backend/prisma/*.tsbuildinfo
 
 CLAUDE.md
 start.bat
+
+# Runtime balance log
+radar_balance.txt
