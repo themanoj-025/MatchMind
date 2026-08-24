@@ -8,6 +8,16 @@
 
 **MatchMind** is a real-time, football-first social prediction and live auction draft platform. Built for fantasy sports enthusiasts, it combines the live-match experience with a Bloomberg-style trading terminal aesthetic. Users can watch games, bid in live player auctions, chat in real-time, and compete on global leaderboards.
 
+## 💡 Why I Built This
+
+I built MatchMind because existing fantasy sports platforms felt too static. I wanted to build a real-time system that felt like a fast-paced trading terminal, which gave me the perfect excuse to dive deep into WebSockets, Redis pub/sub, and managing complex distributed state.
+
+## ⚠️ Known Limitations
+
+- **WebSocket Horizontal Scaling:** Currently runs on a single Node.js instance. Scaling horizontally would require a full `socket.io-redis-adapter` implementation which is not yet built.
+- **Race Condition Load Testing:** While Redis-backed locks are in place for the auction room, we lack an automated artillery/k6 load test to mathematically prove high-throughput concurrency safety under extreme load.
+- **Scoring Engine Blocking:** The scoring engine runs in the main Node.js event loop, which could block real-time WebSocket events if the player pool grows too large.
+
 ---
 
 ## 📋 Table of Contents
@@ -27,7 +37,7 @@
 
 ### Live Drafts (Auction Room)
 
-Real-time auction rooms using low-latency WebSockets and Redis-backed distributed locks to handle race conditions when multiple managers bid simultaneously.
+Real-time auction rooms using WebSockets and Redis-backed locks to manage concurrent bids. (Note: True high-throughput concurrency safety has not yet been benchmarked with automated load tests).
 
 - **Anti-Snipe Timer:** Bids placed in the final seconds reset the countdown to prevent last-second sniping.
 - **Dynamic Increments:** Required bid increments scale algorithmically based on current player price.
@@ -288,10 +298,3 @@ Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md).
 - 💡 [Request a feature](https://github.com/themanoj-025/MatchMind/issues)
 
 ---
-
-## ⭐ Star History
-
-[![Last Commit](https://img.shields.io/github/last-commit/themanoj-025/MatchMind?style=flat-square)](https://github.com/themanoj-025/MatchMind)
-[![Contributors](https://img.shields.io/github/contributors/themanoj-025/MatchMind?style=flat-square)](https://github.com/themanoj-025/MatchMind/graphs/contributors)
-
-[![Star History Chart](https://api.star-history.com/svg?repos=themanoj-025/MatchMind&type=Date)](https://star-history.com/#MatchMind&Date)
