@@ -71,7 +71,7 @@
     "@types/express": "^5.0.6",
     "@types/helmet": "^0.0.48",
     "@types/jsonwebtoken": "^9.0.10",
-    "@types/node": "^26.1.0",
+    "@types/node": "^26.2.0",
     "@types/opossum": "^8.1.9",
     "@types/passport": "^1.0.17",
     "@types/passport-google-oauth20": "^2.0.17",
