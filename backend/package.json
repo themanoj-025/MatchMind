@@ -24,7 +24,7 @@
   "type": "commonjs",
   "dependencies": {
     "@anthropic-ai/sdk": "^0.120.0",
-    "@asteasolutions/zod-to-openapi": "^8.5.0",
+    "@asteasolutions/zod-to-openapi": "^9.1.0",
     "@matchmind/shared-types": "*",
     "@prisma/client": "^5.22.0",
     "@sentry/node": "^10.63.0",
