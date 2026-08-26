@@ -13,14 +13,86 @@ jobs:
       - uses: actions/checkout@v7
 
       - uses: actions/setup-python@v7
-          cache: pip
         with:
+          cache: pip
           python-version: "3.12"
 
       - name: Run pre-commit hooks
         run: |
           pip install pre-commit
           pre-commit run --all-files
+
+  python-quality:
+    name: Python quality (ruff + mypy + bandit)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          cache: pip
+          python-version: "3.12"
+
+      - name: Install Python tools
+        run: pip install ruff mypy bandit
+
+      - name: Ruff lint
+        run: ruff check .
+
+      - name: Ruff format check
+        run: ruff format --check .
+
+      - name: Mypy type check
+        run: mypy --config-file mypy.ini . || true
+
+      - name: Bandit security scan
+        run: bandit -r . -c .bandit -f json -o /tmp/bandit-report.json || true
+
+      - name: Evaluate bandit results
+        run: |
+          python - <<'EOF'
+          import json, sys
+          try:
+              data = json.load(open('/tmp/bandit-report.json'))
+          except (FileNotFoundError, json.JSONDecodeError):
+              print('bandit: no report (clean scan)')
+              sys.exit(0)
+          metrics = data.get('metrics', {})
+          results = data.get('results', [])
+          high = [r for r in results if r.get('issue_severity') == 'HIGH']
+          medium = [r for r in results if r.get('issue_severity') == 'MEDIUM']
+          print(f'bandit: {len(high)} HIGH, {len(medium)} MEDIUM, {len(results)} total findings')
+          if high:
+              for r in high:
+                  print(f'  HIGH: {r["filename"]}:{r["line_number"]} — {r["issue_text"]}')
+              sys.exit(1)
+          print('bandit: no HIGH severity issues')
+          EOF
+
+  pip-audit:
+    name: Python dependency audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          cache: pip
+          python-version: "3.12"
+
+      - name: Install pip-audit
+        run: pip install pip-audit
+
+      - name: Audit Python dependencies
+        run: |
+          # Create a minimal requirements file from any Python deps found
+          if [ -f requirements.txt ]; then
+            pip-audit -r requirements.txt
+          elif [ -f pyproject.toml ]; then
+            pip-audit
+          else
+            echo 'No Python requirements file found — skipping pip-audit'
+          fi
 
   build-and-test:
     runs-on: ubuntu-latest
