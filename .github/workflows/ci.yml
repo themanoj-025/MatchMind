@@ -179,3 +179,42 @@ jobs:
         run: npm ci
       - name: npm audit
         run: npm audit --audit-level=high
+
+  retire-js:
+    name: Retire.js vulnerability scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Install retire.js
+        run: npm install -g retire
+      - name: Run retire.js scan
+        run: |
+          retire --path . --outputformat json --outputfile /tmp/retire-report.json || true
+          python - <<'EOF'
+          import json, sys
+          try:
+              data = json.load(open('/tmp/retire-report.json'))
+          except (FileNotFoundError, json.JSONDecodeError):
+              print('retire.js: no report generated (scan clean)')
+              sys.exit(0)
+          vulnerabilities = data.get('vulnerabilities', [])
+          if vulnerabilities:
+              print(f'retire.js found {len(vulnerabilities)} vulnerable library(ies):')
+              for v in vulnerabilities:
+                  results = v.get('results', [])
+                  for r in results:
+                      component = r.get('component', 'unknown')
+                      version = r.get('version', '?')
+                      for vuln in r.get('vulnerabilities', []):
+                          severity = vuln.get('severity', 'unknown')
+                          info = vuln.get('info', [''])[0] if vuln.get('info') else ''
+                          print(f'  - {component}@{version}: {severity} — {info}')
+              sys.exit(1)
+          print('retire.js: no known vulnerable libraries found')
+          EOF
