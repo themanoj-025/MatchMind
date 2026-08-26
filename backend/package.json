@@ -23,7 +23,7 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.111.0",
+    "@anthropic-ai/sdk": "^0.120.0",
     "@asteasolutions/zod-to-openapi": "^8.5.0",
     "@matchmind/shared-types": "*",
     "@prisma/client": "^5.22.0",
