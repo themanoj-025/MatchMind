@@ -12,6 +12,7 @@
 
 import fs from 'fs'
 import path from 'path'
+import type { TournamentRecord, TeamRecord, PlayerRecord, FixtureRecord, VenueRecord, HistoryRecord } from './types'
 
 const DATA_DIR = path.join(__dirname, '..', 'src', 'data')
 const REGISTRY_PATH = path.join(__dirname, '..', 'src', 'config', 'tournamentRegistry.json')
@@ -25,7 +26,7 @@ interface ValidationResult {
 
 // ─── Load registry ──────────────────────────────────────
 
-function loadRegistry(): any[] {
+function loadRegistry(): TournamentRecord[] {
   const raw = fs.readFileSync(REGISTRY_PATH, 'utf-8')
   const parsed = JSON.parse(raw)
   return parsed.tournaments || []
@@ -33,7 +34,7 @@ function loadRegistry(): any[] {
 
 // ─── Load JSON data file ────────────────────────────────
 
-function loadDataFile(filename: string): any[] {
+function loadDataFile(filename: string): unknown[] {
   const filePath = path.join(DATA_DIR, filename)
   if (!fs.existsSync(filePath)) return []
   const raw = fs.readFileSync(filePath, 'utf-8')
@@ -42,13 +43,13 @@ function loadDataFile(filename: string): any[] {
 
 // ─── Validation rules (§4.3) ────────────────────────────
 
-function validateTournamentData(tournament: any): ValidationResult {
+function validateTournamentData(tournament: TournamentRecord): ValidationResult {
   const errors: string[] = []
   const warnings: string[] = []
   const tid = tournament.id
 
   // 1. Team count matches registry
-  const teams = loadDataFile('teams.json').filter((t: any) => t.tournamentId === tid)
+  const teams = loadDataFile('teams.json').filter((t) => (t as TeamRecord).tournamentId === tid) as TeamRecord[]
   if (teams.length === 0) {
     errors.push(`No teams found in teams.json for tournament "${tid}"`)
   } else if (tournament.teamCount && teams.length < tournament.teamCount) {
@@ -56,15 +57,15 @@ function validateTournamentData(tournament: any): ValidationResult {
   }
 
   // 2. Every team has full squad (at least minimum realistic squad)
-  const players = loadDataFile('players.json').filter((p: any) => p.tournamentId === tid)
+  const players = loadDataFile('players.json').filter((p) => (p as PlayerRecord).tournamentId === tid) as PlayerRecord[]
   const minSquadSize = Math.min(tournament.squadSize || 23, 20) // at least 20 even for pre-squad-trim
   if (players.length < minSquadSize) {
     errors.push(`Expected at least ${minSquadSize} players, found ${players.length} in players.json for "${tid}"`)
   }
 
   // 3. Every fixture references valid teams
-  const fixtures = loadDataFile('fixtures.json').filter((f: any) => f.tournamentId === tid)
-  const teamIds = new Set(teams.map((t: any) => t.id))
+  const fixtures = loadDataFile('fixtures.json').filter((f) => (f as FixtureRecord).tournamentId === tid) as FixtureRecord[]
+  const teamIds = new Set(teams.map((t) => t.id))
   for (const fixture of fixtures) {
     if (fixture.homeTeamId && !teamIds.has(fixture.homeTeamId)) {
       errors.push(`Fixture "${fixture.id}" references unknown homeTeamId "${fixture.homeTeamId}"`)
@@ -75,8 +76,8 @@ function validateTournamentData(tournament: any): ValidationResult {
   }
 
   // 4. Every venue referenced by a fixture exists in venues.json
-  const venues = loadDataFile('venues.json').filter((v: any) => v.tournamentId === tid)
-  const venueIds = new Set(venues.map((v: any) => v.id))
+  const venues = loadDataFile('venues.json').filter((v) => (v as VenueRecord).tournamentId === tid) as VenueRecord[]
+  const venueIds = new Set(venues.map((v) => v.id))
   for (const fixture of fixtures) {
     if (fixture.venueId && !venueIds.has(fixture.venueId)) {
       warnings.push(`Fixture "${fixture.id}" references unknown venueId "${fixture.venueId}"`)
@@ -84,7 +85,7 @@ function validateTournamentData(tournament: any): ValidationResult {
   }
 
   // 5. History exists with at least last 3 editions
-  const history = loadDataFile('history.json').filter((h: any) => h.tournamentId === tid)
+  const history = loadDataFile('history.json').filter((h) => (h as HistoryRecord).tournamentId === tid) as HistoryRecord[]
   if (history.length === 0) {
     warnings.push(`No history record found in history.json for "${tid}"`)
   } else {
@@ -108,7 +109,7 @@ function main() {
   const targetId = process.argv[2]
   const registry = loadRegistry()
 
-  const toValidate = targetId ? registry.filter((t: any) => t.id === targetId) : registry
+  const toValidate = targetId ? registry.filter((t) => t.id === targetId) : registry
 
   if (toValidate.length === 0) {
     console.error(

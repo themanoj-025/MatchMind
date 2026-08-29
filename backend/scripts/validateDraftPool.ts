@@ -15,6 +15,7 @@
 import fs from 'fs'
 import path from 'path'
 import { validateTournamentDraftPool, formatValidationResult } from '../src/lib/validateDraftPool'
+import type { RegistryEntry } from './types'
 
 const DATA_DIR = path.join(__dirname, '..', 'src', 'data')
 
@@ -28,7 +29,7 @@ function main() {
   } else {
     if (fs.existsSync(registryPath)) {
       const registry = JSON.parse(fs.readFileSync(registryPath, 'utf-8'))
-      tournamentIds = (registry.tournaments || []).map((t: any) => t.id)
+      tournamentIds = (registry.tournaments || []).map((t) => t.id)
     }
     if (tournamentIds.length === 0) {
       console.error('❌ No tournaments found in registry')
