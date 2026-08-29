@@ -1,6 +1,15 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { env } from '../config/env'
 
+export interface RosterRules {
+  GK?: number
+  DEF?: number
+  MID?: number
+  FWD?: number
+  total?: number
+  [position: string]: number | undefined
+}
+
 export interface Room {
   id: string
   name: string
@@ -31,7 +40,7 @@ export const useCreateRoom = () => {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async (newRoom: { name: string; type: string; totalBudget: number; rosterRules: any }) => {
+    mutationFn: async (newRoom: { name: string; type: string; totalBudget: number; rosterRules: RosterRules }) => {
       const response = await fetch(`${env.API_URL}/api/v1/rooms`, {
         method: 'POST',
         credentials: 'include',
