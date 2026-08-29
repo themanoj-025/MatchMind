@@ -40,8 +40,9 @@ export const Lobby: React.FC = () => {
           showToast('Draft room created!', 'success')
           navigate(`/room/${data.id}`)
         },
-        onError: (err: any) => {
-          showToast(err.message || 'Failed to create room', 'error')
+        onError: (err: unknown) => {
+          const message = err instanceof Error ? err.message : 'Failed to create room'
+          showToast(message, 'error')
         },
       },
     )

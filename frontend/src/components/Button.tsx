@@ -13,7 +13,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         whileHover={{ y: -2 }}
         whileTap={{ scale: 0.98 }}
-        transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] as any }}
+        transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] }}
         className={cn(
           'relative inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-glow focus-visible:ring-offset-2 focus-visible:ring-offset-background-base overflow-hidden',
           {

@@ -41,7 +41,8 @@ export const Auth: React.FC = () => {
         showToast(isLogin ? 'Welcome back!' : 'Account created successfully!', 'success')
         navigate('/lobby')
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
+      void err // Log or handle error details if needed
       showToast('Connection to server failed', 'error')
     } finally {
       setLoading(false)
