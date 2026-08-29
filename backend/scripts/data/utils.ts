@@ -2,7 +2,16 @@
 
 import { FIRST_NAMES, WOMEN_FIRST_NAMES, LAST_NAMES } from './names'
 
-function section(entries: PlayerTemplate[]): PlayerTemplate[] {
+export interface PlayerTemplate {
+  name: string
+  club: string
+  nationality: string
+  position: 'GK' | 'DEF' | 'MID' | 'FWD'
+  basePrice: number
+  isEligibleForIcon?: boolean
+}
+
+export function section(entries: PlayerTemplate[]): PlayerTemplate[] {
   return entries
 }
 
@@ -11,33 +20,33 @@ function section(entries: PlayerTemplate[]): PlayerTemplate[] {
 // Generates fictional but realistic-looking players to fill up
 // to real tournament squad sizes:
 //   FIFA WC 2026: 48 teams × 26 players = 1,248
-//   UCL 2026/27:  32 teams × 25 players (List A) = 800
+//   UCL 2026/27:  32 teams × 25 (List A) = 800
 //
 // Position distribution per squad: GK~3, DEF~9, MID~8, FWD~6
 
 // First names by region
 
-function pick<T>(arr: T[], exclude?: Set<T>): T {
+export function pick<T>(arr: T[], exclude?: Set<T>): T {
   const pool = exclude ? arr.filter((x) => !exclude.has(x)) : arr
   return pool[Math.floor(Math.random() * pool.length)]
 }
 
 // Generate first name based on nationality (fallback to a generic list)
-function firstName(nationality: string): string {
+export function firstName(nationality: string): string {
   const names = FIRST_NAMES[nationality]
   if (names) return names[Math.floor(Math.random() * names.length)]
   const allNames = Object.values(FIRST_NAMES).flat()
   return allNames[Math.floor(Math.random() * allNames.length)]
 }
 
-function womenFirstName(nationality: string): string {
+export function womenFirstName(nationality: string): string {
   const names = WOMEN_FIRST_NAMES[nationality]
   if (names) return names[Math.floor(Math.random() * names.length)]
   const allNames = Object.values(WOMEN_FIRST_NAMES).flat()
   return allNames[Math.floor(Math.random() * allNames.length)]
 }
 
-function generateFillerPlayers(
+export function generateFillerPlayers(
   existing: PlayerTemplate[],
   targetCount: number,
   nationalities: string[],
@@ -124,6 +133,3 @@ function generateFillerPlayers(
   // Shuffle for variety
   return fillers.sort(() => Math.random() - 0.5)
 }
-
-// ─── FIFA World Cup 2026 (~275 players) ─────────────────
-
