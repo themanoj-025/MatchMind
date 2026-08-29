@@ -17,6 +17,7 @@
 
 import fs from 'fs'
 import path from 'path'
+import type { PlayerRecord } from './types'
 
 const DATA_DIR = path.join(__dirname, '..', 'src', 'data')
 
@@ -30,13 +31,13 @@ const RARITY_TIERS = [
 
 // ─── Helpers ─────────────────────────────────────────────
 
-function loadJSON(filename: string): any[] {
+function loadJSON(filename: string): PlayerRecord[] {
   const filePath = path.join(DATA_DIR, filename)
   if (!fs.existsSync(filePath)) return []
   return JSON.parse(fs.readFileSync(filePath, 'utf-8'))
 }
 
-function atomicWrite(filePath: string, data: any): void {
+function atomicWrite(filePath: string, data: PlayerRecord[]): void {
   const tmpPath = filePath + '.tmp'
   const dir = path.dirname(filePath)
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
@@ -46,9 +47,9 @@ function atomicWrite(filePath: string, data: any): void {
 
 // ─── Assign Rarity for a Single Tournament ──────────────
 
-function assignRaritiesForTournament(players: any[], tournamentId: string): { updated: number; icons: number } {
+function assignRaritiesForTournament(players: PlayerRecord[], tournamentId: string): { updated: number; icons: number } {
   // Filter to this tournament
-  const tournamentPlayers = players.filter((p: any) => p.tournamentId === tournamentId)
+  const tournamentPlayers = players.filter((p) => p.tournamentId === tournamentId)
 
   if (tournamentPlayers.length === 0) {
     console.warn(`  ⚠ No players found for tournament "${tournamentId}"`)
@@ -56,13 +57,13 @@ function assignRaritiesForTournament(players: any[], tournamentId: string): { up
   }
 
   // Check all players have basePrice
-  const noPrice = tournamentPlayers.filter((p: any) => p.basePrice == null)
+  const noPrice = tournamentPlayers.filter((p) => p.basePrice == null)
   if (noPrice.length > 0) {
     console.error(`  ❌ ${noPrice.length} player(s) missing basePrice in "${tournamentId}". Aborting.`)
     console.error(
       `     Examples: ${noPrice
         .slice(0, 3)
-        .map((p: any) => p.name || p.id)
+        .map((p) => p.name || p.id)
         .join(', ')}`,
     )
     process.exit(1)
@@ -97,7 +98,7 @@ function assignRaritiesForTournament(players: any[], tournamentId: string): { up
     if (assignedTier === 'ICON') icons++
 
     // Update the player object in the master array
-    const playerIndex = players.findIndex((p: any) => p.id === player.id)
+    const playerIndex = players.findIndex((p) => p.id === player.id)
     if (playerIndex !== -1) {
       players[playerIndex] = {
         ...players[playerIndex],
@@ -120,8 +121,8 @@ function main() {
     process.exit(1)
   }
 
-  const players: any[] = loadJSON('players.json')
-  const tournamentIds = new Set(players.map((p: any) => p.tournamentId))
+  const players: PlayerRecord[] = loadJSON('players.json')
+  const tournamentIds = new Set(players.map((p) => p.tournamentId))
 
   console.log(`📊 Computing rarity tiers for ${players.length} players across ${tournamentIds.size} tournament(s)...\n`)
 
