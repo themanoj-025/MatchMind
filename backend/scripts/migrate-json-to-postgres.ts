@@ -3,6 +3,8 @@ import path from 'path'
 import { PrismaClient } from '@prisma/client'
 import logger from '../src/utils/logger'
 
+import type { PlayerRecord } from './types'
+
 const prisma = new PrismaClient()
 const DATA_DIR = path.join(__dirname, '..', 'src', 'data')
 
@@ -57,7 +59,7 @@ async function migrateData() {
           )
 
           // Using Prisma's model delegation dynamically
-          const modelDelegate = (prisma as any)[modelName]
+          const modelDelegate = (prisma as unknown as Record<string, { createMany: (args: { data: PlayerRecord[]; skipDuplicates: boolean }) => Promise<unknown> }>)[modelName]
           if (modelDelegate) {
             // We use upsert or createMany? createMany is safer but doesn't ignore duplicates on SQLite.
             // On Postgres, createMany(skipDuplicates) exists.
@@ -67,9 +69,10 @@ async function migrateData() {
                 skipDuplicates: true,
               })
               logger.info({ event: 'migration.model_success', model: modelName }, `Successfully migrated ${modelName}`)
-            } catch (err: any) {
+            } catch (err: unknown) {
+              const msg = err instanceof Error ? err.message : String(err)
               logger.error(
-                { event: 'migration.model_error', model: modelName, error: err.message },
+                { event: 'migration.model_error', model: modelName, error: msg },
                 `Failed to migrate ${modelName}`,
               )
             }
@@ -79,8 +82,9 @@ async function migrateData() {
     }
 
     logger.info({ event: 'migration.complete' }, 'Migration complete!')
-  } catch (err: any) {
-    logger.error({ event: 'migration.fatal_error', error: err.message }, 'Fatal error during migration')
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err)
+    logger.error({ event: 'migration.fatal_error', error: msg }, 'Fatal error during migration')
   } finally {
     await prisma.$disconnect()
   }

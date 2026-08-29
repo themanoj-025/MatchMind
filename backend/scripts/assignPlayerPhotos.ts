@@ -19,6 +19,7 @@
 import fs from 'fs'
 import path from 'path'
 import crypto from 'crypto'
+import type { PlayerRecord } from './types'
 
 const DATA_DIR = path.join(__dirname, '..', 'src', 'data')
 
@@ -73,7 +74,7 @@ function main() {
   }
 
   const raw = fs.readFileSync(playersPath, 'utf-8')
-  const players: any[] = JSON.parse(raw)
+  const players: PlayerRecord[] = JSON.parse(raw) as PlayerRecord[]
 
   console.log(`📸 Assigning photo URLs for ${players.length} players...\n`)
 
@@ -110,7 +111,7 @@ function main() {
   console.log(`   Total: ${players.length}`)
   console.log(`\n📊 By tournament:`)
   for (const [tid, count] of Object.entries(byTournament)) {
-    const withPhoto = players.filter((p: any) => p.tournamentId === tid && p.photoUrl).length
+    const withPhoto = players.filter((p) => p.tournamentId === tid && p.photoUrl).length
     const pct = ((withPhoto / count) * 100).toFixed(1)
     console.log(`   ${tid}: ${withPhoto}/${count} photos (${pct}%)`)
   }
