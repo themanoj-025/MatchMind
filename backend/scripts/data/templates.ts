@@ -1,5 +1,6 @@
 /** Player templates per tournament (star players). */
 
+import type { PlayerRecord } from '../types'
 import { PlayerTemplate, section } from './utils'
 
 const WC_GK = section([
@@ -867,7 +868,7 @@ function main() {
   const wwcPlayers = [...wwcBase, ...wwcFillers]
   const copaPlayers = [...copaBase, ...copaFillers]
 
-  const allPlayers: any[] = []
+  const allPlayers: PlayerRecord[] = []
   let idCounter = 1
 
   const tournaments = [
