@@ -1,15 +1,16 @@
 import { describe, it, expect, vi } from 'vitest'
+import { type Request, type Response, type NextFunction } from 'express'
 import { requestId } from './requestId'
 
 function mockReqRes(incomingRequestId?: string) {
   const req = {
     headers: incomingRequestId ? { 'x-request-id': incomingRequestId } : {},
     id: undefined as string | undefined,
-  } as any
+  } as unknown as Request
   const res = {
     setHeader: vi.fn(),
-  } as any
-  const next = vi.fn()
+  } as unknown as Response
+  const next = vi.fn() as unknown as NextFunction
   return { req, res, next }
 }
 
