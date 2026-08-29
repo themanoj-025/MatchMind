@@ -1,14 +1,15 @@
 import { describe, it, expect, vi } from 'vitest'
+import { type Request, type Response, type NextFunction } from 'express'
 import asyncHandler from './asyncHandler'
 
 describe('asyncHandler', () => {
   it('calls next() when the handler resolves', async () => {
-    const handler = asyncHandler(async (_req: any, _res: any) => {
+    const handler = asyncHandler(async (_req: Request, _res: Response) => {
       return 'ok'
     })
-    const req = {} as any
-    const res = {} as any
-    const next = vi.fn()
+    const req = {} as Request
+    const res = {} as Response
+    const next = vi.fn() as unknown as NextFunction
     await handler(req, res, next)
     expect(next).not.toHaveBeenCalled()
   })
@@ -17,9 +18,9 @@ describe('asyncHandler', () => {
     const handler = asyncHandler(async () => {
       throw new Error('boom')
     })
-    const req = {} as any
-    const res = {} as any
-    const next = vi.fn()
+    const req = {} as Request
+    const res = {} as Response
+    const next = vi.fn() as unknown as NextFunction
     await handler(req, res, next)
     expect(next).toHaveBeenCalledOnce()
     expect(next).toHaveBeenCalledWith(expect.objectContaining({ message: 'boom' }))
@@ -27,12 +28,12 @@ describe('asyncHandler', () => {
 
   it('passes req and res to the handler', async () => {
     const spy = vi.fn()
-    const handler = asyncHandler(async (req: any, res: any) => {
+    const handler = asyncHandler(async (req: Request, res: Response) => {
       spy(req, res)
     })
-    const req = { id: 1 } as any
-    const res = { id: 2 } as any
-    const next = vi.fn()
+    const req = { id: 1 } as unknown as Request
+    const res = { id: 2 } as unknown as Response
+    const next = vi.fn() as unknown as NextFunction
     await handler(req, res, next)
     expect(spy).toHaveBeenCalledWith(req, res)
   })

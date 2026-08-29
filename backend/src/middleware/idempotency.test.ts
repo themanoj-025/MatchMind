@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { type Request, type Response, type NextFunction } from 'express'
 import { idempotent } from './idempotency'
 
 function mockReqRes(method = 'POST', path = '/api/test', headers: Record<string, string> = {}) {
@@ -9,15 +10,15 @@ function mockReqRes(method = 'POST', path = '/api/test', headers: Record<string,
       'idempotency-key': undefined,
       ...headers,
     },
-  } as any
+  } as unknown as Request
   const res = {
     statusCode: 200,
     status: vi.fn().mockReturnThis(),
     json: vi.fn().mockReturnThis(),
     getHeader: vi.fn().mockReturnValue('application/json'),
     setHeader: vi.fn(),
-  } as any
-  const next = vi.fn()
+  } as unknown as Response
+  const next = vi.fn() as unknown as NextFunction
   return { req, res, next }
 }
 
