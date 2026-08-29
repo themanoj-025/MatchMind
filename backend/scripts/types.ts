@@ -1,8 +1,8 @@
 /**
  * Shared types for Match-Mind seed scripts.
  *
- * Mirrors the PlayerRecord used by the admin API so that seed scripts,
- * migration scripts, and the runtime all agree on the player JSON shape.
+ * Mirrors the shapes used by the admin API so that seed scripts,
+ * migration scripts, and the runtime all agree on data shapes.
  */
 
 export interface PlayerRecord {
@@ -16,4 +16,37 @@ export interface PlayerRecord {
   rarityTier?: string
   isEligibleForIcon?: boolean
   photoUrl?: string
+}
+
+export interface TournamentRecord {
+  id: string
+  teamCount?: number
+  squadSize?: number
+}
+
+export interface TeamRecord {
+  id: string
+  tournamentId: string
+}
+
+export interface FixtureRecord {
+  id: string
+  tournamentId: string
+  homeTeamId?: string
+  awayTeamId?: string
+  venueId?: string
+}
+
+export interface VenueRecord {
+  id: string
+  tournamentId: string
+}
+
+export interface HistoryRecord {
+  tournamentId: string
+  pastWinners?: string[]
+}
+
+export interface RegistryEntry {
+  tournaments: TournamentRecord[]
 }
