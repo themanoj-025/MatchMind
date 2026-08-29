@@ -59,6 +59,48 @@ interface ChatMsg {
   }
 }
 
+interface ActiveMember {
+  userId: string
+  username?: string
+  displayName?: string
+  remainingBudget: number
+  isReady?: boolean
+  role?: string
+}
+
+interface RoomState {
+  name?: string
+  status: string
+  currentPlayer?: Player | null
+  currentBid?: number
+  currentBidderId?: string | null
+  timerEndsAt?: string | null
+  members?: ActiveMember[]
+  roster?: RosterItem[]
+  messages?: ChatMsg[]
+}
+
+interface BidUpdatedData {
+  amount: number
+  userId: string
+  timerEndsAt?: string | null
+  remainingBudget?: number
+}
+
+interface PlayerSoldData {
+  buyerId: string
+  price: number
+  playerId: string
+}
+
+interface AiAdvice {
+  summary: string
+  positionNeeds?: Record<string, number>
+  targets?: string[]
+  budgetAdvice?: string
+  warning?: string
+}
+
 export const DraftRoom: React.FC = () => {
   const { roomId } = useParams<{ roomId: string }>()
   const { user } = useAuthStore()
@@ -74,12 +116,12 @@ export const DraftRoom: React.FC = () => {
   const [timerEndsAt, setTimerEndsAt] = useState<string | null>(null)
   const [myBudget, setMyBudget] = useState(0)
   const [roster, setRoster] = useState<RosterItem[]>([])
-  const [activeMembers, setActiveMembers] = useState<any[]>([])
+  const [activeMembers, setActiveMembers] = useState<ActiveMember[]>([])
   const [chatMessages, setChatMessages] = useState<ChatMsg[]>([])
 
   const [chatInput, setChatInput] = useState('')
   const [bidInput, setBidInput] = useState('')
-  const [aiAdvice, setAiAdvice] = useState<any>(null)
+  const [aiAdvice, setAiAdvice] = useState<AiAdvice | null>(null)
   const [aiOpen, setAiOpen] = useState(false)
 
   const chatEndRef = useRef<HTMLDivElement>(null)
@@ -108,22 +150,22 @@ export const DraftRoom: React.FC = () => {
       newSocket.emit('JOIN_ROOM', { roomId })
     })
 
-    newSocket.on('ROOM_STATE', (state: any) => {
+    newSocket.on('ROOM_STATE', (state: RoomState) => {
       setRoomName(state.name || 'Draft Chamber')
       setRoomStatus(state.status)
-      setCurrentPlayer(state.currentPlayer)
+      setCurrentPlayer(state.currentPlayer ?? null)
       setCurrentBid(state.currentBid || 0)
-      setCurrentBidderId(state.currentBidderId)
-      setTimerEndsAt(state.timerEndsAt)
+      setCurrentBidderId(state.currentBidderId ?? null)
+      setTimerEndsAt(state.timerEndsAt ?? null)
       setActiveMembers(state.members || [])
       setRoster(state.roster || [])
       setChatMessages(state.messages || [])
 
-      const self = state.members?.find((m: any) => m.userId === user?.id)
+      const self = state.members?.find((m: ActiveMember) => m.userId === user?.id)
       if (self) setMyBudget(self.remainingBudget)
     })
 
-    newSocket.on('BID_UPDATED', (data: any) => {
+    newSocket.on('BID_UPDATED', (data: BidUpdatedData) => {
       setCurrentBid(data.amount)
       setCurrentBidderId(data.userId)
       setTimerEndsAt(data.timerEndsAt)
@@ -134,11 +176,11 @@ export const DraftRoom: React.FC = () => {
       }
     })
 
-    newSocket.on('BID_REJECTED', (err: any) => {
+    newSocket.on('BID_REJECTED', (err: { message: string }) => {
       showToast(err.message, 'error')
     })
 
-    newSocket.on('PLAYER_SOLD', (data: any) => {
+    newSocket.on('PLAYER_SOLD', (data: PlayerSoldData) => {
       showToast(
         `Player sold to ${data.buyerId === user?.id ? 'you' : 'another manager'} for $${data.price}M!`,
         'success',
@@ -198,8 +240,9 @@ export const DraftRoom: React.FC = () => {
         onSuccess: (data) => {
           setAiAdvice(data.advice)
         },
-        onError: (err: any) => {
-          showToast(err.message || 'Failed to fetch AI insights', 'error')
+        onError: (err: unknown) => {
+          const message = err instanceof Error ? err.message : 'Failed to fetch AI insights'
+          showToast(message, 'error')
         },
       },
     )
