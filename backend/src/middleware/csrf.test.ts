@@ -1,4 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
+import { type Request, type Response, type NextFunction } from 'express'
 import { generateCsrfToken, csrfProtection, csrfTokenHandler } from './csrf'
 
 // Mock env
@@ -12,14 +13,14 @@ function mockReqRes(method = 'POST', cookies: Record<string, string> = {}, heade
     cookies,
     headers,
     path: '/api/test',
-  } as any
+  } as unknown as Request
   const res = {
     cookie: vi.fn(),
     status: vi.fn().mockReturnThis(),
     json: vi.fn().mockReturnThis(),
     locals: {} as Record<string, unknown>,
-  } as any
-  const next = vi.fn()
+  } as unknown as Response
+  const next = vi.fn() as unknown as NextFunction
   return { req, res, next }
 }
 

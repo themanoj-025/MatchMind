@@ -1,14 +1,15 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
+import { type Request, type Response, type NextFunction } from 'express'
 import { z } from 'zod'
 import { validate } from './validate'
 
 function mockReqRes(source: 'body' | 'query' | 'params' = 'body', data: unknown = {}) {
-  const req = { [source]: data } as any
+  const req = { [source]: data } as unknown as Request
   const res = {
     status: vi.fn().mockReturnThis(),
     json: vi.fn().mockReturnThis(),
-  } as any
-  const next = vi.fn()
+  } as unknown as Response
+  const next = vi.fn() as unknown as NextFunction
   return { req, res, next }
 }
 

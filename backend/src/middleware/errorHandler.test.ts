@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
+import { type Request, type Response, type NextFunction } from 'express'
 import { errorHandler } from './errorHandler'
 
 function mockReqRes(overrides: Record<string, unknown> = {}) {
@@ -9,12 +10,12 @@ function mockReqRes(overrides: Record<string, unknown> = {}) {
     originalUrl: '/api/test',
     userId: undefined,
     ...overrides,
-  } as any
+  } as unknown as Request
   const res = {
     status: vi.fn().mockReturnThis(),
     json: vi.fn().mockReturnThis(),
-  } as any
-  const next = vi.fn()
+  } as unknown as Response
+  const next = vi.fn() as unknown as NextFunction
   return { req, res, next }
 }
 

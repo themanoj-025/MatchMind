@@ -32,12 +32,12 @@ describe('isDraftEnabledForTournament', () => {
 
 describe('requireDraftEnabled middleware', () => {
   function mockReqRes(body?: { tournamentId?: string }, params?: { tournamentId?: string }) {
-    const req = { params: params || {}, body: body || {} } as any
+    const req = { params: params || {}, body: body || {} } as unknown as import('express').Request
     const res = {
       status: vi.fn().mockReturnThis(),
       json: vi.fn().mockReturnThis(),
-    } as any
-    const next = vi.fn()
+    } as unknown as import('express').Response
+    const next = vi.fn() as unknown as import('express').NextFunction
     return { req, res, next }
   }
 
