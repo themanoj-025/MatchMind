@@ -8,7 +8,7 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import request from 'supertest'
-import express from 'express'
+import express, { type Request, type Response, type NextFunction } from 'express'
 
 // Mock openapi registry
 vi.mock('../config/openapi', () => ({
@@ -22,7 +22,7 @@ function createApp() {
   app.use(express.json())
 
   // Mock container middleware
-  app.use((req: any, _res, next) => {
+  app.use((req: Request, _res: Response, next: NextFunction) => {
     req.container = {
       cradle: {
         matchService: {
