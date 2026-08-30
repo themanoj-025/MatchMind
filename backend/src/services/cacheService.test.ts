@@ -40,7 +40,7 @@ describe('CacheService', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     redis = createMockRedis()
-    cache = new CacheService({ redis: redis as any })
+    cache = new CacheService({ redis: redis as unknown as import('ioredis').Redis })
   })
 
   describe('get', () => {

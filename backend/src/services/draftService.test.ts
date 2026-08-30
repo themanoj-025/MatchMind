@@ -117,7 +117,7 @@ describe('checkFormationFillBonus', () => {
       { position: 'MID', pickedPlayerId: 'p4', slotIndex: 3 },
       { position: 'MID', pickedPlayerId: 'p5', slotIndex: 4 },
       { position: 'FWD', pickedPlayerId: 'p6', slotIndex: 5 },
-    ] as any
+    ] as unknown as import('./draftService').SquadPlayer[]
     expect(checkFormationFillBonus(picks, formationSlots)).toBe(true)
   })
 
@@ -129,7 +129,7 @@ describe('checkFormationFillBonus', () => {
       { position: 'MID', pickedPlayerId: 'p4', slotIndex: 3 },
       { position: 'MID', pickedPlayerId: 'p5', slotIndex: 4 },
       { position: 'FWD', pickedPlayerId: 'p6', slotIndex: 5 },
-    ] as any
+    ] as unknown as import('./draftService').SquadPlayer[]
     expect(checkFormationFillBonus(picks, formationSlots)).toBe(false)
   })
 
@@ -141,7 +141,7 @@ describe('checkFormationFillBonus', () => {
       { position: 'MID', pickedPlayerId: 'p4', slotIndex: 3 },
       { position: 'MID', pickedPlayerId: 'p5', slotIndex: 4 },
       { position: 'FWD', pickedPlayerId: 'p6', slotIndex: 5 },
-    ] as any
+    ] as unknown as import('./draftService').SquadPlayer[]
     expect(checkFormationFillBonus(picks, formationSlots)).toBe(false)
   })
 

@@ -41,13 +41,13 @@ describe('toLeaderboardEntry', () => {
   })
 
   it('falls back to 0 when pointField value is undefined', () => {
-    const user = { ...baseUser, totalPoints: undefined as any }
+    const user = { ...baseUser, totalPoints: undefined as unknown as number }
     const entry = toLeaderboardEntry(user, 1)
     expect(entry.points).toBe(0)
   })
 
   it('falls back to 0 for missing predAccuracy', () => {
-    const user = { ...baseUser, predAccuracy: undefined as any }
+    const user = { ...baseUser, predAccuracy: undefined as unknown as number }
     const entry = toLeaderboardEntry(user, 1)
     expect(entry.accuracy).toBe(0)
   })

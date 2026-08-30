@@ -37,7 +37,7 @@ describe('DraftAppService', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    service = new DraftAppService({ prisma: {} as any })
+    service = new DraftAppService({ prisma: {} as unknown as import('../repositories').DatabaseClient })
   })
 
   describe('startDraft', () => {
