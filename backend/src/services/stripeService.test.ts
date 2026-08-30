@@ -1,3 +1,4 @@
+import Stripe from 'stripe'
 /**
  * StripeService Tests — MatchMind
  *
@@ -106,7 +107,7 @@ describe('StripeService', () => {
       const svc = new StripeService({ prisma: mockPrisma })
       const sub = createMockStripeSub()
 
-      await svc.upsertSubscription('user-1', 'cus_123', 'sub_123', sub as any)
+      await svc.upsertSubscription('user-1', 'cus_123', 'sub_123', sub as unknown as Stripe.Subscription)
 
       expect(mockPrisma.subscription.upsert).toHaveBeenCalled()
     })
@@ -122,9 +123,9 @@ describe('StripeService', () => {
       const svc = new StripeService({ prisma: mockPrisma })
       const sub = createMockStripeSub()
 
-      await svc.upsertSubscription('user-1', 'cus_123', 'sub_123', sub as any)
+      await svc.upsertSubscription('user-1', 'cus_123', 'sub_123', sub as unknown as Stripe.Subscription)
 
-      const callArgs = (mockPrisma.subscription.upsert as any).mock.calls[0][0]
+      const callArgs = (mockPrisma.subscription.upsert as unknown as ReturnType<typeof vi.fn>).mock.calls[0][0]
       expect(callArgs.create.plan).toBe('monthly')
     })
 
@@ -149,9 +150,9 @@ describe('StripeService', () => {
         },
       })
 
-      await svc.upsertSubscription('user-1', 'cus_123', 'sub_123', sub as any)
+      await svc.upsertSubscription('user-1', 'cus_123', 'sub_123', sub as unknown as Stripe.Subscription)
 
-      const callArgs = (mockPrisma.subscription.upsert as any).mock.calls[0][0]
+      const callArgs = (mockPrisma.subscription.upsert as unknown as ReturnType<typeof vi.fn>).mock.calls[0][0]
       expect(callArgs.create.plan).toBe('annual')
     })
   })
@@ -168,9 +169,9 @@ describe('StripeService', () => {
       const svc = new StripeService({ prisma: mockPrisma })
       const sub = createMockStripeSub({ status: 'active' })
 
-      await svc.updateSubscriptionStatus('sub_stripe_123', sub as any)
+      await svc.updateSubscriptionStatus('sub_stripe_123', sub as unknown as Stripe.Subscription)
 
-      const callArgs = (mockPrisma.subscription.update as any).mock.calls[0][0]
+      const callArgs = (mockPrisma.subscription.update as unknown as ReturnType<typeof vi.fn>).mock.calls[0][0]
       expect(callArgs.data.status).toBe('ACTIVE')
     })
 
@@ -185,9 +186,9 @@ describe('StripeService', () => {
       const svc = new StripeService({ prisma: mockPrisma })
       const sub = createMockStripeSub({ status: 'past_due' })
 
-      await svc.updateSubscriptionStatus('sub_stripe_123', sub as any)
+      await svc.updateSubscriptionStatus('sub_stripe_123', sub as unknown as Stripe.Subscription)
 
-      const callArgs = (mockPrisma.subscription.update as any).mock.calls[0][0]
+      const callArgs = (mockPrisma.subscription.update as unknown as ReturnType<typeof vi.fn>).mock.calls[0][0]
       expect(callArgs.data.status).toBe('PAST_DUE')
     })
 
@@ -202,9 +203,9 @@ describe('StripeService', () => {
       const svc = new StripeService({ prisma: mockPrisma })
       const sub = createMockStripeSub({ status: 'canceled' })
 
-      await svc.updateSubscriptionStatus('sub_stripe_123', sub as any)
+      await svc.updateSubscriptionStatus('sub_stripe_123', sub as unknown as Stripe.Subscription)
 
-      const callArgs = (mockPrisma.subscription.update as any).mock.calls[0][0]
+      const callArgs = (mockPrisma.subscription.update as unknown as ReturnType<typeof vi.fn>).mock.calls[0][0]
       expect(callArgs.data.status).toBe('CANCELLED')
     })
 
@@ -219,9 +220,9 @@ describe('StripeService', () => {
       const svc = new StripeService({ prisma: mockPrisma })
       const sub = createMockStripeSub({ cancel_at_period_end: true })
 
-      await svc.updateSubscriptionStatus('sub_stripe_123', sub as any)
+      await svc.updateSubscriptionStatus('sub_stripe_123', sub as unknown as Stripe.Subscription)
 
-      const callArgs = (mockPrisma.subscription.update as any).mock.calls[0][0]
+      const callArgs = (mockPrisma.subscription.update as unknown as ReturnType<typeof vi.fn>).mock.calls[0][0]
       expect(callArgs.data.cancelAtPeriodEnd).toBe(true)
     })
   })
