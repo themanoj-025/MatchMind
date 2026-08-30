@@ -8,7 +8,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import express from 'express'
+import express, { type Request, type Response, type NextFunction } from 'express'
 import request from 'supertest'
 import searchRouter from './search'
 
@@ -28,12 +28,17 @@ function createMockContainer(overrides: Record<string, unknown> = {}) {
   }
 }
 
+interface TestRequest extends Request {
+  container?: ReturnType<typeof createMockContainer>
+  userId?: string
+}
+
 function createApp(container: ReturnType<typeof createMockContainer>) {
   const app = express()
   app.use(express.json())
-  app.use((req, _res, next) => {
-    ;(req as any).container = container
-    ;(req as any).userId = 'user-1'
+  app.use((req: TestRequest, _res: Response, next: NextFunction) => {
+    req.container = container
+    req.userId = 'user-1'
     next()
   })
   app.use('/api/search', searchRouter)

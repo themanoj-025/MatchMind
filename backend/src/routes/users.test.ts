@@ -10,7 +10,7 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import request from 'supertest'
-import express from 'express'
+import express, { type Request, type Response, type NextFunction } from 'express'
 import jwt from 'jsonwebtoken'
 
 const JWT_SECRET = 'test-jwt-secret-64-chars-minimum-for-testing-purposes-only'
@@ -23,7 +23,7 @@ vi.mock('../config/openapi', () => ({
 
 // Mock validate middleware to pass through
 vi.mock('../middleware/validate', () => ({
-  validate: () => (_req: any, _res: any, next: any) => next(),
+  validate: () => (_req: Request, _res: Response, next: NextFunction) => next(),
 }))
 
 // Mock schemas
@@ -33,7 +33,7 @@ vi.mock('../config/schemas', () => ({
 
 // Mock authenticateToken to simulate auth
 vi.mock('../middleware/auth', () => ({
-  authenticateToken: (req: any, _res: any, next: any) => {
+  authenticateToken: (req: Request, _res: Response, next: NextFunction) => {
     const authHeader = req.headers['authorization']
     if (authHeader && authHeader.startsWith('Bearer ')) {
       try {
@@ -47,7 +47,7 @@ vi.mock('../middleware/auth', () => ({
       _res.status(401).json({ message: 'Authentication required' })
     }
   },
-  optionalAuth: (req: any, _res: any, next: any) => next(),
+  optionalAuth: (req: Request, _res: Response, next: NextFunction) => next(),
 }))
 
 import usersRouter from './users'
@@ -71,13 +71,13 @@ function createApp(overrides: Record<string, unknown> = {}) {
         }
         return Promise.resolve(null)
       }),
-      updateProfile: vi.fn().mockImplementation((_id: string, data: any) =>
+      updateProfile: vi.fn().mockImplementation((_id: string, data: Record<string, unknown>) =>
         Promise.resolve({ id: 'user-1', ...data }),
       ),
     },
   }
 
-  app.use((req: any, _res, next) => {
+  app.use((req: Request, _res: Response, next: NextFunction) => {
     req.container = { cradle: { ...defaultMocks, ...overrides } }
     next()
   })
