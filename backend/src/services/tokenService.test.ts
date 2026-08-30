@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
+import type { Response } from 'express'
 import { setAuthCookies, clearAuthCookies } from './tokenService'
 
 // Mock env
@@ -10,7 +11,7 @@ function mockRes() {
   return {
     cookie: vi.fn(),
     clearCookie: vi.fn(),
-  } as any
+  } as unknown as Response
 }
 
 describe('setAuthCookies', () => {
