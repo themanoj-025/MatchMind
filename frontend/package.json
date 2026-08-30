@@ -9,7 +9,9 @@
     "typecheck": "tsc -b",
     "lint": "oxlint",
     "test": "tsc -b",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build"
   },
   "dependencies": {
     "@matchmind/shared-types": "*",
@@ -37,6 +39,11 @@
     "postcss": "^8.5.16",
     "tailwindcss": "^4.3.2",
     "typescript": "~6.0.2",
-    "vite": "^8.1.1"
+    "vite": "^8.1.1",
+    "@storybook/react-vite": "^8.0.0",
+    "@storybook/addon-essentials": "^8.0.0",
+    "@storybook/addon-interactions": "^8.0.0",
+    "@storybook/react": "^8.0.0",
+    "storybook": "^8.0.0"
   }
 }
