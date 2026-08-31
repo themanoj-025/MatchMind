@@ -12,7 +12,7 @@
 # ════════════════════════════════════════════════════════════════════════════
 # BACKEND — Express + Prisma (glibc required for Prisma query engine)
 # ════════════════════════════════════════════════════════════════════════════
-FROM node:20-slim AS backend-builder
+FROM node:26-slim AS backend-builder
 
 WORKDIR /app
 
@@ -48,7 +48,7 @@ RUN mkdir -p /app/backend/dist/src/config /app/backend/dist/src/data && \
     cp -r /app/backend/src/data/. /app/backend/dist/src/data/
 
 # Production runner
-FROM node:20-slim AS backend
+FROM node:26-slim AS backend
 
 WORKDIR /app
 
@@ -83,7 +83,7 @@ CMD ["node", "dist/src/index.js"]
 # ════════════════════════════════════════════════════════════════════════════
 # FRONTEND — Vite React SPA → nginx
 # ════════════════════════════════════════════════════════════════════════════
-FROM node:20-alpine AS frontend-build
+FROM node:26-alpine AS frontend-build
 
 WORKDIR /app
 
