@@ -55,7 +55,7 @@
     "redis": "^6.1.0",
     "resend": "^6.17.2",
     "socket.io": "^4.8.3",
-    "stripe": "^22.3.1",
+    "stripe": "^22.6.0",
     "swagger-ui-express": "^5.0.1",
     "uuid": "^14.0.1",
     "uuidv7": "^1.2.1",
