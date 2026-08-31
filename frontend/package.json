@@ -33,7 +33,7 @@
     "@types/node": "^26.4.0",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.3",
-    "@vitejs/plugin-react": "^6.1.0",
+    "@vitejs/plugin-react": "^6.1.1",
     "autoprefixer": "^10.5.2",
     "oxlint": "^1.71.0",
     "postcss": "^8.5.16",
