@@ -68,7 +68,7 @@ export interface DraftRunState {
   nextMatchdayLabel: string | null
 }
 
-const BENCHMARK_SCORE_BASE = 45 // average fantasy points for a full squad
-const BENCHMARK_VARIANCE = 15 // ± random variance
+export const BENCHMARK_SCORE_BASE = 45 // average fantasy points for a full squad
+export const BENCHMARK_VARIANCE = 15 // ± random variance
 
 // ─── Enter Run (§2.1) ───────────────────────────────────
