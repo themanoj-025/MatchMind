@@ -88,3 +88,9 @@ start.bat
 
 # Runtime balance log
 radar_balance.txt
+
+# Test coverage artifacts
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
