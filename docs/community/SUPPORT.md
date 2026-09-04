@@ -2,7 +2,7 @@
 
 ## Where to get help
 
-- **🐛 Bug reports & feature requests** — Open an issue on [GitHub Issues](https://github.com/themanoj-025/Match-Mind/issues)
+- **🐛 Bug reports & feature requests** — Open an issue on [GitHub Issues](https://github.com/themanoj-025/MatchMind/issues)
 - **❓ Questions** — Use GitHub Discussions if enabled, or open an issue with the `question` label
 - **🔒 Security vulnerabilities** — See [SECURITY.md](SECURITY.md) for responsible disclosure
 - **📧 Email** — manojjana.0025@gmail.com (for private/urgent matters)
