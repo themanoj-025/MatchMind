@@ -1995,7 +1995,7 @@ No way for the community to ask questions or discuss features outside of issues.
 README badges reference:
 
 ```
-https://github.com/themanoj-025/Match-Mind/actions/workflows/ci.yml/badge.svg
+https://github.com/themanoj-025/MatchMind/actions/workflows/ci.yml/badge.svg
 ```
 
 If the CI workflow is broken, the badge shows "failing" or "no status".
