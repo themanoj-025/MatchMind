@@ -8,6 +8,7 @@ import { configurePassport } from './config/passport'
 import { setupSocket } from './socket'
 import { createAdapter } from '@socket.io/redis-adapter'
 import { redis } from './lib/redis'
+import { startAuctionRecovery } from './lib/auctionRecovery'
 import { errorHandler } from './middleware/errorHandler'
 import { initDatabase } from './infrastructure/database'
 import { healthRouter } from './infrastructure/health'
@@ -49,6 +50,10 @@ initDatabase().then(() => {
       `MatchMind API server running on port ${PORT}`,
     )
   })
+  // Re-arm BullMQ timers for auctions that were PLAYER_LIVE before this
+  // process (re)started — jobs lost to a Redis restart are recreated,
+  // surviving ones deduped by jobId. Fire-and-forget; failures only log.
+  void startAuctionRecovery()
 })
 
 // Setup Graceful Shutdown
