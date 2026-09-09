@@ -94,3 +94,8 @@ radar_balance.txt
 .coverage.*
 htmlcov/
 coverage.xml
+
+# ── Portfolio-standard ignores (sweep 2026-09) ──────────────
+*.db
+*.db-shm
+*.db-wal
