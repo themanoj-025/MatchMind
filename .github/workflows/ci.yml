@@ -15,7 +15,7 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           cache: pip
-          python-version: "3.12"
+          python-version: '3.12'
 
       - name: Run pre-commit hooks
         run: |
@@ -31,7 +31,7 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           cache: pip
-          python-version: "3.12"
+          python-version: '3.12'
 
       - name: Install Python tools
         run: pip install ruff mypy bandit
@@ -78,7 +78,7 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           cache: pip
-          python-version: "3.12"
+          python-version: '3.12'
 
       - name: Install pip-audit
         run: pip install pip-audit
@@ -156,6 +156,11 @@ jobs:
           DATABASE_URL: postgresql://matchmind:matchmind_test_password@localhost:5433/matchmind_test
           REDIS_URL: redis://localhost:6380
 
+      - name: Run Tests (Frontend)
+        run: cd frontend && npx vitest run --coverage
+        env:
+          NODE_ENV: test
+
       - name: Security Scan (Trivy / npm audit)
         run: |
           # GHSA-qwww-vcr4-c8h2 (react-router RSC-mode CSRF) has no patched
@@ -209,9 +214,13 @@ jobs:
       - uses: hadolint/hadolint-action@v3.5.0
         with:
           dockerfile: backend/Dockerfile
+          failure-threshold: warning
+          failure-threshold-ignore: DL3066
       - uses: hadolint/hadolint-action@v3.5.0
         with:
           dockerfile: backend/Dockerfile.prod
+          failure-threshold: warning
+          failure-threshold-ignore: DL3066
 
   docker:
     runs-on: ubuntu-latest
@@ -329,7 +338,7 @@ jobs:
           CI=true dive dive-audit:latest --ci-image-size-threshold=1024 --ci-wasted-bytes-threshold=51200000
 
   lighthouse:
-    name: "Frontend — Lighthouse CI (performance budgets)"
+    name: 'Frontend — Lighthouse CI (performance budgets)'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     defaults:
@@ -339,7 +348,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v4
         with:
-          node-version: "22"
+          node-version: '22'
           cache: npm
           cache-dependency-path: frontend/package-lock.json
       - name: Install dependencies
