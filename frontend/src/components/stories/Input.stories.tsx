@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react'
-import Input from './Input'
+import { Input } from '../Input'
 
 const meta = {
   title: 'Components/Input',
@@ -21,9 +21,9 @@ export const Default: Story = {
 }
 
 export const WithLabel: Story = {
+  name: 'With Label',
   args: {
-    label: 'Email',
-    placeholder: 'user@example.com',
+    placeholder: 'Email',
     type: 'email',
   },
 }
