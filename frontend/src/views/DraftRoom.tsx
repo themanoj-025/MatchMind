@@ -1,4 +1,48 @@
-import { DraftTimer } from "./DraftRoom_types"
+import React, { useState, useEffect, useRef } from 'react'
+import { useParams, useNavigate } from 'react-router-dom'
+import { io, Socket } from 'socket.io-client'
+import { useAuthStore } from '../store/useAuthStore'
+import { useToastStore } from '../store/useToastStore'
+import { Button } from '../components/Button'
+import { Input } from '../components/Input'
+import { Card } from '../components/Card'
+import { MessageSquare, Users, DollarSign, Clock, Sparkles, Trophy, ArrowLeft } from 'lucide-react'
+
+import { env } from '../config/env'
+import { useAuctionAdvice } from '../hooks/useAuctionAdvice'
+import type {
+  ActiveMember,
+  AiAdvice,
+  BidUpdatedData,
+  ChatMsg,
+  Player,
+  PlayerSoldData,
+  RosterItem,
+  RoomState,
+} from './DraftRoom_types'
+
+const DraftTimer: React.FC<{ timerEndsAt: string | null }> = ({ timerEndsAt }) => {
+  const [timeLeft, setTimeLeft] = useState(0)
+
+  useEffect(() => {
+    if (!timerEndsAt) return
+    const interval = setInterval(() => {
+      const remaining = Math.max(0, Math.round((new Date(timerEndsAt).getTime() - Date.now()) / 1000))
+      setTimeLeft(remaining)
+      if (remaining === 0) {
+        clearInterval(interval)
+      }
+    }, 500)
+    return () => clearInterval(interval)
+  }, [timerEndsAt])
+
+  return (
+    <div className="flex items-center gap-2 mt-1.5 text-2xl font-bold font-mono text-rose-400">
+      <Clock className="w-5 h-5 text-rose-400 animate-pulse" /> {timeLeft}s
+    </div>
+  )
+}
+
 export const DraftRoom: React.FC = () => {
   const { roomId } = useParams<{ roomId: string }>()
   const { user } = useAuthStore()
@@ -66,11 +110,11 @@ export const DraftRoom: React.FC = () => {
     newSocket.on('BID_UPDATED', (data: BidUpdatedData) => {
       setCurrentBid(data.amount)
       setCurrentBidderId(data.userId)
-      setTimerEndsAt(data.timerEndsAt)
+      setTimerEndsAt(data.timerEndsAt ?? null)
 
       // Update local budget state for the bidder
       if (data.userId === user?.id) {
-        setMyBudget(data.remainingBudget)
+        setMyBudget(data.remainingBudget ?? 0)
       }
     })
 
@@ -214,9 +258,9 @@ export const DraftRoom: React.FC = () => {
             </h3>
             <div className="space-y-3">
               {activeMembers.map((member) => (
-                <div key={member.id} className="flex justify-between items-center text-xs">
+                <div key={member.userId} className="flex justify-between items-center text-xs">
                   <span className={member.userId === user?.id ? 'text-accent-bright font-semibold' : 'text-foreground'}>
-                    {member.user?.username || 'Guest'}
+                    {member.user?.username || member.username || 'Guest'}
                   </span>
                   <span className="font-mono text-foreground-muted">${member.remainingBudget}M</span>
                 </div>

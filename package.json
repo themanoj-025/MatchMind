@@ -23,10 +23,17 @@
     "test": "cd backend && npm run test:ci && cd ../frontend && npm run test"
   },
   "lint-staged": {
-    "*.{ts,tsx,js,jsx}": [
-      "eslint --fix",
+    "frontend/**/*.{ts,tsx}": [
       "prettier --write --ignore-unknown",
-      "bash -c 'npm run typecheck'"
+      "bash -c 'cd frontend && npm run typecheck'"
+    ],
+    "backend/**/*.ts": [
+      "eslint --fix --config backend/eslint.config.mjs",
+      "prettier --write --ignore-unknown",
+      "bash -c 'cd backend && npm run typecheck'"
+    ],
+    "*.{ts,tsx,js,jsx}": [
+      "prettier --write --ignore-unknown"
     ],
     "*.{json,md,yml,yaml}": [
       "prettier --write --ignore-unknown"
