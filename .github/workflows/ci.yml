@@ -215,12 +215,12 @@ jobs:
         with:
           dockerfile: backend/Dockerfile
           failure-threshold: warning
-          failure-threshold-ignore: DL3066
+          ignore: DL3066
       - uses: hadolint/hadolint-action@v3.5.0
         with:
           dockerfile: backend/Dockerfile.prod
           failure-threshold: warning
-          failure-threshold-ignore: DL3066
+          ignore: DL3066
 
   docker:
     runs-on: ubuntu-latest
