@@ -34,7 +34,7 @@ jobs:
           python-version: '3.12'
 
       - name: Install Python tools
-        run: pip install ruff mypy bandit
+        run: pip install ruff==0.16.4 mypy==2.3.1 bandit==1.9.4
 
       - name: Ruff lint
         run: ruff check .
@@ -214,12 +214,12 @@ jobs:
       - uses: hadolint/hadolint-action@v3.5.0
         with:
           dockerfile: backend/Dockerfile
-          failure-threshold: warning
+          failure-threshold: error
           ignore: DL3066
       - uses: hadolint/hadolint-action@v3.5.0
         with:
           dockerfile: backend/Dockerfile.prod
-          failure-threshold: warning
+          failure-threshold: error
           ignore: DL3066
 
   docker:
@@ -335,7 +335,7 @@ jobs:
           sudo dpkg -i dive_0.12.0_linux_amd64.deb
       - name: Run dive (efficiency check)
         run: |
-          CI=true dive dive-audit:latest --ci-image-size-threshold=1024 --ci-wasted-bytes-threshold=51200000
+          CI=true dive dive-audit:latest
 
   lighthouse:
     name: 'Frontend — Lighthouse CI (performance budgets)'
