@@ -17,12 +17,7 @@ vi.mock('./queue', () => ({
 }))
 
 import { auctionQueue, auctionTimerJobId } from './queue'
-import {
-  recoverAuctionTimers,
-  isRecoverable,
-  RECOVERY_MIN_DELAY_MS,
-  type RecoverableAuction,
-} from './auctionRecovery'
+import { recoverAuctionTimers, isRecoverable, RECOVERY_MIN_DELAY_MS, type RecoverableAuction } from './auctionRecovery'
 
 const addMock = vi.mocked(auctionQueue.add)
 
@@ -117,10 +112,7 @@ describe('recoverAuctionTimers', () => {
 
   it('clamps sub-second delays to RECOVERY_MIN_DELAY_MS', async () => {
     const now = Date.now()
-    await recoverAuctionTimers(
-      async () => [auction({ roomId: 'r-soon', timerEndsAt: new Date(now + 50) }, now)],
-      now,
-    )
+    await recoverAuctionTimers(async () => [auction({ roomId: 'r-soon', timerEndsAt: new Date(now + 50) }, now)], now)
     expect(addMock.mock.calls[0]![2]?.delay).toBe(RECOVERY_MIN_DELAY_MS)
   })
 

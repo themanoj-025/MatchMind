@@ -21,7 +21,12 @@ vi.mock('../utils/logger', () => ({
 describe('emailService', () => {
   let sendVerificationEmail: typeof import('./emailService').sendVerificationEmail
   let sendPasswordResetEmail: typeof import('./emailService').sendPasswordResetEmail
-  let logger: { info: ReturnType<typeof vi.fn>; error: ReturnType<typeof vi.fn>; warn: ReturnType<typeof vi.fn>; debug: ReturnType<typeof vi.fn> }
+  let logger: {
+    info: ReturnType<typeof vi.fn>
+    error: ReturnType<typeof vi.fn>
+    warn: ReturnType<typeof vi.fn>
+    debug: ReturnType<typeof vi.fn>
+  }
 
   beforeEach(async () => {
     vi.clearAllMocks()

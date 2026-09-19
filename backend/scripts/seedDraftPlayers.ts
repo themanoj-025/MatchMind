@@ -83,7 +83,16 @@ function main() {
   const wwcPlayers = [...wwcBase, ...wwcFillers]
   const copaPlayers = [...copaBase, ...copaFillers]
 
-  const allPlayers: { id: string; tournamentId: string; name: string; club: string; nationality: string; position: string; basePrice: number; isEligibleForIcon?: boolean }[] = []
+  const allPlayers: {
+    id: string
+    tournamentId: string
+    name: string
+    club: string
+    nationality: string
+    position: string
+    basePrice: number
+    isEligibleForIcon?: boolean
+  }[] = []
   let idCounter = 1
 
   const tournaments = [

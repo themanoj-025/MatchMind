@@ -44,9 +44,13 @@ export function auctionTimerJobId(roomId: string, timerEndsAt: string): string {
 export async function scheduleAuctionTimer(roomId: string, timerEndsAt: string) {
   const delay = new Date(timerEndsAt).getTime() - Date.now()
   if (delay > 0) {
-    await auctionQueue.add('timerTick', { roomId }, {
-      delay,
-      jobId: auctionTimerJobId(roomId, timerEndsAt),
-    })
+    await auctionQueue.add(
+      'timerTick',
+      { roomId },
+      {
+        delay,
+        jobId: auctionTimerJobId(roomId, timerEndsAt),
+      },
+    )
   }
 }

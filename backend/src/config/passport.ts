@@ -16,11 +16,7 @@ import type { User } from '@prisma/client'
 import type { DatabaseClient } from '../repositories/index'
 import logger from '../utils/logger'
 
-async function findOrCreateGoogleUser(
-  prisma: DatabaseClient,
-  email: string,
-  profile: GoogleProfile,
-): Promise<User> {
+async function findOrCreateGoogleUser(prisma: DatabaseClient, email: string, profile: GoogleProfile): Promise<User> {
   let user = await prisma.user.findUnique({ where: { email } })
   if (!user) {
     user = await prisma.user.create({
@@ -46,7 +42,9 @@ export function configurePassport(prisma: DatabaseClient) {
     new JwtStrategy(jwtOpts, async (payload: { userId: string }, done) => {
       try {
         const user = await prisma.user.findUnique({ where: { id: payload.userId } })
-        if (!user) {return done(null, false)}
+        if (!user) {
+          return done(null, false)
+        }
         return done(null, user)
       } catch (err: unknown) {
         return done(err, false)
@@ -66,7 +64,9 @@ export function configurePassport(prisma: DatabaseClient) {
         async (accessToken: string, refreshToken: string, profile: GoogleProfile, done: GoogleVerifyCallback) => {
           try {
             const email = profile.emails?.[0]?.value
-            if (!email) {return done(new Error('No email from Google'), false)}
+            if (!email) {
+              return done(new Error('No email from Google'), false)
+            }
             return done(null, await findOrCreateGoogleUser(prisma, email, profile))
           } catch (err: unknown) {
             return done(err, false)

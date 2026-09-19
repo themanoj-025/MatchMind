@@ -26,12 +26,15 @@ router.get('/conversations', authenticateToken, async (req: AuthenticatedRequest
   // Get all DM rooms this user is part of
   const messages = await messageService.getUserDMMessages(userId)
   // Group by roomId and get latest message per conversation
-  const roomMap = new Map<string, {
-    roomId: string
-    otherUserId: string
-    lastMessage: (typeof messages)[number]
-    messageCount: number
-  }>()
+  const roomMap = new Map<
+    string,
+    {
+      roomId: string
+      otherUserId: string
+      lastMessage: (typeof messages)[number]
+      messageCount: number
+    }
+  >()
   for (const msg of messages) {
     if (!roomMap.has(msg.roomId)) {
       const participants = msg.roomId.replace('dm:', '').split(':')

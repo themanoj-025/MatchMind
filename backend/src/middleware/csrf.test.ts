@@ -97,11 +97,7 @@ describe('csrfProtection', () => {
   })
 
   it('returns 403 on token mismatch', () => {
-    const { req, res, next } = mockReqRes(
-      'POST',
-      { 'csrf-token': 'token-A' },
-      { 'x-csrf-token': 'token-B' },
-    )
+    const { req, res, next } = mockReqRes('POST', { 'csrf-token': 'token-A' }, { 'x-csrf-token': 'token-B' })
     csrfProtection(req, res, next)
     expect(res.status).toHaveBeenCalledWith(403)
     expect(res.json).toHaveBeenCalledWith(
@@ -113,11 +109,7 @@ describe('csrfProtection', () => {
 
   it('passes when cookie and header match', () => {
     const token = '550e8400-e29b-41d4-a716-446655440000'
-    const { req, res, next } = mockReqRes(
-      'POST',
-      { 'csrf-token': token },
-      { 'x-csrf-token': token },
-    )
+    const { req, res, next } = mockReqRes('POST', { 'csrf-token': token }, { 'x-csrf-token': token })
     csrfProtection(req, res, next)
     expect(next).toHaveBeenCalledOnce()
   })
@@ -134,8 +126,6 @@ describe('csrfTokenHandler', () => {
     const { req, res } = mockReqRes('GET', {})
     csrfTokenHandler(req, res)
     expect(res.cookie).toHaveBeenCalled()
-    expect(res.json).toHaveBeenCalledWith(
-      expect.objectContaining({ csrfToken: expect.any(String) }),
-    )
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ csrfToken: expect.any(String) }))
   })
 })

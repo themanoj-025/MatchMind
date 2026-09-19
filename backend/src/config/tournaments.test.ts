@@ -1,5 +1,14 @@
 import { describe, it, expect } from 'vitest'
-import { getTournament, isValidTournamentId, listLive, listAnnounced, listVisible, POSITIONS, DEFAULT_ROSTER_RULES, BID_INCREMENTS } from './tournaments'
+import {
+  getTournament,
+  isValidTournamentId,
+  listLive,
+  listAnnounced,
+  listVisible,
+  POSITIONS,
+  DEFAULT_ROSTER_RULES,
+  BID_INCREMENTS,
+} from './tournaments'
 
 describe('tournament accessors', () => {
   it('getTournament returns a tournament by ID', () => {

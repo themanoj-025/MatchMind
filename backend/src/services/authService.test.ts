@@ -12,13 +12,7 @@
 import { describe, it, expect, vi, beforeEach, beforeAll } from 'vitest'
 import * as argon2 from 'argon2'
 import jwt from 'jsonwebtoken'
-import {
-  AuthService,
-  AuthError,
-  generateTokens,
-  getTokenVersion,
-  revokeTokens,
-} from './authService'
+import { AuthService, AuthError, generateTokens, getTokenVersion, revokeTokens } from './authService'
 import type { IUserRepository, UserData } from '../repositories/types'
 
 // Set JWT secrets before any imports that read env
@@ -73,9 +67,7 @@ function createMockRepo(overrides: Partial<IUserRepository> = {}): IUserReposito
     findByUsername: vi.fn().mockResolvedValue(null),
     findByEmailOrUsername: vi.fn().mockResolvedValue(null),
     create: vi.fn().mockResolvedValue(createMockUser()),
-    update: vi.fn().mockImplementation((_id: string, data: Partial<UserData>) =>
-      Promise.resolve(createMockUser(data)),
-    ),
+    update: vi.fn().mockImplementation((_id: string, data: Partial<UserData>) => Promise.resolve(createMockUser(data))),
     delete: vi.fn().mockResolvedValue(undefined),
     findMany: vi.fn().mockResolvedValue([]),
     count: vi.fn().mockResolvedValue(0),
@@ -127,13 +119,9 @@ describe('AuthService', () => {
     it('throws AuthError if email or username already exists', async () => {
       repo.findByEmailOrUsername = vi.fn().mockResolvedValue(createMockUser())
 
-      await expect(
-        service.signup('existinguser', 'existing@example.com', 'password123'),
-      ).rejects.toThrow(AuthError)
+      await expect(service.signup('existinguser', 'existing@example.com', 'password123')).rejects.toThrow(AuthError)
 
-      await expect(
-        service.signup('existinguser', 'existing@example.com', 'password123'),
-      ).rejects.toMatchObject({
+      await expect(service.signup('existinguser', 'existing@example.com', 'password123')).rejects.toMatchObject({
         code: 'DUPLICATE_USER',
         statusCode: 409,
       })
@@ -170,17 +158,13 @@ describe('AuthService', () => {
 
     it('throws AuthError for wrong password', async () => {
       const passwordHash = await argon2.hash('correctpassword')
-      repo.findByEmail = vi.fn().mockResolvedValue(
-        createMockUser({ passwordHash }),
-      )
+      repo.findByEmail = vi.fn().mockResolvedValue(createMockUser({ passwordHash }))
 
       await expect(service.login('test@example.com', 'wrongpassword')).rejects.toThrow(AuthError)
     })
 
     it('throws AuthError if user has no passwordHash', async () => {
-      repo.findByEmail = vi.fn().mockResolvedValue(
-        createMockUser({ passwordHash: null }),
-      )
+      repo.findByEmail = vi.fn().mockResolvedValue(createMockUser({ passwordHash: null }))
 
       await expect(service.login('test@example.com', 'password')).rejects.toThrow(AuthError)
     })
@@ -190,11 +174,7 @@ describe('AuthService', () => {
     it('returns new tokens for valid refresh token', async () => {
       const userId = 'user-1'
       const tokenVersion = 0
-      const refreshToken = jwt.sign(
-        { userId, tokenVersion },
-        process.env.JWT_REFRESH_SECRET!,
-        { expiresIn: '30d' },
-      )
+      const refreshToken = jwt.sign({ userId, tokenVersion }, process.env.JWT_REFRESH_SECRET!, { expiresIn: '30d' })
 
       repo.findById = vi.fn().mockResolvedValue(createMockUser({ id: userId, tokenVersion }))
 
@@ -209,11 +189,9 @@ describe('AuthService', () => {
     })
 
     it('throws AuthError when user not found', async () => {
-      const refreshToken = jwt.sign(
-        { userId: 'nonexistent', tokenVersion: 0 },
-        process.env.JWT_REFRESH_SECRET!,
-        { expiresIn: '30d' },
-      )
+      const refreshToken = jwt.sign({ userId: 'nonexistent', tokenVersion: 0 }, process.env.JWT_REFRESH_SECRET!, {
+        expiresIn: '30d',
+      })
 
       repo.findById = vi.fn().mockResolvedValue(null)
 
@@ -225,16 +203,12 @@ describe('AuthService', () => {
     it('throws AuthError on token reuse detection', async () => {
       const userId = 'user-1'
       const oldTokenVersion = 0
-      const refreshToken = jwt.sign(
-        { userId, tokenVersion: oldTokenVersion },
-        process.env.JWT_REFRESH_SECRET!,
-        { expiresIn: '30d' },
-      )
+      const refreshToken = jwt.sign({ userId, tokenVersion: oldTokenVersion }, process.env.JWT_REFRESH_SECRET!, {
+        expiresIn: '30d',
+      })
 
       // User has incremented token version (e.g., after password change)
-      repo.findById = vi.fn().mockResolvedValue(
-        createMockUser({ id: userId, tokenVersion: 1 }),
-      )
+      repo.findById = vi.fn().mockResolvedValue(createMockUser({ id: userId, tokenVersion: 1 }))
 
       await expect(service.refreshToken(refreshToken)).rejects.toMatchObject({
         code: 'INVALID_TOKEN',
@@ -250,15 +224,11 @@ describe('AuthService', () => {
       repo.findByEmail = vi.fn().mockResolvedValue(null)
 
       // Should not throw — always returns success to prevent email enumeration
-      await expect(
-        service.generatePasswordResetToken('nonexistent@example.com'),
-      ).resolves.toBeUndefined()
+      await expect(service.generatePasswordResetToken('nonexistent@example.com')).resolves.toBeUndefined()
     })
 
     it('generates reset token for existing user', async () => {
-      repo.findByEmail = vi.fn().mockResolvedValue(
-        createMockUser({ id: 'user-1', tokenVersion: 0 }),
-      )
+      repo.findByEmail = vi.fn().mockResolvedValue(createMockUser({ id: 'user-1', tokenVersion: 0 }))
       repo.update = vi.fn().mockResolvedValue(createMockUser({ tokenVersion: 1 }))
 
       await service.generatePasswordResetToken('test@example.com')
@@ -272,15 +242,11 @@ describe('AuthService', () => {
     it('resets password with valid token', async () => {
       const userId = 'user-1'
       const tokenVersion = 0
-      const resetToken = jwt.sign(
-        { userId, purpose: 'password-reset', tokenVersion },
-        process.env.JWT_RESET_SECRET!,
-        { expiresIn: '1h' },
-      )
+      const resetToken = jwt.sign({ userId, purpose: 'password-reset', tokenVersion }, process.env.JWT_RESET_SECRET!, {
+        expiresIn: '1h',
+      })
 
-      repo.findById = vi.fn().mockResolvedValue(
-        createMockUser({ id: userId, tokenVersion }),
-      )
+      repo.findById = vi.fn().mockResolvedValue(createMockUser({ id: userId, tokenVersion }))
       repo.update = vi.fn().mockResolvedValue(createMockUser({ tokenVersion: 1 }))
 
       await service.resetPassword(resetToken, 'newpassword123')
@@ -292,21 +258,15 @@ describe('AuthService', () => {
     })
 
     it('throws AuthError for invalid token', async () => {
-      await expect(
-        service.resetPassword('invalid-token', 'newpassword'),
-      ).rejects.toThrow(AuthError)
+      await expect(service.resetPassword('invalid-token', 'newpassword')).rejects.toThrow(AuthError)
     })
 
     it('throws AuthError for wrong purpose token', async () => {
-      const resetToken = jwt.sign(
-        { userId: 'user-1', purpose: 'email-verification' },
-        process.env.JWT_RESET_SECRET!,
-        { expiresIn: '1h' },
-      )
+      const resetToken = jwt.sign({ userId: 'user-1', purpose: 'email-verification' }, process.env.JWT_RESET_SECRET!, {
+        expiresIn: '1h',
+      })
 
-      await expect(
-        service.resetPassword(resetToken, 'newpassword'),
-      ).rejects.toMatchObject({ code: 'INVALID_TOKEN' })
+      await expect(service.resetPassword(resetToken, 'newpassword')).rejects.toMatchObject({ code: 'INVALID_TOKEN' })
     })
   })
 })
@@ -319,10 +279,7 @@ describe('generateTokens', () => {
     expect(tokens.refreshToken).toBeDefined()
 
     // Verify access token
-    const decoded = jwt.verify(
-      tokens.accessToken,
-      process.env.JWT_SECRET!,
-    ) as { userId: string; tokenVersion: number }
+    const decoded = jwt.verify(tokens.accessToken, process.env.JWT_SECRET!) as { userId: string; tokenVersion: number }
     expect(decoded.userId).toBe('user-1')
     expect(decoded.tokenVersion).toBe(0)
   })
@@ -330,10 +287,7 @@ describe('generateTokens', () => {
   it('includes tokenVersion in tokens', () => {
     const tokens = generateTokens('user-1', 5)
 
-    const decoded = jwt.verify(
-      tokens.accessToken,
-      process.env.JWT_SECRET!,
-    ) as { tokenVersion: number }
+    const decoded = jwt.verify(tokens.accessToken, process.env.JWT_SECRET!) as { tokenVersion: number }
     expect(decoded.tokenVersion).toBe(5)
   })
 })

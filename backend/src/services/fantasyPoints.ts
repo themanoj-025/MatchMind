@@ -192,9 +192,7 @@ function didCaptainPlay(
   playerStats: Record<string, { stats: PlayerMatchStats; position: string }>,
 ): boolean {
   const captainEntry = rosters.find((r) => r.isCaptain)
-  return captainEntry
-    ? (playerStats[captainEntry.playerId]?.stats.minutesPlayed ?? 0) > 0
-    : false
+  return captainEntry ? (playerStats[captainEntry.playerId]?.stats.minutesPlayed ?? 0) > 0 : false
 }
 
 function captainMultiplierFor(isCaptain: boolean, isViceCaptain: boolean, captainPlayed: boolean): number {
@@ -223,7 +221,9 @@ export async function computeFantasyPoints(
     const stats = playerStats[roster.playerId]?.stats
     const position = playerStats[roster.playerId]?.position || 'MID'
 
-    if (!stats) {continue}
+    if (!stats) {
+      continue
+    }
 
     const breakdown = calculatePlayerPoints(stats, position, roster.isCaptain, roster.isViceCaptain, captainPlayed)
 

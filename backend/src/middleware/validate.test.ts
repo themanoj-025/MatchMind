@@ -39,9 +39,7 @@ describe('validate middleware', () => {
       expect.objectContaining({
         error: expect.objectContaining({
           code: 'VALIDATION_ERROR',
-          details: expect.arrayContaining([
-            expect.objectContaining({ path: 'name' }),
-          ]),
+          details: expect.arrayContaining([expect.objectContaining({ path: 'name' })]),
         }),
       }),
     )

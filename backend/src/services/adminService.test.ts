@@ -126,9 +126,7 @@ describe('AdminService', () => {
       const failingService = new AdminService(failingDeps)
 
       // Should not throw
-      await expect(
-        failingService.logAction('admin-1', 'TEST_ACTION'),
-      ).resolves.toBeUndefined()
+      await expect(failingService.logAction('admin-1', 'TEST_ACTION')).resolves.toBeUndefined()
     })
   })
 })

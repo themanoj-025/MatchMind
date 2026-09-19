@@ -59,7 +59,12 @@ async function migrateData() {
           )
 
           // Using Prisma's model delegation dynamically
-          const modelDelegate = (prisma as unknown as Record<string, { createMany: (args: { data: PlayerRecord[]; skipDuplicates: boolean }) => Promise<unknown> }>)[modelName]
+          const modelDelegate = (
+            prisma as unknown as Record<
+              string,
+              { createMany: (args: { data: PlayerRecord[]; skipDuplicates: boolean }) => Promise<unknown> }
+            >
+          )[modelName]
           if (modelDelegate) {
             // We use upsert or createMany? createMany is safer but doesn't ignore duplicates on SQLite.
             // On Postgres, createMany(skipDuplicates) exists.

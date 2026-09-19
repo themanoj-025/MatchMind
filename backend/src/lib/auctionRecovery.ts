@@ -54,7 +54,9 @@ export async function defaultRecoveryLoader(): Promise<RecoveryLoader> {
 
 /** True when a room's timer should be re-armed at boot. */
 export function isRecoverable(a: RecoverableAuction, now: number = Date.now()): boolean {
-  if (!a.timerEndsAt) {return false}
+  if (!a.timerEndsAt) {
+    return false
+  }
   return new Date(a.timerEndsAt).getTime() > now
 }
 
@@ -68,10 +70,7 @@ export interface RecoveryResult {
 }
 
 /** Re-arm BullMQ timers for every live auction. Called once from server.ts. */
-export async function recoverAuctionTimers(
-  loader: RecoveryLoader,
-  now: number = Date.now(),
-): Promise<RecoveryResult> {
+export async function recoverAuctionTimers(loader: RecoveryLoader, now: number = Date.now()): Promise<RecoveryResult> {
   let auctions: RecoverableAuction[]
   try {
     auctions = await loader()
@@ -97,10 +96,14 @@ export async function recoverAuctionTimers(
     const timerEndsAt = new Date(a.timerEndsAt!).toISOString()
     const delay = Math.max(RECOVERY_MIN_DELAY_MS, new Date(timerEndsAt).getTime() - now)
     try {
-      await auctionQueue.add('timerTick', { roomId: a.roomId }, {
-        delay,
-        jobId: auctionTimerJobId(a.roomId, timerEndsAt),
-      })
+      await auctionQueue.add(
+        'timerTick',
+        { roomId: a.roomId },
+        {
+          delay,
+          jobId: auctionTimerJobId(a.roomId, timerEndsAt),
+        },
+      )
       reArmed++
     } catch (err) {
       logger.error(
@@ -112,7 +115,12 @@ export async function recoverAuctionTimers(
 
   if (auctions.length > 0) {
     logger.info(
-      { event: 'auction.recovery.done', roomsChecked: auctions.length, timersReArmed: reArmed, timersExpiredSkipped: expiredSkipped },
+      {
+        event: 'auction.recovery.done',
+        roomsChecked: auctions.length,
+        timersReArmed: reArmed,
+        timersExpiredSkipped: expiredSkipped,
+      },
       'Auction timer recovery sweep complete',
     )
   }
@@ -124,7 +132,9 @@ let recoveryStarted = false
 
 /** Fire-and-forget boot hook used by server.ts. */
 export async function startAuctionRecovery(): Promise<void> {
-  if (recoveryStarted) {return}
+  if (recoveryStarted) {
+    return
+  }
   recoveryStarted = true
   if (process.env.NODE_ENV === 'test' && !env.REDIS_URL) {
     logger.warn({ event: 'auction.recovery.skipped_test' }, 'Auction recovery skipped (test env, no Redis)')
