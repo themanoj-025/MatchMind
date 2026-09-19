@@ -178,9 +178,9 @@ describe('RoomService', () => {
 
   describe('getRoomMembers', () => {
     it('returns members with room status', async () => {
-      prisma.roomMember.findMany = vi.fn().mockResolvedValue([
-        { userId: 'user-1', isReady: true, user: { id: 'user-1', username: 'test' } },
-      ])
+      prisma.roomMember.findMany = vi
+        .fn()
+        .mockResolvedValue([{ userId: 'user-1', isReady: true, user: { id: 'user-1', username: 'test' } }])
       prisma.room.findUnique = vi.fn().mockResolvedValue({ status: 'LOBBY', hostId: 'user-1' })
 
       const result = await service.getRoomMembers('room-1')
@@ -247,9 +247,7 @@ describe('RoomService', () => {
 
       await service.toggleMemberReady('room-1', 'user-1', false)
 
-      expect(prisma.roomMember.update).toHaveBeenCalledWith(
-        expect.objectContaining({ data: { isReady: true } }),
-      )
+      expect(prisma.roomMember.update).toHaveBeenCalledWith(expect.objectContaining({ data: { isReady: true } }))
     })
   })
 
@@ -267,12 +265,8 @@ describe('RoomService', () => {
         id: 'room-1',
         tournamentId: 't1',
       })
-      prisma.fantasyPointsLedger.findMany = vi.fn().mockResolvedValue([
-        { userId: 'user-1', totalPoints: 100 },
-      ])
-      prisma.roster.findMany = vi.fn().mockResolvedValue([
-        { userId: 'user-1', soldPrice: 200 },
-      ])
+      prisma.fantasyPointsLedger.findMany = vi.fn().mockResolvedValue([{ userId: 'user-1', totalPoints: 100 }])
+      prisma.roster.findMany = vi.fn().mockResolvedValue([{ userId: 'user-1', soldPrice: 200 }])
 
       const result = await service.getRoomLeaderboardData('room-1')
 

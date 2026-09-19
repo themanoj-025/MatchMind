@@ -210,7 +210,14 @@ export async function resolveNextMatchday(
 // ─── Find Unresolved Fixtures ────────────────────────────
 
 function buildResolvedRound(
-  outcome: { roundNumber: number; newWins: number; newLosses: number; userPoints?: number; benchmarkPoints?: number; breakdown?: Record<string, number> },
+  outcome: {
+    roundNumber: number
+    newWins: number
+    newLosses: number
+    userPoints?: number
+    benchmarkPoints?: number
+    breakdown?: Record<string, number>
+  },
   result: DraftRunResult,
   nextFixture: { id: string },
 ): DraftRunRound {
@@ -225,7 +232,11 @@ function buildResolvedRound(
   }
 }
 
-function buildResolvedState(updatedResult: DraftRunResult, resolvedRound: DraftRunRound, squad: SquadPlayer[]): DraftRunState {
+function buildResolvedState(
+  updatedResult: DraftRunResult,
+  resolvedRound: DraftRunRound,
+  squad: SquadPlayer[],
+): DraftRunState {
   const isEliminated = updatedResult.totalLosses >= DRAFT.MAX_LOSSES && updatedResult.status === 'COMPLETE'
   const isFullClear = updatedResult.totalWins >= DRAFT.MAX_WINS && updatedResult.status === 'COMPLETE'
   return {
@@ -236,9 +247,7 @@ function buildResolvedState(updatedResult: DraftRunResult, resolvedRound: DraftR
     isEliminated,
     isFullClear,
     nextMatchdayLabel:
-      updatedResult.status === 'WAITING_FOR_MATCHDAY'
-        ? `Waiting for Matchday ${updatedResult.currentRound + 1}`
-        : null,
+      updatedResult.status === 'WAITING_FOR_MATCHDAY' ? `Waiting for Matchday ${updatedResult.currentRound + 1}` : null,
   }
 }
 

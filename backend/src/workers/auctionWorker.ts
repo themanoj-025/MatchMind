@@ -92,7 +92,10 @@ function broadcastFor(
   return null
 }
 
-async function rescheduleTimerIfNeeded(roomId: string, result: { action: string; state: AuctionState | null }): Promise<void> {
+async function rescheduleTimerIfNeeded(
+  roomId: string,
+  result: { action: string; state: AuctionState | null },
+): Promise<void> {
   // If a new player is live, we need to schedule a new timer
   if (result.state?.phase !== 'PLAYER_LIVE' || !result.state.timerEndsAt) {
     return
@@ -134,7 +137,13 @@ export const auctionWorker = new Worker(
     try {
       // Execute the timer check logic that was previously in the polling loop
       const deps = auctionTimerDeps(prisma)
-      const result = await checkAuctionTimer(roomId, deps.getState, deps.saveState, deps.deductBudget, deps.addRosterEntry)
+      const result = await checkAuctionTimer(
+        roomId,
+        deps.getState,
+        deps.saveState,
+        deps.deductBudget,
+        deps.addRosterEntry,
+      )
 
       if (result) {
         // Retrieve socket.io instance
@@ -145,16 +154,20 @@ export const auctionWorker = new Worker(
         }
 
         const room = await prisma.room.findUnique({ where: { id: roomId } })
-        if (!room) {return}
+        if (!room) {
+          return
+        }
 
         const stateBefore = await prisma.auctionState.findUnique({ where: { roomId } })
         await broadcastAuctionResult(io_instance, prisma, roomId, result, stateBefore)
       }
-
     } catch (err: unknown) {
       const isConcurrency =
         err instanceof ConcurrencyError ||
-        (typeof err === 'object' && err !== null && 'code' in err && (err as { code?: unknown }).code === 'CONCURRENCY_ERROR')
+        (typeof err === 'object' &&
+          err !== null &&
+          'code' in err &&
+          (err as { code?: unknown }).code === 'CONCURRENCY_ERROR')
       if (isConcurrency) {
         logger.warn({ event: 'worker.auction.concurrency', roomId }, 'Concurrency conflict in worker, ignoring')
       } else {

@@ -39,7 +39,8 @@ describe('DraftTicketService', () => {
     it('should consume a ticket successfully', async () => {
       const mockPrisma = createMockPrisma({
         draftTicket: {
-          findUnique: vi.fn()
+          findUnique: vi
+            .fn()
             .mockResolvedValueOnce(null) // first call: getOrCreateTicketRecord
             .mockResolvedValueOnce({ id: 'ticket-1', remaining: 4, resetsAt: new Date().toISOString() }), // after consume
           create: vi.fn().mockResolvedValue({ id: 'ticket-1', remaining: 1, resetsAt: new Date().toISOString() }),
@@ -135,9 +136,7 @@ describe('DraftTicketService', () => {
       const mockPrisma = createMockPrisma({
         draftTicket: {
           findUnique: vi.fn().mockResolvedValue(null),
-          create: vi.fn().mockImplementation(({ data }) =>
-            Promise.resolve({ id: 'ticket-new', ...data }),
-          ),
+          create: vi.fn().mockImplementation(({ data }) => Promise.resolve({ id: 'ticket-new', ...data })),
           update: vi.fn(),
           updateMany: vi.fn(),
         },

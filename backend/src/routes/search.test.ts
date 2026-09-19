@@ -73,12 +73,8 @@ describe('Search Routes', () => {
     })
 
     it('searches users and players for valid query', async () => {
-      const mockUsers = [
-        { id: 'u1', username: 'alice', displayName: 'Alice', avatar: null, tier: 'GOLD' },
-      ]
-      const mockPlayers = [
-        { id: 'p1', name: 'Alice Smith', position: 'BATTER' },
-      ]
+      const mockUsers = [{ id: 'u1', username: 'alice', displayName: 'Alice', avatar: null, tier: 'GOLD' }]
+      const mockPlayers = [{ id: 'p1', name: 'Alice Smith', position: 'BATTER' }]
 
       container.cradle.prisma.user.findMany = vi.fn().mockResolvedValue(mockUsers)
       container.cradle.prisma.player.findMany = vi.fn().mockResolvedValue(mockPlayers)

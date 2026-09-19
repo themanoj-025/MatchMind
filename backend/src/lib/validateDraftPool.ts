@@ -44,7 +44,9 @@ interface PlayerRecord {
 
 function loadJSON(filename: string, dataDir: string): PlayerRecord[] {
   const filePath = path.join(dataDir, filename)
-  if (!fs.existsSync(filePath)) {return []}
+  if (!fs.existsSync(filePath)) {
+    return []
+  }
   return JSON.parse(fs.readFileSync(filePath, 'utf-8')) as PlayerRecord[]
 }
 
@@ -68,11 +70,7 @@ function countRarityDistribution(players: PlayerRecord[]): Record<string, Record
   return counts
 }
 
-function checkRarityCoverage(
-  counts: Record<string, Record<string, number>>,
-  errors: string[],
-  infos: string[],
-): void {
+function checkRarityCoverage(counts: Record<string, Record<string, number>>, errors: string[], infos: string[]): void {
   for (const pos of POSITIONS) {
     for (const rarity of RARITY_TIERS) {
       const count = counts[pos]?.[rarity] || 0
@@ -101,7 +99,13 @@ function checkBasePrices(players: PlayerRecord[], errors: string[]): void {
   }
 }
 
-function checkRarityTiers(players: PlayerRecord[], tournamentId: string, dataDir: string, errors: string[], infos: string[]): void {
+function checkRarityTiers(
+  players: PlayerRecord[],
+  tournamentId: string,
+  dataDir: string,
+  errors: string[],
+  infos: string[],
+): void {
   const hasRarityData = players.some((p) => p.rarityTier != null)
 
   if (!hasRarityData) {

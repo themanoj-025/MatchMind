@@ -118,7 +118,14 @@ function makeAuctionHelpers(prisma: DatabaseClient) {
       prisma.roomMember.findUnique({ where: { roomId_userId: { roomId, userId } } }),
     getRoster: async (roomId: string, userId: string) => prisma.roster.findMany({ where: { roomId, userId } }),
     getPlayerPool: async (_roomId: string) => [], // Filled from auction state
-    saveBid: async (bid: { roomId: string; playerId: string; userId: string; amount: number; timestamp: string; version: number }) => {
+    saveBid: async (bid: {
+      roomId: string
+      playerId: string
+      userId: string
+      amount: number
+      timestamp: string
+      version: number
+    }) => {
       await prisma.bid.create({ data: bid })
     },
   }

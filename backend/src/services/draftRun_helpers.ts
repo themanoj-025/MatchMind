@@ -5,11 +5,22 @@ import { DRAFT, RUN_REWARD_TIERS } from '../config/constants'
 import { BENCHMARK_SCORE_BASE, BENCHMARK_VARIANCE } from './draftRun_types'
 
 type DraftSession = { id: string; userId: string; tournamentId: string; status: string; synergyScore?: number }
-type DraftPick = { draftSessionId: string; pickedPlayerId: string | null; position: string; slotIndex: number; autoPicked: boolean; offeredRarities: string[]; offeredPlayerIds: string[] }
+type DraftPick = {
+  draftSessionId: string
+  pickedPlayerId: string | null
+  position: string
+  slotIndex: number
+  autoPicked: boolean
+  offeredRarities: string[]
+  offeredPlayerIds: string[]
+}
 type SquadPlayer = { playerId: string; position: string; slotIndex: number; isAutoPicked: boolean; rarityTier: string }
 type DraftRunStatus = 'WAITING_FOR_MATCHDAY' | 'COMPLETE'
 
-function computeApproximatePoints(stats: { totalPoints?: number; goals?: number; assists?: number; minutesPlayed?: number }, position: string): number {
+function computeApproximatePoints(
+  stats: { totalPoints?: number; goals?: number; assists?: number; minutesPlayed?: number },
+  position: string,
+): number {
   if (stats.totalPoints) return stats.totalPoints
   return (stats.goals || 0) * 6 + (stats.assists || 0) * 3 + Math.floor((stats.minutesPlayed || 0) / 90)
 }
@@ -17,7 +28,10 @@ function computeApproximatePoints(stats: { totalPoints?: number; goals?: number;
 async function computeSquadPoints(
   prisma: DatabaseClient,
   squad: SquadPlayer[],
-  statsMap: Map<string, { playerId: string; totalPoints?: number; goals?: number; assists?: number; minutesPlayed?: number }>,
+  statsMap: Map<
+    string,
+    { playerId: string; totalPoints?: number; goals?: number; assists?: number; minutesPlayed?: number }
+  >,
   playerMap: Map<string, { id: string; position: string | null }>,
   fixtureId: string,
 ): Promise<{ userSquadPoints: number; breakdown: Record<string, number> }> {
@@ -79,9 +93,7 @@ function determineRunStatus(
 
 async function synergyMultiplierFor(prisma: DatabaseClient, sessionId: string, currentRound: number): Promise<number> {
   const synergyScore =
-    currentRound > 0
-      ? (await prisma.draftSession.findUnique({ where: { id: sessionId } }))?.synergyScore ?? 0
-      : 0
+    currentRound > 0 ? (await prisma.draftSession.findUnique({ where: { id: sessionId } }))?.synergyScore ?? 0 : 0
   return 1 + synergyScore / 100
 }
 
@@ -200,7 +212,11 @@ function rewardsEarnedFor(newWins: number, previousWins: number): string[] {
   return RUN_REWARD_TIERS.filter((t) => newWins >= t.minWins && previousWins < t.minWins).map((t) => t.id)
 }
 
-async function completeSessionIfDone(prisma: DatabaseClient, sessionId: string, newStatus: DraftRunStatus): Promise<void> {
+async function completeSessionIfDone(
+  prisma: DatabaseClient,
+  sessionId: string,
+  newStatus: DraftRunStatus,
+): Promise<void> {
   // If run is complete, update session status
   if (newStatus !== 'COMPLETE') {
     return

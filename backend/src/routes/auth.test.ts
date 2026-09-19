@@ -184,7 +184,10 @@ vi.mock('../services/authService', () => {
         refreshToken: jwtMod.sign({ userId }, process.env.JWT_REFRESH_SECRET, { expiresIn: '30d' }),
       }
     },
-    revokeTokens: async (userId: string, prisma: { user: { update(opts: Record<string, unknown>): Promise<unknown> } }) => {
+    revokeTokens: async (
+      userId: string,
+      prisma: { user: { update(opts: Record<string, unknown>): Promise<unknown> } },
+    ) => {
       const user = await prisma.user.findUnique({
         where: { id: userId },
         select: { tokenVersion: true },
@@ -304,10 +307,12 @@ async function createTestApp(prismaMock: MockPrisma) {
 
   app.use((req, _res, next) => {
     req.app.get = (key: string) => {
-      if (key === 'prisma') {return prismaMock}
+      if (key === 'prisma') {
+        return prismaMock
+      }
       return null
     }
-    ;req.container = {
+    req.container = {
       cradle: {
         userRepository: (mockDeps as { userRepository: unknown }).userRepository,
         authService: new AuthService(mockDeps),
@@ -352,8 +357,12 @@ function createMockPrisma(): MockPrisma {
   return {
     user: {
       findUnique: async ({ where }) => {
-        if (where.id) {return users[where.id] || null}
-        if (where.email) {return Object.values(users).find((u) => u.email === where.email) || null}
+        if (where.id) {
+          return users[where.id] || null
+        }
+        if (where.email) {
+          return Object.values(users).find((u) => u.email === where.email) || null
+        }
         return null
       },
       findFirst: async ({ where }) => {
@@ -361,11 +370,15 @@ function createMockPrisma(): MockPrisma {
           for (const condition of where.OR) {
             const match = Object.values(users).find((u) => {
               for (const [key, val] of Object.entries(condition)) {
-                if (u[key] === val) {return true}
+                if (u[key] === val) {
+                  return true
+                }
               }
               return false
             })
-            if (match) {return match}
+            if (match) {
+              return match
+            }
           }
         }
         return null

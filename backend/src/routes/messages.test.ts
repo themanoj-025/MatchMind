@@ -18,18 +18,42 @@ process.env.JWT_SECRET = 'test-jwt-secret-64-chars-minimum-for-testing-purposes-
 
 const mockMessageService = {
   getUserDMMessages: vi.fn().mockResolvedValue([
-    { id: 'msg-1', roomId: 'dm:user-1:user-2', userId: 'user-2', content: 'Hey there!', createdAt: '2026-01-01T10:00:00Z' },
+    {
+      id: 'msg-1',
+      roomId: 'dm:user-1:user-2',
+      userId: 'user-2',
+      content: 'Hey there!',
+      createdAt: '2026-01-01T10:00:00Z',
+    },
     { id: 'msg-2', roomId: 'dm:user-1:user-2', userId: 'user-1', content: 'Hi!', createdAt: '2026-01-01T10:01:00Z' },
-    { id: 'msg-3', roomId: 'dm:user-1:user-3', userId: 'user-3', content: 'Want to trade?', createdAt: '2026-01-01T11:00:00Z' },
+    {
+      id: 'msg-3',
+      roomId: 'dm:user-1:user-3',
+      userId: 'user-3',
+      content: 'Want to trade?',
+      createdAt: '2026-01-01T11:00:00Z',
+    },
   ]),
   getConversationPartners: vi.fn().mockImplementation((ids: string[]) => {
     return Promise.resolve(ids.map((id) => ({ id, username: `user_${id}`, displayName: `User ${id}` })))
   }),
   getRoomMessages: vi.fn().mockResolvedValue([
-    { id: 'msg-1', roomId: 'dm:user-1:user-2', userId: 'user-2', content: 'Hey there!', createdAt: '2026-01-01T10:00:00Z' },
+    {
+      id: 'msg-1',
+      roomId: 'dm:user-1:user-2',
+      userId: 'user-2',
+      content: 'Hey there!',
+      createdAt: '2026-01-01T10:00:00Z',
+    },
     { id: 'msg-2', roomId: 'dm:user-1:user-2', userId: 'user-1', content: 'Hi!', createdAt: '2026-01-01T10:01:00Z' },
   ]),
-  sendMessage: vi.fn().mockResolvedValue({ id: 'msg-new', roomId: 'dm:user-1:user-2', userId: 'user-1', content: 'New message', createdAt: '2026-01-01T12:00:00Z' }),
+  sendMessage: vi.fn().mockResolvedValue({
+    id: 'msg-new',
+    roomId: 'dm:user-1:user-2',
+    userId: 'user-1',
+    content: 'New message',
+    createdAt: '2026-01-01T12:00:00Z',
+  }),
 }
 
 vi.mock('../config/openapi', () => ({
@@ -148,9 +172,7 @@ describe('Messages Routes', () => {
 
     it('rejects unauthenticated request', async () => {
       const app = await createTestApp()
-      const res = await request(app)
-        .post('/api/messages/dm:user-1:user-2')
-        .send({ content: 'Hello' })
+      const res = await request(app).post('/api/messages/dm:user-1:user-2').send({ content: 'Hello' })
 
       expect(res.status).toBe(401)
     })

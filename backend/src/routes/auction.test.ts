@@ -55,7 +55,18 @@ function createAuthToken(userId = 'host-1') {
 }
 
 function createMockPrisma() {
-  const auctionStates: Record<string, { roomId: string; phase: string; currentPlayerId: string | null; currentBid: number; currentBidderId: string | null; timerEndsAt: string | null; version: number }> = {
+  const auctionStates: Record<
+    string,
+    {
+      roomId: string
+      phase: string
+      currentPlayerId: string | null
+      currentBid: number
+      currentBidderId: string | null
+      timerEndsAt: string | null
+      version: number
+    }
+  > = {
     'room-1': {
       roomId: 'room-1',
       phase: 'IDLE',
@@ -74,24 +85,34 @@ function createMockPrisma() {
 
   return {
     auctionState: {
-      findUnique: vi.fn().mockImplementation(({ where }: { where: { roomId: string } }) => Promise.resolve(auctionStates[where.roomId] || null)),
-      update: vi.fn().mockImplementation(({ where, data }: { where: { roomId: string }; data: Record<string, unknown> }) => {
-        if (auctionStates[where.roomId]) {
-          Object.assign(auctionStates[where.roomId], data)
-          return Promise.resolve(auctionStates[where.roomId])
-        }
-        return Promise.resolve(null)
-      }),
-      updateMany: vi.fn().mockImplementation(({ where, data }: { where: Record<string, unknown>; data: Record<string, unknown> }) => {
-        if (auctionStates[where.roomId as string]) {
-          Object.assign(auctionStates[where.roomId as string], data)
-          return Promise.resolve({ count: 1 })
-        }
-        return Promise.resolve({ count: 0 })
-      }),
+      findUnique: vi
+        .fn()
+        .mockImplementation(({ where }: { where: { roomId: string } }) =>
+          Promise.resolve(auctionStates[where.roomId] || null),
+        ),
+      update: vi
+        .fn()
+        .mockImplementation(({ where, data }: { where: { roomId: string }; data: Record<string, unknown> }) => {
+          if (auctionStates[where.roomId]) {
+            Object.assign(auctionStates[where.roomId], data)
+            return Promise.resolve(auctionStates[where.roomId])
+          }
+          return Promise.resolve(null)
+        }),
+      updateMany: vi
+        .fn()
+        .mockImplementation(({ where, data }: { where: Record<string, unknown>; data: Record<string, unknown> }) => {
+          if (auctionStates[where.roomId as string]) {
+            Object.assign(auctionStates[where.roomId as string], data)
+            return Promise.resolve({ count: 1 })
+          }
+          return Promise.resolve({ count: 0 })
+        }),
     },
     room: {
-      findUnique: vi.fn().mockImplementation(({ where }: { where: { id: string } }) => Promise.resolve(rooms[where.id] || null)),
+      findUnique: vi
+        .fn()
+        .mockImplementation(({ where }: { where: { id: string } }) => Promise.resolve(rooms[where.id] || null)),
     },
     roster: {
       findMany: vi.fn().mockResolvedValue([]),
@@ -180,8 +201,13 @@ describe('Auction Routes', () => {
   describe('POST /api/auction/:roomId/next-player', () => {
     it('moves to next player', async () => {
       prisma.auctionState.findUnique = vi.fn().mockResolvedValue({
-        roomId: 'room-1', phase: 'SOLD', currentPlayerId: 'p-1', currentBid: 100,
-        currentBidderId: 'user-1', timerEndsAt: null, version: 2,
+        roomId: 'room-1',
+        phase: 'SOLD',
+        currentPlayerId: 'p-1',
+        currentBid: 100,
+        currentBidderId: 'user-1',
+        timerEndsAt: null,
+        version: 2,
       })
 
       const app = await createTestApp(prisma)
@@ -196,8 +222,13 @@ describe('Auction Routes', () => {
   describe('POST /api/auction/:roomId/pause', () => {
     it('pauses the auction', async () => {
       prisma.auctionState.findUnique = vi.fn().mockResolvedValue({
-        roomId: 'room-1', phase: 'PLAYER_LIVE', currentPlayerId: 'p-1', currentBid: 0,
-        currentBidderId: null, timerEndsAt: null, version: 1,
+        roomId: 'room-1',
+        phase: 'PLAYER_LIVE',
+        currentPlayerId: 'p-1',
+        currentBid: 0,
+        currentBidderId: null,
+        timerEndsAt: null,
+        version: 1,
       })
 
       const app = await createTestApp(prisma)
@@ -212,8 +243,13 @@ describe('Auction Routes', () => {
   describe('POST /api/auction/:roomId/end', () => {
     it('ends the auction', async () => {
       prisma.auctionState.findUnique = vi.fn().mockResolvedValue({
-        roomId: 'room-1', phase: 'SOLD', currentPlayerId: 'p-1', currentBid: 100,
-        currentBidderId: 'user-1', timerEndsAt: null, version: 3,
+        roomId: 'room-1',
+        phase: 'SOLD',
+        currentPlayerId: 'p-1',
+        currentBid: 100,
+        currentBidderId: 'user-1',
+        timerEndsAt: null,
+        version: 3,
       })
 
       const app = await createTestApp(prisma)

@@ -165,7 +165,9 @@ router.get('/users/:id', async (req: AuthenticatedRequest, res) => {
       },
     },
   })
-  if (!user) {return res.status(404).json({ error: { code: 'USER_NOT_FOUND', message: 'User not found' } })}
+  if (!user) {
+    return res.status(404).json({ error: { code: 'USER_NOT_FOUND', message: 'User not found' } })
+  }
   return res.json({ user })
 })
 /**
@@ -187,11 +189,21 @@ router.patch('/users/:id', async (req: AuthenticatedRequest, res) => {
     displayName?: string
   }
   const data: Prisma.UserUpdateInput = {}
-  if (role) {data.role = role as UserRole}
-  if (tier) {data.tier = tier as UserTier}
-  if (username) {data.username = username}
-  if (email) {data.email = email}
-  if (displayName) {data.displayName = displayName}
+  if (role) {
+    data.role = role as UserRole
+  }
+  if (tier) {
+    data.tier = tier as UserTier
+  }
+  if (username) {
+    data.username = username
+  }
+  if (email) {
+    data.email = email
+  }
+  if (displayName) {
+    data.displayName = displayName
+  }
   const user = await prisma.user.update({
     where: { id: req.params.id as string },
     data,
@@ -212,7 +224,11 @@ router.delete('/users/:id', async (req: AuthenticatedRequest, res) => {
   const prisma = req.container.cradle.prisma
   await prisma.user.update({
     where: { id: req.params.id as string },
-    data: { deletedAt: new Date(), email: `deleted-${req.params.id}@matchmind.gg`, username: `deleted-${req.params.id}` },
+    data: {
+      deletedAt: new Date(),
+      email: `deleted-${req.params.id}@matchmind.gg`,
+      username: `deleted-${req.params.id}`,
+    },
   })
   getAdminService(req).logAction(req.userId!, 'USER_SOFT_DELETED', String(req.params.id), 'user', {})
   res.json({ message: 'User soft-deleted' })
@@ -229,7 +245,9 @@ openapiRegistry.registerPath({
 router.post('/users/:id/toggle-pro', async (req: AuthenticatedRequest, res) => {
   const prisma = req.container.cradle.prisma
   const user = await prisma.user.findUnique({ where: { id: req.params.id as string }, select: { isPro: true } })
-  if (!user) {return res.status(404).json({ error: { code: 'USER_NOT_FOUND', message: 'User not found' } })}
+  if (!user) {
+    return res.status(404).json({ error: { code: 'USER_NOT_FOUND', message: 'User not found' } })
+  }
   const updated = await prisma.user.update({
     where: { id: req.params.id as string },
     data: {
@@ -259,7 +277,9 @@ router.get('/fixtures', async (req: AuthenticatedRequest, res) => {
   const { page, limit } = paginationSchema.parse(req.query)
   const tournamentId = req.query.tournamentId as string | undefined
   const where: Prisma.FixtureWhereInput = {}
-  if (tournamentId) {where.tournamentId = tournamentId}
+  if (tournamentId) {
+    where.tournamentId = tournamentId
+  }
   const [fixtures, total] = await Promise.all([
     prisma.fixture.findMany({
       where,
@@ -288,9 +308,15 @@ router.patch('/fixtures/:id', async (req: AuthenticatedRequest, res) => {
     status?: string
   }
   const data: Prisma.FixtureUpdateInput = {}
-  if (homeScore !== undefined) {data.homeScore = homeScore}
-  if (awayScore !== undefined) {data.awayScore = awayScore}
-  if (status) {data.status = status as FixtureStatus}
+  if (homeScore !== undefined) {
+    data.homeScore = homeScore
+  }
+  if (awayScore !== undefined) {
+    data.awayScore = awayScore
+  }
+  if (status) {
+    data.status = status as FixtureStatus
+  }
   const fixture = await prisma.fixture.update({
     where: { id: req.params.id as string },
     data,
@@ -460,7 +486,9 @@ router.post('/settings/draft-mode/:tournamentId/:action', async (req: Authentica
       canEnable: validationResult.passed,
     })
   } else {
-    return res.status(400).json({ error: { code: 'INVALID_ACTION', message: 'Action must be enable, disable, or validate' } })
+    return res
+      .status(400)
+      .json({ error: { code: 'INVALID_ACTION', message: 'Action must be enable, disable, or validate' } })
   }
 })
 // ─── DRAFT MODE ADMIN — Pool Validation ────────────────────

@@ -23,9 +23,7 @@ function createMockPrisma() {
       update: vi.fn().mockResolvedValue({}),
     },
     playerMatchStat: {
-      create: vi.fn().mockImplementation(({ data }) =>
-        Promise.resolve({ id: 'stat-1', ...data }),
-      ),
+      create: vi.fn().mockImplementation(({ data }) => Promise.resolve({ id: 'stat-1', ...data })),
       findMany: vi.fn().mockResolvedValue([]),
     },
     room: {
@@ -131,9 +129,7 @@ describe('MatchService', () => {
     it('returns fixture with player match stats', async () => {
       const mockDetails = {
         id: 'fixture-1',
-        playerMatchStats: [
-          { playerId: 'p1', player: { id: 'p1', name: 'Player 1', position: 'BATTER' } },
-        ],
+        playerMatchStats: [{ playerId: 'p1', player: { id: 'p1', name: 'Player 1', position: 'BATTER' } }],
       }
       prisma.fixture.findUnique = vi.fn().mockResolvedValue(mockDetails)
 
@@ -187,7 +183,8 @@ describe('MatchService', () => {
 
   describe('finalizeFixture', () => {
     it('marks fixture as FINISHED and processes rooms', async () => {
-      prisma.fixture.findUnique = vi.fn()
+      prisma.fixture.findUnique = vi
+        .fn()
         .mockResolvedValueOnce({ id: 'fixture-1', tournamentId: 't1' })
         .mockResolvedValueOnce({ id: 'fixture-1', tournamentId: 't1' })
       prisma.playerMatchStat.findMany = vi.fn().mockResolvedValue([])
@@ -207,9 +204,7 @@ describe('MatchService', () => {
     it('throws when fixture not found', async () => {
       prisma.fixture.findUnique = vi.fn().mockResolvedValue(null)
 
-      await expect(
-        service.finalizeFixture('nonexistent', 'admin-1'),
-      ).rejects.toThrow('Fixture not found')
+      await expect(service.finalizeFixture('nonexistent', 'admin-1')).rejects.toThrow('Fixture not found')
     })
   })
 })

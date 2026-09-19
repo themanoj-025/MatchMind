@@ -79,7 +79,11 @@ openapiRegistry.registerPath({
 router.post('/:id/finalize', authenticateToken, requireAdmin, async (req: AuthenticatedRequest, res) => {
   const matchService = req.container.cradle.matchService
   const io = req.app.get('io')
-  const { roomsProcessed, fantasyEntries } = await matchService.finalizeFixture(req.params.id as string, req.userId!, io)
+  const { roomsProcessed, fantasyEntries } = await matchService.finalizeFixture(
+    req.params.id as string,
+    req.userId!,
+    io,
+  )
   res.json({ message: 'Fixture finalized', roomsProcessed, fantasyEntries })
 })
 export default router

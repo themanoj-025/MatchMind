@@ -100,7 +100,11 @@ describe('idempotent middleware', () => {
     res.json({ success: true })
 
     // Second call with same key — should return cached response
-    const { req: req2, res: res2, next: next2 } = mockReqRes('POST', '/api/test', {
+    const {
+      req: req2,
+      res: res2,
+      next: next2,
+    } = mockReqRes('POST', '/api/test', {
       'idempotency-key': uuid,
     })
     middleware(req2, res2, next2)
@@ -127,10 +131,18 @@ describe('idempotent middleware', () => {
 
   it('dedupes concurrent requests with the same key (single execution)', async () => {
     const uuid = '550e8400-e29b-41d4-a716-446655440000'
-    const { req: reqA, res: resA, next: nextA } = mockReqRes('POST', '/api/checkout', {
+    const {
+      req: reqA,
+      res: resA,
+      next: nextA,
+    } = mockReqRes('POST', '/api/checkout', {
       'idempotency-key': uuid,
     })
-    const { req: reqB, res: resB, next: nextB } = mockReqRes('POST', '/api/checkout', {
+    const {
+      req: reqB,
+      res: resB,
+      next: nextB,
+    } = mockReqRes('POST', '/api/checkout', {
       'idempotency-key': uuid,
     })
 
@@ -154,10 +166,19 @@ describe('idempotent middleware', () => {
 
   it('lets a retry execute when the in-flight leader fails (non-2xx)', async () => {
     const uuid = '550e8400-e29b-41d4-a716-446655440000'
-    const { req: reqA, res: resA, next: nextA, emitFinish } = mockReqRes('POST', '/api/checkout', {
+    const {
+      req: reqA,
+      res: resA,
+      next: nextA,
+      emitFinish,
+    } = mockReqRes('POST', '/api/checkout', {
       'idempotency-key': uuid,
     })
-    const { req: reqB, res: resB, next: nextB } = mockReqRes('POST', '/api/checkout', {
+    const {
+      req: reqB,
+      res: resB,
+      next: nextB,
+    } = mockReqRes('POST', '/api/checkout', {
       'idempotency-key': uuid,
     })
 
@@ -177,10 +198,18 @@ describe('idempotent middleware', () => {
 
   it('scopes the in-flight lock by path (same key, different endpoint)', async () => {
     const uuid = '550e8400-e29b-41d4-a716-446655440000'
-    const { req: reqA, res: resA, next: nextA } = mockReqRes('POST', '/api/rooms', {
+    const {
+      req: reqA,
+      res: resA,
+      next: nextA,
+    } = mockReqRes('POST', '/api/rooms', {
       'idempotency-key': uuid,
     })
-    const { req: reqB, res: resB, next: nextB } = mockReqRes('POST', '/api/checkout', {
+    const {
+      req: reqB,
+      res: resB,
+      next: nextB,
+    } = mockReqRes('POST', '/api/checkout', {
       'idempotency-key': uuid,
     })
 

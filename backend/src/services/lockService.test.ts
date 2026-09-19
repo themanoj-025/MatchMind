@@ -52,21 +52,13 @@ describe('lockService', () => {
       expect(lock.key).toBe('test-key')
       expect(lock.token).toBeDefined()
       expect(typeof lock.release).toBe('function')
-      expect(mockRedisSet).toHaveBeenCalledWith(
-        'test-key',
-        expect.any(String),
-        'PX',
-        5000,
-        'NX',
-      )
+      expect(mockRedisSet).toHaveBeenCalledWith('test-key', expect.any(String), 'PX', 5000, 'NX')
     })
 
     it('retries on failure and throws after max retries', async () => {
       mockRedisSet.mockResolvedValue(null) // NX fails
 
-      await expect(
-        acquireLock('test-key', 5000, 2, 10),
-      ).rejects.toThrow('LOCK_ACQUISITION_FAILED')
+      await expect(acquireLock('test-key', 5000, 2, 10)).rejects.toThrow('LOCK_ACQUISITION_FAILED')
 
       // Should have tried retries + 1 initial attempt
       expect(mockRedisSet).toHaveBeenCalledTimes(3)
@@ -77,13 +69,7 @@ describe('lockService', () => {
 
       await acquireLock('test-key', 10000, 5, 500)
 
-      expect(mockRedisSet).toHaveBeenCalledWith(
-        'test-key',
-        expect.any(String),
-        'PX',
-        10000,
-        'NX',
-      )
+      expect(mockRedisSet).toHaveBeenCalledWith('test-key', expect.any(String), 'PX', 10000, 'NX')
     })
 
     it('release calls Redis EVAL with Lua script', async () => {
@@ -93,12 +79,7 @@ describe('lockService', () => {
       const lock = await acquireLock('test-key')
       await lock.release()
 
-      expect(mockRedisEval).toHaveBeenCalledWith(
-        expect.stringContaining('redis.call("get"'),
-        1,
-        'test-key',
-        lock.token,
-      )
+      expect(mockRedisEval).toHaveBeenCalledWith(expect.stringContaining('redis.call("get"'), 1, 'test-key', lock.token)
     })
   })
 
@@ -128,9 +109,7 @@ describe('lockService', () => {
       expect(lock1.key).toBe('shared-key')
 
       // Second lock fails (no retries left)
-      await expect(
-        acquireLock('shared-key', 5000, 0, 10),
-      ).rejects.toThrow('LOCK_ACQUISITION_FAILED')
+      await expect(acquireLock('shared-key', 5000, 0, 10)).rejects.toThrow('LOCK_ACQUISITION_FAILED')
     })
   })
 })

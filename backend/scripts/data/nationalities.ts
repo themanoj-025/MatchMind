@@ -286,4 +286,3 @@ const COPA_NATIONALITIES: string[] = [
   'DO',
   'CW',
 ]
-

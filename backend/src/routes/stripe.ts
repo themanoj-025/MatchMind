@@ -36,7 +36,9 @@ router.post(
     const userService = req.container.cradle.userService
     const { plan } = req.body as { plan: string } // 'monthly' | 'annual'
     const user = await userService.getUser(req.userId!)
-    if (!user) {return res.status(404).json({ error: { code: 'USER_NOT_FOUND', message: 'User not found' } })}
+    if (!user) {
+      return res.status(404).json({ error: { code: 'USER_NOT_FOUND', message: 'User not found' } })
+    }
     // If user already has a Stripe customer, reuse it
     const existingSub = await stripeService.getSubscriptionByUserId(user.id)
     // Use circuit breaker for Stripe API calls
@@ -170,7 +172,9 @@ router.get('/status', authenticateToken, async (req: AuthenticatedRequest, res) 
   const userService = req.container.cradle.userService
   const user = await userService.getUser(req.userId!)
   const sub = await stripeService.getSubscriptionByUserId(req.userId!)
-  if (!user) {return res.status(404).json({ error: { code: 'USER_NOT_FOUND', message: 'User not found' } })}
+  if (!user) {
+    return res.status(404).json({ error: { code: 'USER_NOT_FOUND', message: 'User not found' } })
+  }
   return res.json({
     isPro: user.isPro,
     proExpiresAt: user.proExpiresAt,
@@ -185,7 +189,11 @@ router.get('/status', authenticateToken, async (req: AuthenticatedRequest, res) 
   })
 })
 async function customerEmailFor(
-  prisma: { user: { findUnique: (args: { where: { id: string }; select: { email: true } }) => Promise<{ email: string | null } | null> } },
+  prisma: {
+    user: {
+      findUnique: (args: { where: { id: string }; select: { email: true } }) => Promise<{ email: string | null } | null>
+    }
+  },
   user: { id: string },
   existingSub: { stripeCustomerId?: string | null } | null | undefined,
 ): Promise<string | undefined> {
@@ -207,7 +215,12 @@ async function fetchSubscriptionOrEmpty(subscriptionId: string): Promise<Stripe.
 
 interface WebhookServices {
   stripeService: {
-    upsertSubscription: (userId: string, customerId: string, subscriptionId: string, sub: Stripe.Subscription) => Promise<unknown>
+    upsertSubscription: (
+      userId: string,
+      customerId: string,
+      subscriptionId: string,
+      sub: Stripe.Subscription,
+    ) => Promise<unknown>
     getSubscriptionByStripeId: (subscriptionId: string) => Promise<{ userId: string } | null>
     updateSubscriptionStatus: (subscriptionId: string, sub: Stripe.Subscription) => Promise<unknown>
     cancelSubscription: (subscriptionId: string) => Promise<unknown>

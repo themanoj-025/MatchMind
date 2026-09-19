@@ -47,7 +47,10 @@ function atomicWrite(filePath: string, data: PlayerRecord[]): void {
 
 // ─── Assign Rarity for a Single Tournament ──────────────
 
-function assignRaritiesForTournament(players: PlayerRecord[], tournamentId: string): { updated: number; icons: number } {
+function assignRaritiesForTournament(
+  players: PlayerRecord[],
+  tournamentId: string,
+): { updated: number; icons: number } {
   // Filter to this tournament
   const tournamentPlayers = players.filter((p) => p.tournamentId === tournamentId)
 
