@@ -3,7 +3,9 @@ erDiagram
 
         UserRole {
             USER USER
+MODERATOR MODERATOR
 ADMIN ADMIN
+SUPERADMIN SUPERADMIN
         }
 
 
@@ -39,13 +41,14 @@ FWD FWD
 DRAFTING DRAFTING
 ACTIVE ACTIVE
 FINISHED FINISHED
+PAUSED PAUSED
         }
 
 
 
         RoomMemberRole {
             member member
-admin admin
+host host
         }
 
 
@@ -55,6 +58,11 @@ admin admin
 NOMINATING NOMINATING
 BIDDING BIDDING
 RESOLVED RESOLVED
+PLAYER_LIVE PLAYER_LIVE
+SOLD SOLD
+UNSOLD UNSOLD
+RE_AUCTION RE_AUCTION
+FINISHED FINISHED
         }
 
 
@@ -79,6 +87,8 @@ INCORRECT INCORRECT
         ChatMessageType {
             user user
 system system
+text text
+gif gif
         }
 
 
@@ -143,6 +153,22 @@ ELIMINATED ELIMINATED
     }
 
 
+  "UserSport" {
+    String id "🗝️"
+    String sport
+    DateTime createdAt
+    DateTime updatedAt
+    }
+
+
+  "UserTeam" {
+    String id "🗝️"
+    String teamId
+    DateTime createdAt
+    DateTime updatedAt
+    }
+
+
   "Tournament" {
     String id "🗝️"
     String name
@@ -174,6 +200,7 @@ ELIMINATED ELIMINATED
     Boolean isEligibleForIcon
     DateTime createdAt
     DateTime updatedAt
+    DateTime deletedAt "❓"
     }
 
 
@@ -251,6 +278,7 @@ ELIMINATED ELIMINATED
     DateTime kickoffAt "❓"
     DateTime createdAt
     DateTime updatedAt
+    DateTime deletedAt "❓"
     }
 
 
@@ -299,7 +327,9 @@ ELIMINATED ELIMINATED
 
   "ChatMessage" {
     String id "🗝️"
-    String text
+    String roomType
+    Boolean isRead
+    String text "❓"
     DateTime timestamp
     String gifUrl "❓"
     ChatMessageType type
@@ -350,6 +380,11 @@ ELIMINATED ELIMINATED
     String id "🗝️"
     String status
     String plan
+    String stripeCustomerId "❓"
+    String stripeSubscriptionId "❓"
+    DateTime currentPeriodStart "❓"
+    DateTime currentPeriodEnd "❓"
+    Boolean cancelAtPeriodEnd
     DateTime expiresAt "❓"
     DateTime createdAt
     DateTime updatedAt
@@ -367,6 +402,7 @@ ELIMINATED ELIMINATED
 
   "StarredPlayer" {
     String id "🗝️"
+    String roomId
     DateTime createdAt
     DateTime updatedAt
     }
@@ -404,11 +440,13 @@ ELIMINATED ELIMINATED
     String id "🗝️"
     String formation
     String status
-    String ticketConsumedId
+    String ticketConsumedId "❓"
     Float synergyScore
     Boolean formationBonusApplied
+    DateTime completedAt "❓"
     DateTime createdAt
     DateTime updatedAt
+    DateTime deletedAt "❓"
     }
 
 
@@ -445,7 +483,12 @@ ELIMINATED ELIMINATED
   "DraftTicket" {
     String id "🗝️"
     String userId
+    String tournamentId
     DraftTicketStatus status
+    Int remaining
+    DateTime lastResetAt
+    DateTime resetsAt
+    Json sourceLog
     DateTime createdAt
     DateTime updatedAt
     }
@@ -494,6 +537,8 @@ ELIMINATED ELIMINATED
 
     "User" |o--|| "UserRole" : "enum:role"
     "User" |o--|| "UserTier" : "enum:tier"
+    "UserSport" }o--|| "User" : "user"
+    "UserTeam" }o--|| "User" : "user"
     "Player" }o--|| "Tournament" : "tournament"
     "Room" |o--|| "RoomStatus" : "enum:status"
     "Room" }o--|| "Tournament" : "tournament"
