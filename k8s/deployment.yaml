@@ -22,14 +22,14 @@ spec:
             - containerPort: 5000
           env:
             - name: NODE_ENV
-              value: "production"
+              value: 'production'
             - name: DATABASE_URL
               valueFrom:
                 secretKeyRef:
                   name: db-credentials
                   key: database-url
             - name: REDIS_URL
-              value: "redis://redis-service:6379"
+              value: 'redis://redis-service:6379'
             - name: JWT_SECRET
               valueFrom:
                 secretKeyRef:
@@ -47,11 +47,11 @@ spec:
                   key: jwt-reset-secret
           resources:
             requests:
-              cpu: "250m"
-              memory: "512Mi"
+              cpu: '250m'
+              memory: '512Mi'
             limits:
-              cpu: "1000m"
-              memory: "1024Mi"
+              cpu: '1000m'
+              memory: '1024Mi'
           livenessProbe:
             httpGet:
               path: /api/health
@@ -128,11 +128,11 @@ spec:
             - containerPort: 80
           resources:
             requests:
-              cpu: "100m"
-              memory: "128Mi"
+              cpu: '100m'
+              memory: '128Mi'
             limits:
-              cpu: "500m"
-              memory: "256Mi"
+              cpu: '500m'
+              memory: '256Mi'
           livenessProbe:
             httpGet:
               path: /
