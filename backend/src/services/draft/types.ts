@@ -12,9 +12,10 @@
  * All state is persisted through the JSON database (prisma adapter).
  * No WebSocket dependency — REST + polling/React Query is sufficient for Draft Mode.
  */
-import { DRAFT, RARITY_TIERS, type RarityTierName } from '../config/constants'
-import type { DatabaseClient } from '../repositories'
-import logger from '../utils/logger'
+// NOTE: this file is pure type declarations — the DRAFT/RARITY_TIERS/logger
+// imports previously here were unused AND pointed one directory too deep
+// (src/services/draft/ needs ../../ for src/config), breaking module resolution.
+// Nothing is imported: every exported interface is self-contained.
 // ─── Types ───────────────────────────────────────────────
 /** Shape of a player record from src/data/players.json or Prisma Player. */
 export interface PlayerRecord {
@@ -85,4 +86,4 @@ export interface SquadPlayer {
   rarityTier: string
 }
 // ─── Load Formations ────────────────────────────────────
-let _formations: Formation[] | null = null
+const _formations: Formation[] | null = null

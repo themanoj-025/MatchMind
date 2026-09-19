@@ -21,7 +21,9 @@ function computeApproximatePoints(
   stats: { totalPoints?: number; goals?: number; assists?: number; minutesPlayed?: number },
   position: string,
 ): number {
-  if (stats.totalPoints) return stats.totalPoints
+  if (stats.totalPoints) {
+    return stats.totalPoints
+  }
   return (stats.goals || 0) * 6 + (stats.assists || 0) * 3 + Math.floor((stats.minutesPlayed || 0) / 90)
 }
 
@@ -93,7 +95,7 @@ function determineRunStatus(
 
 async function synergyMultiplierFor(prisma: DatabaseClient, sessionId: string, currentRound: number): Promise<number> {
   const synergyScore =
-    currentRound > 0 ? (await prisma.draftSession.findUnique({ where: { id: sessionId } }))?.synergyScore ?? 0 : 0
+    currentRound > 0 ? ((await prisma.draftSession.findUnique({ where: { id: sessionId } }))?.synergyScore ?? 0) : 0
   return 1 + synergyScore / 100
 }
 
@@ -243,7 +245,7 @@ interface ResolveNextRoundResult {
   breakdown: Record<string, number>
 }
 
-async function resolveNextRound(
+export async function resolveNextRound(
   prisma: DatabaseClient,
   result: DraftRunResult,
   squad: SquadPlayer[],

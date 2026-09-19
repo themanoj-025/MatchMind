@@ -34,7 +34,9 @@ jobs:
           python-version: '3.12'
 
       - name: Install Python tools
-        run: pip install ruff==0.16.4 mypy==2.3.1 bandit==1.9.4
+        # Pinned in requirements.txt (single source of truth; also what
+        # setup-python's pip cache resolves against).
+        run: pip install -r requirements.txt
 
       - name: Ruff lint
         run: ruff check .
