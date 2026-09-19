@@ -1,3 +1,19 @@
+// Wiring restored after the monolith→(session|picks) split — see session.ts.
+import { DRAFT } from '../../config/constants'
+import type { DatabaseClient } from '../../repositories'
+import logger from '../../utils/logger'
+import type { ChoiceRound, DraftPick, DraftSession, SquadPlayer } from './types'
+import {
+  generateChoiceRound,
+  getFormation,
+  isDuplicateOffer,
+  rerollDuplicateOffer,
+  loadRoundContext,
+  resolveExistingRound,
+  computeSynergyScore,
+  checkFormationFillBonus,
+} from './session'
+
 export async function getNextRound(
   prisma: DatabaseClient,
   sessionId: string,
@@ -323,7 +339,7 @@ export async function listUserDrafts(prisma: DatabaseClient, userId: string): Pr
   return sessions as unknown as DraftSession[]
 }
 // ─── Helpers ─────────────────────────────────────────────
-function findHighestRarityIndex(rarities: string[]): number {
+export function findHighestRarityIndex(rarities: string[]): number {
   const tierOrder: Record<string, number> = { ICON: 0, GOLD: 1, SILVER: 2, BRONZE: 3 }
   let bestIdx = 0
   let bestScore = tierOrder[rarities[0]!] ?? 99

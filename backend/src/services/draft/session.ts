@@ -1,3 +1,15 @@
+// Wiring restored after the monolith→(session|picks) split: the split moved
+// code here without bringing the imports, and private helpers that the sibling
+// file calls were never exported.
+import { DRAFT, RARITY_TIERS, type RarityTierName } from '../../config/constants'
+import type { DatabaseClient } from '../../repositories'
+import logger from '../../utils/logger'
+import type { ChoiceRound, DraftPick, DraftSession, Formation, FormationSlot, PlayerRecord, SquadPlayer } from './types'
+import { findHighestRarityIndex, getNextRound } from './picks'
+
+// Module-level formations cache (lost in the monolith→(session|picks) split).
+let _formations: Formation[] | null = null
+
 export function loadFormations(): Formation[] {
   if (_formations) {
     return _formations
@@ -315,7 +327,7 @@ function buildPlayerObjects(allPlayers: PlayerRecord[], offeredPlayerIds: string
     .filter(Boolean) as ChoiceRound['players']
 }
 
-function isDuplicateOffer(picks: DraftPick[], round: { offeredPlayerIds: string[] }): boolean {
+export function isDuplicateOffer(picks: DraftPick[], round: { offeredPlayerIds: string[] }): boolean {
   const previousPicks = picks.filter((p) => p.offeredPlayerIds.length === 3)
   return previousPicks.some(
     (p) =>
@@ -324,7 +336,7 @@ function isDuplicateOffer(picks: DraftPick[], round: { offeredPlayerIds: string[
   )
 }
 
-function rerollDuplicateOffer(
+export function rerollDuplicateOffer(
   round: { offeredPlayerIds: string[]; offeredRarities: string[]; players: ChoiceRound['players'] },
   allPlayers: PlayerRecord[],
   excludePlayerIds: string[],
@@ -357,7 +369,7 @@ interface ExistingRoundContext {
   allPlayers: PlayerRecord[]
 }
 
-async function resolveExistingRound(
+export async function resolveExistingRound(
   ctx: ExistingRoundContext,
   pickRecord: DraftPick,
   nextSlot: number,
@@ -413,7 +425,7 @@ type RoundContextResult =
  * Load the session and derive the next unfilled slot, or return the
  * terminal/error result when the draft cannot continue.
  */
-async function loadRoundContext(
+export async function loadRoundContext(
   prisma: DatabaseClient,
   sessionId: string,
   userId: string,

@@ -1,5 +1,16 @@
 /** Auction room interfaces and async processing logic. */
 
+// Wiring restored after the monolith→(types|logic) split — see draft/ and draftRun/.
+import { acquireLock } from './lockService'
+import {
+  AUCTION_ANTI_SNIPE_RESET_SECONDS,
+  AUCTION_ANTI_SNIPE_SECONDS,
+  AUCTION_DEFAULT_TIMER_SECONDS,
+  DEFAULT_ROSTER_RULES,
+} from '../config/tournaments'
+import logger from '../utils/logger'
+import { redis } from '../lib/redis'
+import { requiredIncrement, runWithLock, validateBudgetForRemainingSlots } from './auction_types'
 import type { AuctionState, BidRequest, BidResult } from './auction_types'
 export interface AuctionRoomLike {
   status: string

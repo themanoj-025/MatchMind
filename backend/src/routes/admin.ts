@@ -3,6 +3,8 @@ import { authenticateToken, type AuthenticatedRequest } from '../middleware/auth
 import { requireAdmin } from '../middleware/requireAdmin'
 import { validateTournamentDraftPool } from '../lib/validateDraftPool'
 import { openapiRegistry } from '../config/openapi'
+import { env } from '../config/env'
+import logger from '../utils/logger'
 import type { Prisma, UserRole, UserTier, FixtureStatus } from '@prisma/client'
 import type { Tournament } from '../config/tournaments'
 import { paginationSchema } from '@matchmind/shared-types'

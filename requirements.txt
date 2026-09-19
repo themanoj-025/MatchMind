@@ -1,0 +1,19 @@
+# ── MatchMind — Python tooling (CI quality jobs) ────────────────────────────
+# MatchMind is a TypeScript monorepo; the only Python is the portfolio-canonical
+# circuit_breaker.py module and its tests. This manifest exists mainly so that
+# actions/setup-python (cache: pip) has a **/requirements.txt to lock onto —
+# without it the cache step hard-fails the whole job before any tool runs.
+# Versions mirror .github/workflows/ci.yml (single source of truth: this file).
+
+# Lint / format (CI pins these exactly)
+ruff==0.16.4
+
+# Type checking (mypy.ini at repo root; also typechecks tests/, hence pytest)
+mypy==2.3.1
+
+# Security scan (.bandit at repo root)
+bandit==1.9.4
+
+# Test runner — imported by tests/test_circuit_breaker.py; mypy needs it
+# installed (or its stubs) to typecheck that file without import errors.
+pytest==9.0.3
