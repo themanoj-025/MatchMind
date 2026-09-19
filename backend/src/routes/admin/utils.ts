@@ -5,12 +5,15 @@
 import fs from 'fs'
 import path from 'path'
 
-import { env } from '../config/env'
-import { type AuthenticatedRequest } from '../middleware/auth'
-import { AdminService } from '../services/adminService'
-import { createRepositories } from '../repositories/index'
-import logger from '../utils/logger'
-import { redis } from '../lib/redis'
+// NOTE: this file lives one directory deeper (src/routes/admin/) than its
+// siblings in src/routes/, so cross-domain imports need ../../ (was ../ —
+// TS2307 batch: 'Cannot find module' for all six).
+import { env } from '../../config/env'
+import { type AuthenticatedRequest } from '../../middleware/auth'
+import { AdminService } from '../../services/adminService'
+import { createRepositories } from '../../repositories/index'
+import logger from '../../utils/logger'
+import { redis } from '../../lib/redis'
 import type { Prisma } from '@prisma/client'
 
 export interface PlayerRecord {
@@ -35,7 +38,9 @@ const RARITY_TIERS_FN = [
 
 export function readPlayers(): PlayerRecord[] {
   const playersPath = path.join(__dirname, '..', 'data', 'players.json')
-  if (!fs.existsSync(playersPath)) return []
+  if (!fs.existsSync(playersPath)) {
+    return []
+  }
   return JSON.parse(fs.readFileSync(playersPath, 'utf-8')) as PlayerRecord[]
 }
 
@@ -88,13 +93,17 @@ export function assignRarityTiers(allPlayers: PlayerRecord[], tournamentIds: str
   let updated = allPlayers
   for (const tid of tournamentIds) {
     const tournamentPlayers = updated.filter((p) => p.tournamentId === tid)
-    if (tournamentPlayers.length === 0) continue
+    if (tournamentPlayers.length === 0) {
+      continue
+    }
     const sorted = [...tournamentPlayers].sort((a, b) => (b.basePrice ?? 0) - (a.basePrice ?? 0))
     const total = sorted.length
     const rarityMap = new Map<string, string>()
     for (let i = 0; i < total; i++) {
       const player = sorted[i]
-      if (!player) continue
+      if (!player) {
+        continue
+      }
       rarityMap.set(player.id, tierForPercentile(player, total, i))
     }
     updated = updated.map((p) =>
@@ -108,7 +117,7 @@ export function assignRarityTiers(allPlayers: PlayerRecord[], tournamentIds: str
 export function readEnabledTournaments(): string[] {
   return (env.DRAFT_ENABLED_TOURNAMENTS || '')
     .split(',')
-    .map((s) => s.trim())
+    .map((s: string) => s.trim())
     .filter(Boolean)
 }
 

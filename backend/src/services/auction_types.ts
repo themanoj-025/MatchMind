@@ -52,7 +52,7 @@ export interface BidResult {
 
 // ─── Lock Helper ─────────────────────────────────────────
 
-async function runWithLock<T>(roomId: string, fn: () => Promise<T>): Promise<T> {
+export async function runWithLock<T>(roomId: string, fn: () => Promise<T>): Promise<T> {
   const lock = await acquireLock(`lock:auction:${roomId}`)
   try {
     return await fn()

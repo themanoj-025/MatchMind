@@ -1,6 +1,13 @@
 /** Draft run async logic and helper functions. */
 
+// Wiring restored after the monolith→(logic|helpers) split — see draft/helpers.
+import type { DatabaseClient } from '../repositories'
+import logger from '../utils/logger'
+import type { DraftPick, DraftSession, SquadPlayer } from './draft/types'
+import { DRAFT } from '../config/constants'
+import { resolveNextRound } from './draftRun_helpers'
 import type { DraftRunResult, DraftRunRound, DraftRunState, RunOutcome } from './draftRun_types'
+
 export async function enterRun(
   prisma: DatabaseClient,
   sessionId: string,
