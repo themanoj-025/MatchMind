@@ -16,7 +16,18 @@ process.env.JWT_SECRET = 'test-jwt-secret-64-chars-minimum-for-testing-purposes-
 // ─── Mock Prisma ───────────────────────────────────────
 
 function createMockPrisma() {
-  const roster: Record<string, { id: string; roomId: string; userId: string; playerId: string; isCaptain: boolean; isViceCaptain: boolean; player: { id: string; name: string; position: string; club: string; nationality: string } | null }> = {}
+  const roster: Record<
+    string,
+    {
+      id: string
+      roomId: string
+      userId: string
+      playerId: string
+      isCaptain: boolean
+      isViceCaptain: boolean
+      player: { id: string; name: string; position: string; club: string; nationality: string } | null
+    }
+  > = {}
   const rooms: Record<string, { id: string; status: string }> = {
     'room-1': { id: 'room-1', status: 'AUCTION' },
     'room-2': { id: 'room-2', status: 'LOBBY' },
@@ -36,13 +47,15 @@ function createMockPrisma() {
       findUnique: vi.fn().mockImplementation(({ where }: { where: Record<string, string> }) => {
         return Promise.resolve(roster[where.id] || null)
       }),
-      update: vi.fn().mockImplementation(({ where, data }: { where: { id: string }; data: Record<string, unknown> }) => {
-        if (roster[where.id]) {
-          Object.assign(roster[where.id], data)
-          return Promise.resolve(roster[where.id])
-        }
-        return Promise.resolve(null)
-      }),
+      update: vi
+        .fn()
+        .mockImplementation(({ where, data }: { where: { id: string }; data: Record<string, unknown> }) => {
+          if (roster[where.id]) {
+            Object.assign(roster[where.id], data)
+            return Promise.resolve(roster[where.id])
+          }
+          return Promise.resolve(null)
+        }),
       _seed(id: string, roomId: string, userId: string, playerId: string, player: Record<string, string>) {
         roster[id] = { id, roomId, userId, playerId, isCaptain: false, isViceCaptain: false, player: player as never }
       },
@@ -53,10 +66,12 @@ function createMockPrisma() {
       }),
     },
     roomMember: {
-      findUnique: vi.fn().mockImplementation(({ where }: { where: { roomId_userId: { roomId: string; userId: string } } }) => {
-        const key = `${where.roomId_userId.roomId}:${where.roomId_userId.userId}`
-        return Promise.resolve(members[key] || null)
-      }),
+      findUnique: vi
+        .fn()
+        .mockImplementation(({ where }: { where: { roomId_userId: { roomId: string; userId: string } } }) => {
+          const key = `${where.roomId_userId.roomId}:${where.roomId_userId.userId}`
+          return Promise.resolve(members[key] || null)
+        }),
     },
   }
 }
@@ -69,9 +84,27 @@ describe('Franchises Routes', () => {
   beforeEach(() => {
     prisma = createMockPrisma()
     // Seed roster entries
-    prisma.roster._seed('r-1', 'room-1', 'user-1', 'p-1', { id: 'p-1', name: 'Lionel Messi', position: 'FW', club: 'Inter Miami', nationality: 'Argentina' })
-    prisma.roster._seed('r-2', 'room-1', 'user-1', 'p-2', { id: 'p-2', name: 'Kylian Mbappé', position: 'FW', club: 'Real Madrid', nationality: 'France' })
-    prisma.roster._seed('r-3', 'room-1', 'user-1', 'p-3', { id: 'p-3', name: 'Erling Haaland', position: 'FW', club: 'Man City', nationality: 'Norway' })
+    prisma.roster._seed('r-1', 'room-1', 'user-1', 'p-1', {
+      id: 'p-1',
+      name: 'Lionel Messi',
+      position: 'FW',
+      club: 'Inter Miami',
+      nationality: 'Argentina',
+    })
+    prisma.roster._seed('r-2', 'room-1', 'user-1', 'p-2', {
+      id: 'p-2',
+      name: 'Kylian Mbappé',
+      position: 'FW',
+      club: 'Real Madrid',
+      nationality: 'France',
+    })
+    prisma.roster._seed('r-3', 'room-1', 'user-1', 'p-3', {
+      id: 'p-3',
+      name: 'Erling Haaland',
+      position: 'FW',
+      club: 'Man City',
+      nationality: 'Norway',
+    })
     vi.clearAllMocks()
   })
 
@@ -79,10 +112,12 @@ describe('Franchises Routes', () => {
     const app = express()
     app.use(express.json())
 
-    app.use((req: express.Request & { container?: { cradle: Record<string, unknown> }; userId?: string }, _res, next) => {
-      req.container = { cradle: { prisma: prisma as never } }
-      next()
-    })
+    app.use(
+      (req: express.Request & { container?: { cradle: Record<string, unknown> }; userId?: string }, _res, next) => {
+        req.container = { cradle: { prisma: prisma as never } }
+        next()
+      },
+    )
 
     return app
   }

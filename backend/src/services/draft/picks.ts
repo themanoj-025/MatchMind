@@ -89,7 +89,9 @@ async function afterPick(
   error?: string
 }> {
   const formationDef = getFormation(session.formation)
-  if (!formationDef) {return { success: false, error: 'Invalid formation' }}
+  if (!formationDef) {
+    return { success: false, error: 'Invalid formation' }
+  }
   const totalSlots = formationDef.slots.reduce((sum, s) => sum + s.count, 0) + formationDef.benchSlots
   const updatedPicks = (await prisma.draftPick.findMany({
     where: { draftSessionId: sessionId },
@@ -125,16 +127,26 @@ export async function processPick(
   error?: string
 }> {
   const session = (await prisma.draftSession.findUnique({ where: { id: sessionId } })) as DraftSession | null
-  if (!session) {return { success: false, error: 'Session not found' }}
-  if (session.userId !== userId) {return { success: false, error: 'Not your draft session' }}
-  if (session.status !== 'DRAFTING') {return { success: false, error: 'Session is not in DRAFTING status' }}
+  if (!session) {
+    return { success: false, error: 'Session not found' }
+  }
+  if (session.userId !== userId) {
+    return { success: false, error: 'Not your draft session' }
+  }
+  if (session.status !== 'DRAFTING') {
+    return { success: false, error: 'Session is not in DRAFTING status' }
+  }
   // Find the pick record
   const picks = (await prisma.draftPick.findMany({
     where: { draftSessionId: sessionId },
   })) as DraftPick[]
   const pick = picks.find((p) => p.slotIndex === slotIndex)
-  if (!pick) {return { success: false, error: `No round exists for slot ${slotIndex}` }}
-  if (pick.pickedPlayerId != null) {return { success: false, error: 'This slot has already been picked' }}
+  if (!pick) {
+    return { success: false, error: `No round exists for slot ${slotIndex}` }
+  }
+  if (pick.pickedPlayerId != null) {
+    return { success: false, error: 'This slot has already been picked' }
+  }
   // Validate the picked player was offered
   if (!pick.offeredPlayerIds.includes(pickedPlayerId)) {
     return { success: false, error: 'Player was not offered in this round' }
@@ -198,11 +210,19 @@ export async function commitSquad(
   error?: string
 }> {
   const session = (await prisma.draftSession.findUnique({ where: { id: sessionId } })) as DraftSession | null
-  if (!session) {return { success: false, error: 'Session not found' }}
-  if (session.userId !== userId) {return { success: false, error: 'Not your draft session' }}
-  if (session.status !== 'DRAFTING') {return { success: false, error: 'Session is not in DRAFTING status' }}
+  if (!session) {
+    return { success: false, error: 'Session not found' }
+  }
+  if (session.userId !== userId) {
+    return { success: false, error: 'Not your draft session' }
+  }
+  if (session.status !== 'DRAFTING') {
+    return { success: false, error: 'Session is not in DRAFTING status' }
+  }
   const formationDef = getFormation(session.formation)
-  if (!formationDef) {return { success: false, error: 'Invalid formation' }}
+  if (!formationDef) {
+    return { success: false, error: 'Invalid formation' }
+  }
   // Get all picks
   const picks = (await prisma.draftPick.findMany({
     where: { draftSessionId: sessionId },
@@ -272,8 +292,12 @@ export async function getSessionState(
   userId: string,
 ): Promise<{ session: DraftSession | null; picks: DraftPick[]; squad: SquadPlayer[]; error?: string }> {
   const session = (await prisma.draftSession.findUnique({ where: { id: sessionId } })) as DraftSession | null
-  if (!session) {return { session: null, picks: [], squad: [], error: 'Session not found' }}
-  if (session.userId !== userId) {return { session: null, picks: [], squad: [], error: 'Not your draft session' }}
+  if (!session) {
+    return { session: null, picks: [], squad: [], error: 'Session not found' }
+  }
+  if (session.userId !== userId) {
+    return { session: null, picks: [], squad: [], error: 'Not your draft session' }
+  }
   const picks = (await prisma.draftPick.findMany({
     where: { draftSessionId: sessionId },
     orderBy: { slotIndex: 'asc' },

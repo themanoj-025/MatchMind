@@ -71,9 +71,9 @@ function createApp(overrides: Record<string, unknown> = {}) {
         }
         return Promise.resolve(null)
       }),
-      updateProfile: vi.fn().mockImplementation((_id: string, data: Record<string, unknown>) =>
-        Promise.resolve({ id: 'user-1', ...data }),
-      ),
+      updateProfile: vi
+        .fn()
+        .mockImplementation((_id: string, data: Record<string, unknown>) => Promise.resolve({ id: 'user-1', ...data })),
     },
   }
 
@@ -147,9 +147,7 @@ describe('User Routes', () => {
     })
 
     it('returns 401 when not authenticated', async () => {
-      const res = await request(app)
-        .patch('/api/users/me')
-        .send({ displayName: 'New Name' })
+      const res = await request(app).patch('/api/users/me').send({ displayName: 'New Name' })
 
       expect(res.status).toBe(401)
     })

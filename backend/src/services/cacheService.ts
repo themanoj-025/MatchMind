@@ -13,7 +13,9 @@ export class CacheService {
   }
 
   async get<T>(key: string): Promise<T | null> {
-    if (!this.isConnected()) {return null}
+    if (!this.isConnected()) {
+      return null
+    }
 
     try {
       const data = await this.redis.get(key)
@@ -29,7 +31,9 @@ export class CacheService {
   }
 
   async set<T>(key: string, value: T, ttlSeconds: number): Promise<void> {
-    if (!this.isConnected() || value === undefined || value === null) {return}
+    if (!this.isConnected() || value === undefined || value === null) {
+      return
+    }
 
     try {
       await this.redis.set(key, JSON.stringify(value), 'EX', ttlSeconds)
@@ -52,7 +56,9 @@ export class CacheService {
   }
 
   async invalidateByPattern(pattern: string): Promise<void> {
-    if (!this.isConnected()) {return}
+    if (!this.isConnected()) {
+      return
+    }
 
     try {
       let cursor = '0'
@@ -77,7 +83,9 @@ export class CacheService {
   }
 
   async delete(key: string): Promise<void> {
-    if (!this.isConnected()) {return}
+    if (!this.isConnected()) {
+      return
+    }
 
     try {
       await this.redis.del(key)

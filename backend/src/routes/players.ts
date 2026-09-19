@@ -31,7 +31,9 @@ router.get('/', async (req, res) => {
 
   const result = await cacheService.getOrFetch(cacheKey, 86400, async () => {
     const where: { tournamentId?: string } = {}
-    if (tournamentId) {where.tournamentId = tournamentId}
+    if (tournamentId) {
+      where.tournamentId = tournamentId
+    }
 
     const players = await prisma.player.findMany({
       where,

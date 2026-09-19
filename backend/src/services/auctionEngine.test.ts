@@ -234,16 +234,19 @@ describe('processBid() — unit tests with mocked DB accessors', () => {
     const mockSaveBid = vi.fn().mockResolvedValue(undefined)
     const mockGetPool = vi.fn().mockResolvedValue([])
 
-    const result = await processBid({ roomId: 'room-1', playerId: 'player-1', amount: 10, userId: 'user-1', expectedVersion: 1 }, {
-      getRoom: mockGetRoom,
-      getPlayer: mockGetPlayer,
-      getRoomMember: mockGetMember,
-      getRoster: mockGetRoster,
-      getAuctionState: mockGetAuctionState,
-      saveAuctionState: mockSaveState,
-      saveBid: mockSaveBid,
-      getPlayerPool: mockGetPool,
-    })
+    const result = await processBid(
+      { roomId: 'room-1', playerId: 'player-1', amount: 10, userId: 'user-1', expectedVersion: 1 },
+      {
+        getRoom: mockGetRoom,
+        getPlayer: mockGetPlayer,
+        getRoomMember: mockGetMember,
+        getRoster: mockGetRoster,
+        getAuctionState: mockGetAuctionState,
+        saveAuctionState: mockSaveState,
+        saveBid: mockSaveBid,
+        getPlayerPool: mockGetPool,
+      },
+    )
 
     expect(result.accepted).toBe(true)
     expect(result.newState).toBeDefined()
@@ -257,16 +260,19 @@ describe('processBid() — unit tests with mocked DB accessors', () => {
   it('rejects bid when state version mismatch', async () => {
     const { processBid } = await import('./auctionEngine')
 
-    const result = await processBid({ roomId: 'room-1', playerId: 'player-1', amount: 10, userId: 'user-1', expectedVersion: 999 }, {
-      getRoom: vi.fn(),
-      getPlayer: vi.fn(),
-      getRoomMember: vi.fn(),
-      getRoster: vi.fn(),
-      getAuctionState: vi.fn().mockResolvedValue(state),
-      saveAuctionState: vi.fn(),
-      saveBid: vi.fn(),
-      getPlayerPool: vi.fn(),
-    })
+    const result = await processBid(
+      { roomId: 'room-1', playerId: 'player-1', amount: 10, userId: 'user-1', expectedVersion: 999 },
+      {
+        getRoom: vi.fn(),
+        getPlayer: vi.fn(),
+        getRoomMember: vi.fn(),
+        getRoster: vi.fn(),
+        getAuctionState: vi.fn().mockResolvedValue(state),
+        saveAuctionState: vi.fn(),
+        saveBid: vi.fn(),
+        getPlayerPool: vi.fn(),
+      },
+    )
     expect(result.accepted).toBe(false)
     expect(result.reason).toBe('BID_STALE_STATE')
   })
@@ -274,16 +280,19 @@ describe('processBid() — unit tests with mocked DB accessors', () => {
   it('rejects bid when room is not DRAFTING', async () => {
     const { processBid } = await import('./auctionEngine')
 
-    const result = await processBid({ roomId: 'room-1', playerId: 'player-1', amount: 10, userId: 'user-1', expectedVersion: 1 }, {
-      getRoom: vi.fn().mockResolvedValue(createMockRoom({ status: 'LOBBY' })),
-      getPlayer: vi.fn(),
-      getRoomMember: vi.fn(),
-      getRoster: vi.fn(),
-      getAuctionState: vi.fn().mockResolvedValue(state),
-      saveAuctionState: vi.fn(),
-      saveBid: vi.fn(),
-      getPlayerPool: vi.fn(),
-    })
+    const result = await processBid(
+      { roomId: 'room-1', playerId: 'player-1', amount: 10, userId: 'user-1', expectedVersion: 1 },
+      {
+        getRoom: vi.fn().mockResolvedValue(createMockRoom({ status: 'LOBBY' })),
+        getPlayer: vi.fn(),
+        getRoomMember: vi.fn(),
+        getRoster: vi.fn(),
+        getAuctionState: vi.fn().mockResolvedValue(state),
+        saveAuctionState: vi.fn(),
+        saveBid: vi.fn(),
+        getPlayerPool: vi.fn(),
+      },
+    )
     expect(result.accepted).toBe(false)
     expect(result.reason).toBe('ROOM_NOT_ACTIVE')
   })
@@ -292,16 +301,19 @@ describe('processBid() — unit tests with mocked DB accessors', () => {
     const { processBid } = await import('./auctionEngine')
 
     const idleState = createMockState({ phase: 'IDLE', currentPlayerId: null })
-    const result = await processBid({ roomId: 'room-1', playerId: 'player-1', amount: 10, userId: 'user-1', expectedVersion: 1 }, {
-      getRoom: vi.fn().mockResolvedValue(createMockRoom()),
-      getPlayer: vi.fn(),
-      getRoomMember: vi.fn(),
-      getRoster: vi.fn(),
-      getAuctionState: vi.fn().mockResolvedValue(idleState),
-      saveAuctionState: vi.fn(),
-      saveBid: vi.fn(),
-      getPlayerPool: vi.fn(),
-    })
+    const result = await processBid(
+      { roomId: 'room-1', playerId: 'player-1', amount: 10, userId: 'user-1', expectedVersion: 1 },
+      {
+        getRoom: vi.fn().mockResolvedValue(createMockRoom()),
+        getPlayer: vi.fn(),
+        getRoomMember: vi.fn(),
+        getRoster: vi.fn(),
+        getAuctionState: vi.fn().mockResolvedValue(idleState),
+        saveAuctionState: vi.fn(),
+        saveBid: vi.fn(),
+        getPlayerPool: vi.fn(),
+      },
+    )
     expect(result.accepted).toBe(false)
     expect(result.reason).toBe('NO_PLAYER_LIVE')
   })
@@ -309,16 +321,19 @@ describe('processBid() — unit tests with mocked DB accessors', () => {
   it('rejects bid for wrong player under hammer', async () => {
     const { processBid } = await import('./auctionEngine')
 
-    const result = await processBid({ roomId: 'room-1', playerId: 'player-999', amount: 10, userId: 'user-1', expectedVersion: 1 }, {
-      getRoom: vi.fn().mockResolvedValue(createMockRoom()),
-      getPlayer: vi.fn(),
-      getRoomMember: vi.fn(),
-      getRoster: vi.fn(),
-      getAuctionState: vi.fn().mockResolvedValue(state),
-      saveAuctionState: vi.fn(),
-      saveBid: vi.fn(),
-      getPlayerPool: vi.fn(),
-    })
+    const result = await processBid(
+      { roomId: 'room-1', playerId: 'player-999', amount: 10, userId: 'user-1', expectedVersion: 1 },
+      {
+        getRoom: vi.fn().mockResolvedValue(createMockRoom()),
+        getPlayer: vi.fn(),
+        getRoomMember: vi.fn(),
+        getRoster: vi.fn(),
+        getAuctionState: vi.fn().mockResolvedValue(state),
+        saveAuctionState: vi.fn(),
+        saveBid: vi.fn(),
+        getPlayerPool: vi.fn(),
+      },
+    )
     expect(result.accepted).toBe(false)
     expect(result.reason).toBe('WRONG_PLAYER_UNDER_HAMMER')
   })
@@ -326,17 +341,20 @@ describe('processBid() — unit tests with mocked DB accessors', () => {
   it('rejects bid when bidder is not a room member', async () => {
     const { processBid } = await import('./auctionEngine')
 
-    const result = await processBid({ roomId: 'room-1', playerId: 'player-1', amount: 10, userId: 'non-member', expectedVersion: 1 }, {
-      getRoom: vi.fn().mockResolvedValue(createMockRoom()),
-      getPlayer: vi.fn(),
-      getRoomMember: vi.fn().mockResolvedValue(null),
-      getRoster: // member not found,
-      vi.fn(),
-      getAuctionState: vi.fn().mockResolvedValue(state),
-      saveAuctionState: vi.fn(),
-      saveBid: vi.fn(),
-      getPlayerPool: vi.fn(),
-    })
+    const result = await processBid(
+      { roomId: 'room-1', playerId: 'player-1', amount: 10, userId: 'non-member', expectedVersion: 1 },
+      {
+        getRoom: vi.fn().mockResolvedValue(createMockRoom()),
+        getPlayer: vi.fn(),
+        getRoomMember: vi.fn().mockResolvedValue(null),
+        // member not found,
+        getRoster: vi.fn(),
+        getAuctionState: vi.fn().mockResolvedValue(state),
+        saveAuctionState: vi.fn(),
+        saveBid: vi.fn(),
+        getPlayerPool: vi.fn(),
+      },
+    )
     expect(result.accepted).toBe(false)
     expect(result.reason).toBe('NOT_ROOM_MEMBER')
   })
@@ -346,16 +364,19 @@ describe('processBid() — unit tests with mocked DB accessors', () => {
 
     // Current bid is 0, min increment is 5, so min bid is 5
     // Bidder tries 3 which is below min
-    const result = await processBid({ roomId: 'room-1', playerId: 'player-1', amount: 3, userId: 'user-1', expectedVersion: 1 }, {
-      getRoom: vi.fn().mockResolvedValue(createMockRoom()),
-      getPlayer: vi.fn().mockResolvedValue(createMockPlayer()),
-      getRoomMember: vi.fn().mockResolvedValue(createMockMember()),
-      getRoster: vi.fn().mockResolvedValue([]),
-      getAuctionState: vi.fn().mockResolvedValue(state),
-      saveAuctionState: vi.fn(),
-      saveBid: vi.fn(),
-      getPlayerPool: vi.fn(),
-    })
+    const result = await processBid(
+      { roomId: 'room-1', playerId: 'player-1', amount: 3, userId: 'user-1', expectedVersion: 1 },
+      {
+        getRoom: vi.fn().mockResolvedValue(createMockRoom()),
+        getPlayer: vi.fn().mockResolvedValue(createMockPlayer()),
+        getRoomMember: vi.fn().mockResolvedValue(createMockMember()),
+        getRoster: vi.fn().mockResolvedValue([]),
+        getAuctionState: vi.fn().mockResolvedValue(state),
+        saveAuctionState: vi.fn(),
+        saveBid: vi.fn(),
+        getPlayerPool: vi.fn(),
+      },
+    )
     expect(result.accepted).toBe(false)
     expect(result.reason).toContain('BID_TOO_LOW')
   })
@@ -363,17 +384,20 @@ describe('processBid() — unit tests with mocked DB accessors', () => {
   it('rejects bid when player not found', async () => {
     const { processBid } = await import('./auctionEngine')
 
-    const result = await processBid({ roomId: 'room-1', playerId: 'player-1', amount: 10, userId: 'user-1', expectedVersion: 1 }, {
-      getRoom: vi.fn().mockResolvedValue(createMockRoom()),
-      getPlayer: vi.fn().mockResolvedValue(null),
-      getRoomMember: // player not found,
-      vi.fn().mockResolvedValue(createMockMember()),
-      getRoster: vi.fn().mockResolvedValue([]),
-      getAuctionState: vi.fn().mockResolvedValue(state),
-      saveAuctionState: vi.fn(),
-      saveBid: vi.fn(),
-      getPlayerPool: vi.fn(),
-    })
+    const result = await processBid(
+      { roomId: 'room-1', playerId: 'player-1', amount: 10, userId: 'user-1', expectedVersion: 1 },
+      {
+        getRoom: vi.fn().mockResolvedValue(createMockRoom()),
+        getPlayer: vi.fn().mockResolvedValue(null),
+        // player not found,
+        getRoomMember: vi.fn().mockResolvedValue(createMockMember()),
+        getRoster: vi.fn().mockResolvedValue([]),
+        getAuctionState: vi.fn().mockResolvedValue(state),
+        saveAuctionState: vi.fn(),
+        saveBid: vi.fn(),
+        getPlayerPool: vi.fn(),
+      },
+    )
     expect(result.accepted).toBe(false)
     expect(result.reason).toBe('PLAYER_NOT_FOUND')
   })
@@ -394,16 +418,19 @@ describe('processBid() — unit tests with mocked DB accessors', () => {
     const mockSaveBid = vi.fn().mockResolvedValue(undefined)
     const mockGetPool = vi.fn().mockResolvedValue([])
 
-    const result = await processBid({ roomId: 'room-1', playerId: 'player-1', amount: 10, userId: 'user-1', expectedVersion: 1 }, {
-      getRoom: mockGetRoom,
-      getPlayer: mockGetPlayer,
-      getRoomMember: mockGetMember,
-      getRoster: mockGetRoster,
-      getAuctionState: mockGetAuctionState,
-      saveAuctionState: mockSaveState,
-      saveBid: mockSaveBid,
-      getPlayerPool: mockGetPool,
-    })
+    const result = await processBid(
+      { roomId: 'room-1', playerId: 'player-1', amount: 10, userId: 'user-1', expectedVersion: 1 },
+      {
+        getRoom: mockGetRoom,
+        getPlayer: mockGetPlayer,
+        getRoomMember: mockGetMember,
+        getRoster: mockGetRoster,
+        getAuctionState: mockGetAuctionState,
+        saveAuctionState: mockSaveState,
+        saveBid: mockSaveBid,
+        getPlayerPool: mockGetPool,
+      },
+    )
 
     expect(result.accepted).toBe(true)
     expect(result.newState).toBeDefined()

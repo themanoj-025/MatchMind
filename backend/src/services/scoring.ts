@@ -123,8 +123,12 @@ export const DEFAULT_RULESET: Ruleset = {
 // ─── Helpers ─────────────────────────────────────────────
 
 function getMatchResult(homeScore: number, awayScore: number): 'home' | 'away' | 'draw' {
-  if (homeScore > awayScore) {return 'home'}
-  if (awayScore > homeScore) {return 'away'}
+  if (homeScore > awayScore) {
+    return 'home'
+  }
+  if (awayScore > homeScore) {
+    return 'away'
+  }
   return 'draw'
 }
 
@@ -182,7 +186,13 @@ function applyResultOutcome(
   }
 }
 
-function applyBttsBonus(breakdown: Record<string, number>, ruleset: Ruleset, btts: boolean | null | undefined, homeScore: number, awayScore: number): void {
+function applyBttsBonus(
+  breakdown: Record<string, number>,
+  ruleset: Ruleset,
+  btts: boolean | null | undefined,
+  homeScore: number,
+  awayScore: number,
+): void {
   if (btts === true) {
     const bothScored = homeScore > 0 && awayScore > 0
     if (bothScored) {
@@ -398,8 +408,12 @@ export function rebuildLeaderboard(
     }))
     .sort((a, b) => {
       // Sort by total points descending, then accuracy descending, then streak descending
-      if (b.totalPoints !== a.totalPoints) {return b.totalPoints - a.totalPoints}
-      if (b.accuracy !== a.accuracy) {return b.accuracy - a.accuracy}
+      if (b.totalPoints !== a.totalPoints) {
+        return b.totalPoints - a.totalPoints
+      }
+      if (b.accuracy !== a.accuracy) {
+        return b.accuracy - a.accuracy
+      }
       return b.streakCurrent - a.streakCurrent
     })
 

@@ -114,10 +114,7 @@ router.post('/auction-advice', authenticateToken, aiPredictionLimiter, async (re
           defaultRosterRules,
         )
       } catch (err: unknown) {
-        logger.error(
-          { event: 'ai.anthropic_advice_error', roomId, err: (err as Error).message },
-          'Anthropic API error',
-        )
+        logger.error({ event: 'ai.anthropic_advice_error', roomId, err: (err as Error).message }, 'Anthropic API error')
       }
     }
     if (!freshAdvice) {
@@ -133,10 +130,7 @@ router.post('/auction-advice', authenticateToken, aiPredictionLimiter, async (re
 })
 
 /** Compute which positions still need filling given the current roster. */
-function computePositionNeeds(
-  roster: RosterEntry[],
-  rosterRules: Record<string, number>,
-): Record<string, number> {
+function computePositionNeeds(roster: RosterEntry[], rosterRules: Record<string, number>): Record<string, number> {
   const rosterPositions: Record<string, number> = { GK: 0, DEF: 0, MID: 0, FWD: 0 }
   for (const entry of roster) {
     if (entry.player?.position) {

@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest'
-import { rollRarity, computeSynergyScore, checkFormationFillBonus, type SquadPlayer, type FormationSlot } from './draftService'
+import {
+  rollRarity,
+  computeSynergyScore,
+  checkFormationFillBonus,
+  type SquadPlayer,
+  type FormationSlot,
+} from './draftService'
 
 describe('rollRarity', () => {
   it('returns a valid rarity tier name', () => {

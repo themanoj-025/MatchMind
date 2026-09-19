@@ -19,7 +19,9 @@ async function checkTokenVersion(userId: string, tokenVersion: number, prisma: D
       where: { id: userId },
       select: { tokenVersion: true },
     })
-    if (!user) {return false}
+    if (!user) {
+      return false
+    }
     return (user.tokenVersion ?? 0) === tokenVersion
   } catch (err: unknown) {
     // Fail closed to prevent bypasses during database outages/transient errors

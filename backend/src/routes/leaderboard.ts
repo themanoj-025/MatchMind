@@ -18,7 +18,9 @@ router.get('/rooms/:roomId', async (req, res) => {
   const cacheKey = `leaderboard:room:${roomId}`
   const payload = await cacheService.getOrFetch(cacheKey, 300, async () => {
     const data = await roomService.getRoomLeaderboardData(roomId)
-    if (!data) {return { error: 'ROOM_NOT_FOUND' }}
+    if (!data) {
+      return { error: 'ROOM_NOT_FOUND' }
+    }
     const entries = computeRoomLeaderboard(data.ledger, roomId, data.rosters)
     return {
       roomId,

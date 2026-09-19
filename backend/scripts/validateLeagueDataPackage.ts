@@ -64,7 +64,9 @@ function validateTournamentData(tournament: TournamentRecord): ValidationResult 
   }
 
   // 3. Every fixture references valid teams
-  const fixtures = loadDataFile('fixtures.json').filter((f) => (f as FixtureRecord).tournamentId === tid) as FixtureRecord[]
+  const fixtures = loadDataFile('fixtures.json').filter(
+    (f) => (f as FixtureRecord).tournamentId === tid,
+  ) as FixtureRecord[]
   const teamIds = new Set(teams.map((t) => t.id))
   for (const fixture of fixtures) {
     if (fixture.homeTeamId && !teamIds.has(fixture.homeTeamId)) {
@@ -85,7 +87,9 @@ function validateTournamentData(tournament: TournamentRecord): ValidationResult 
   }
 
   // 5. History exists with at least last 3 editions
-  const history = loadDataFile('history.json').filter((h) => (h as HistoryRecord).tournamentId === tid) as HistoryRecord[]
+  const history = loadDataFile('history.json').filter(
+    (h) => (h as HistoryRecord).tournamentId === tid,
+  ) as HistoryRecord[]
   if (history.length === 0) {
     warnings.push(`No history record found in history.json for "${tid}"`)
   } else {

@@ -43,9 +43,7 @@ function createMockRepo(overrides: Partial<IUserRepository> = {}): IUserReposito
     findByEmail: vi.fn().mockResolvedValue(null),
     findByUsername: vi.fn().mockResolvedValue(null),
     create: vi.fn().mockResolvedValue(createMockUser()),
-    update: vi.fn().mockImplementation((_id: string, data: Partial<UserData>) =>
-      Promise.resolve(createMockUser(data)),
-    ),
+    update: vi.fn().mockImplementation((_id: string, data: Partial<UserData>) => Promise.resolve(createMockUser(data))),
     delete: vi.fn().mockResolvedValue(undefined),
     ...overrides,
   }
@@ -151,9 +149,9 @@ describe('UserService', () => {
 
   describe('updateProfile', () => {
     it('updates displayName', async () => {
-      repo.update = vi.fn().mockImplementation((_id: string, data: Partial<UserData>) =>
-        Promise.resolve(createMockUser(data)),
-      )
+      repo.update = vi
+        .fn()
+        .mockImplementation((_id: string, data: Partial<UserData>) => Promise.resolve(createMockUser(data)))
 
       const result = await service.updateProfile('user-1', { displayName: 'New Name' })
 
@@ -161,9 +159,9 @@ describe('UserService', () => {
     })
 
     it('updates avatar to null', async () => {
-      repo.update = vi.fn().mockImplementation((_id: string, data: Partial<UserData>) =>
-        Promise.resolve(createMockUser(data)),
-      )
+      repo.update = vi
+        .fn()
+        .mockImplementation((_id: string, data: Partial<UserData>) => Promise.resolve(createMockUser(data)))
 
       const result = await service.updateProfile('user-1', { avatar: null })
 
@@ -171,9 +169,9 @@ describe('UserService', () => {
     })
 
     it('filters out undefined values', async () => {
-      repo.update = vi.fn().mockImplementation((_id: string, data: Partial<UserData>) =>
-        Promise.resolve(createMockUser(data)),
-      )
+      repo.update = vi
+        .fn()
+        .mockImplementation((_id: string, data: Partial<UserData>) => Promise.resolve(createMockUser(data)))
 
       await service.updateProfile('user-1', { displayName: 'New' })
 

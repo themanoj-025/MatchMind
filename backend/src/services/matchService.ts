@@ -95,9 +95,7 @@ export class MatchService {
       where: { id: { in: playerIds } },
       select: { id: true, position: true, name: true },
     })
-    const playerMap = new Map<string, { id: string; position: string; name: string }>(
-      allPlayers.map((p) => [p.id, p]),
-    )
+    const playerMap = new Map<string, { id: string; position: string; name: string }>(allPlayers.map((p) => [p.id, p]))
 
     // Batch-load all rosters for all rooms
     const roomIds = rooms.map((r) => r.id)

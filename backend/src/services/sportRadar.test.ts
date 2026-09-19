@@ -100,9 +100,7 @@ describe('SportRadarService', () => {
               id: 'match-1',
               scheduled: '2026-01-01T10:00:00Z',
               status: 'scheduled',
-              competitors: [
-                { id: 'team-1', name: 'Team A', abbreviation: 'TMA' },
-              ],
+              competitors: [{ id: 'team-1', name: 'Team A', abbreviation: 'TMA' }],
             },
             {
               id: 'match-2',

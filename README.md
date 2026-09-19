@@ -186,18 +186,18 @@ npm run test        # Vitest suites (backend + frontend)
 
 ### Key Endpoints
 
-| Method | Endpoint | Description | Auth |
-|--------|----------|-------------|------|
-| POST | `/api/v1/auth/register` | Register new user | No |
-| POST | `/api/v1/auth/login` | Login (returns JWT) | No |
-| GET | `/api/v1/users/me` | Get current user profile | Yes |
-| PATCH | `/api/v1/users/me` | Update profile | Yes |
-| POST | `/api/v1/rooms` | Create draft room | Yes |
-| POST | `/api/v1/rooms/:id/join` | Join room via invite code | Yes |
-| POST | `/api/v1/rooms/:id/ready` | Toggle ready status | Yes |
-| GET | `/api/v1/matches` | List fixtures | Yes |
-| GET | `/api/v1/leaderboard/rooms/:id` | Room leaderboard | Yes |
-| POST | `/api/v1/stripe/checkout` | Pro subscription checkout | Yes |
+| Method | Endpoint                        | Description               | Auth |
+| ------ | ------------------------------- | ------------------------- | ---- |
+| POST   | `/api/v1/auth/register`         | Register new user         | No   |
+| POST   | `/api/v1/auth/login`            | Login (returns JWT)       | No   |
+| GET    | `/api/v1/users/me`              | Get current user profile  | Yes  |
+| PATCH  | `/api/v1/users/me`              | Update profile            | Yes  |
+| POST   | `/api/v1/rooms`                 | Create draft room         | Yes  |
+| POST   | `/api/v1/rooms/:id/join`        | Join room via invite code | Yes  |
+| POST   | `/api/v1/rooms/:id/ready`       | Toggle ready status       | Yes  |
+| GET    | `/api/v1/matches`               | List fixtures             | Yes  |
+| GET    | `/api/v1/leaderboard/rooms/:id` | Room leaderboard          | Yes  |
+| POST   | `/api/v1/stripe/checkout`       | Pro subscription checkout | Yes  |
 
 ### Authentication
 
@@ -219,27 +219,27 @@ curl -X POST http://localhost:4000/api/v1/auth/login \
 
 Real-time auction and chat via Socket.IO:
 
-| Event | Direction | Description |
-|-------|-----------|-------------|
-| `bid` | Client→Server | Place a bid on current player |
-| `chat:send` | Client→Server | Send chat message |
-| `chat:message` | Server→Client | Broadcast chat message |
-| `auction:update` | Server→Client | Auction state change (new player, sold, timer) |
-| `room:member_update` | Server→Client | Member join/leave/ready |
-| `leaderboard:update` | Server→Client | Score update after fixture finalization |
+| Event                | Direction     | Description                                    |
+| -------------------- | ------------- | ---------------------------------------------- |
+| `bid`                | Client→Server | Place a bid on current player                  |
+| `chat:send`          | Client→Server | Send chat message                              |
+| `chat:message`       | Server→Client | Broadcast chat message                         |
+| `auction:update`     | Server→Client | Auction state change (new player, sold, timer) |
+| `room:member_update` | Server→Client | Member join/leave/ready                        |
+| `leaderboard:update` | Server→Client | Score update after fixture finalization        |
 
 ---
 
 ## 🔧 Environment Variables
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `DATABASE_URL` | `postgresql://...` | PostgreSQL connection string |
-| `REDIS_URL` | `redis://localhost:6379` | Redis connection string |
-| `JWT_SECRET` | (required) | JWT signing secret (64+ chars) |
-| `JWT_REFRESH_SECRET` | (required) | Refresh token secret |
-| `STRIPE_SECRET_KEY` | (optional) | Stripe billing key |
-| `ANTHROPIC_API_KEY` | (optional) | AI draft insights |
+| Variable             | Default                  | Description                    |
+| -------------------- | ------------------------ | ------------------------------ |
+| `DATABASE_URL`       | `postgresql://...`       | PostgreSQL connection string   |
+| `REDIS_URL`          | `redis://localhost:6379` | Redis connection string        |
+| `JWT_SECRET`         | (required)               | JWT signing secret (64+ chars) |
+| `JWT_REFRESH_SECRET` | (required)               | Refresh token secret           |
+| `STRIPE_SECRET_KEY`  | (optional)               | Stripe billing key             |
+| `ANTHROPIC_API_KEY`  | (optional)               | AI draft insights              |
 
 ---
 

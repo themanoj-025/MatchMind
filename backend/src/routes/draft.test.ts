@@ -119,9 +119,7 @@ describe('Draft Routes', () => {
   describe('GET /api/draft/formations', () => {
     it('returns available formations', async () => {
       const app = await createTestApp()
-      const res = await request(app)
-        .get('/api/draft/formations')
-        .set('Authorization', `Bearer ${createAuthToken()}`)
+      const res = await request(app).get('/api/draft/formations').set('Authorization', `Bearer ${createAuthToken()}`)
 
       expect(res.status).toBe(200)
       expect(Array.isArray(res.body)).toBe(true)
@@ -159,9 +157,7 @@ describe('Draft Routes', () => {
   describe('GET /api/draft/mine', () => {
     it('returns user draft sessions', async () => {
       const app = await createTestApp()
-      const res = await request(app)
-        .get('/api/draft/mine')
-        .set('Authorization', `Bearer ${createAuthToken()}`)
+      const res = await request(app).get('/api/draft/mine').set('Authorization', `Bearer ${createAuthToken()}`)
 
       expect(res.status).toBe(200)
       expect(Array.isArray(res.body)).toBe(true)
@@ -171,9 +167,7 @@ describe('Draft Routes', () => {
   describe('GET /api/draft/tickets', () => {
     it('returns ticket balance', async () => {
       const app = await createTestApp()
-      const res = await request(app)
-        .get('/api/draft/tickets')
-        .set('Authorization', `Bearer ${createAuthToken()}`)
+      const res = await request(app).get('/api/draft/tickets').set('Authorization', `Bearer ${createAuthToken()}`)
 
       expect(res.status).toBe(200)
       expect(res.body.balance).toBe(5)
@@ -183,9 +177,7 @@ describe('Draft Routes', () => {
   describe('GET /api/draft/:sessionId', () => {
     it('returns session state', async () => {
       const app = await createTestApp()
-      const res = await request(app)
-        .get('/api/draft/draft-1')
-        .set('Authorization', `Bearer ${createAuthToken()}`)
+      const res = await request(app).get('/api/draft/draft-1').set('Authorization', `Bearer ${createAuthToken()}`)
 
       expect(res.status).toBe(200)
       expect(res.body.sessionId).toBe('draft-1')
@@ -193,9 +185,7 @@ describe('Draft Routes', () => {
 
     it('returns 404 for non-existent session', async () => {
       const app = await createTestApp()
-      const res = await request(app)
-        .get('/api/draft/nonexistent')
-        .set('Authorization', `Bearer ${createAuthToken()}`)
+      const res = await request(app).get('/api/draft/nonexistent').set('Authorization', `Bearer ${createAuthToken()}`)
 
       expect(res.status).toBe(404)
     })

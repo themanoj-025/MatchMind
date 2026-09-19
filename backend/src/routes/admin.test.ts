@@ -98,17 +98,28 @@ async function createTestApp() {
   const app = express()
   app.use(express.json())
 
-  app.use((req: express.Request & { container?: { cradle: Record<string, unknown> }; userId?: string; userRole?: string }, _res, next) => {
-    req.container = { cradle: { adminService: mockAdminService, prisma: {} } }
-    next()
-  })
+  app.use(
+    (
+      req: express.Request & { container?: { cradle: Record<string, unknown> }; userId?: string; userRole?: string },
+      _res,
+      next,
+    ) => {
+      req.container = { cradle: { adminService: mockAdminService, prisma: {} } }
+      next()
+    },
+  )
 
   const { default: adminRouter } = await import('./admin')
   app.use('/api/admin', adminRouter)
 
   // Error handler
   app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-    const httpErr = (typeof err === 'object' && err !== null ? err : {}) as { statusCode?: number; code?: string; message?: string; isAppError?: boolean }
+    const httpErr = (typeof err === 'object' && err !== null ? err : {}) as {
+      statusCode?: number
+      code?: string
+      message?: string
+      isAppError?: boolean
+    }
     if (httpErr.isAppError) {
       return res.status(httpErr.statusCode || 400).json({ error: { code: httpErr.code, message: httpErr.message } })
     }
@@ -134,9 +145,7 @@ describe('Admin Routes', () => {
 
     it('rejects non-admin users', async () => {
       const app = await createTestApp()
-      const res = await request(app)
-        .get('/api/admin/stats')
-        .set('Authorization', `Bearer ${createUserToken()}`)
+      const res = await request(app).get('/api/admin/stats').set('Authorization', `Bearer ${createUserToken()}`)
       expect(res.status).toBe(403)
     })
   })
@@ -144,9 +153,7 @@ describe('Admin Routes', () => {
   describe('GET /api/admin/stats', () => {
     it('returns dashboard stats for admin', async () => {
       const app = await createTestApp()
-      const res = await request(app)
-        .get('/api/admin/stats')
-        .set('Authorization', `Bearer ${createAdminToken()}`)
+      const res = await request(app).get('/api/admin/stats').set('Authorization', `Bearer ${createAdminToken()}`)
 
       expect(res.status).toBe(200)
       expect(res.body.totalUsers).toBe(100)
@@ -157,9 +164,7 @@ describe('Admin Routes', () => {
   describe('GET /api/admin/users', () => {
     it('returns paginated user list', async () => {
       const app = await createTestApp()
-      const res = await request(app)
-        .get('/api/admin/users')
-        .set('Authorization', `Bearer ${createAdminToken()}`)
+      const res = await request(app).get('/api/admin/users').set('Authorization', `Bearer ${createAdminToken()}`)
 
       expect(res.status).toBe(200)
       expect(res.body.data).toHaveLength(2)
@@ -170,9 +175,7 @@ describe('Admin Routes', () => {
   describe('GET /api/admin/users/:id', () => {
     it('returns a user by id', async () => {
       const app = await createTestApp()
-      const res = await request(app)
-        .get('/api/admin/users/user-1')
-        .set('Authorization', `Bearer ${createAdminToken()}`)
+      const res = await request(app).get('/api/admin/users/user-1').set('Authorization', `Bearer ${createAdminToken()}`)
 
       expect(res.status).toBe(200)
       expect(res.body.username).toBe('alice')
@@ -204,9 +207,7 @@ describe('Admin Routes', () => {
   describe('GET /api/admin/settings', () => {
     it('returns admin settings', async () => {
       const app = await createTestApp()
-      const res = await request(app)
-        .get('/api/admin/settings')
-        .set('Authorization', `Bearer ${createAdminToken()}`)
+      const res = await request(app).get('/api/admin/settings').set('Authorization', `Bearer ${createAdminToken()}`)
 
       expect(res.status).toBe(200)
       expect(res.body.draftEnabledTournaments).toBeDefined()

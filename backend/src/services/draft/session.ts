@@ -1,5 +1,7 @@
 export function loadFormations(): Formation[] {
-  if (_formations) {return _formations}
+  if (_formations) {
+    return _formations
+  }
   try {
     const fs = require('fs')
     const path = require('path')
@@ -23,7 +25,9 @@ export function rollRarity(): RarityTierName {
   let cumulative = 0
   for (const tier of RARITY_TIERS) {
     cumulative += tier.packWeight
-    if (roll <= cumulative) {return tier.tier}
+    if (roll <= cumulative) {
+      return tier.tier
+    }
   }
   return 'BRONZE'
 }
@@ -69,7 +73,9 @@ export function generateChoiceRound(
     attempts++
     // Roll rarity first, then pick a matching player (or any unoffered one)
     const picked = pickOfferedPlayer(pool, usedIndices, rollRarity())
-    if (!picked) {break}
+    if (!picked) {
+      break
+    }
     offeredPlayerIds.push(picked.player.id)
     offeredRarities.push(picked.rarity)
     players.push({
@@ -139,7 +145,9 @@ export function computeSynergyScore(squadPlayers: SquadPlayer[], allPlayers: Pla
   const clubCounts: Record<string, number> = {}
   for (const sp of squadPlayers) {
     const player = playerMap.get(sp.playerId)
-    if (!player) {continue}
+    if (!player) {
+      continue
+    }
     if (player.nationality) {
       nationalityCounts[player.nationality] = (nationalityCounts[player.nationality] || 0) + 1
     }
@@ -206,11 +214,7 @@ export async function startDraft(
     where: { tournamentId },
   })
   const firstSlot = formationDef.slots[0]!
-  const firstRound = generateChoiceRound(
-    firstSlot.position,
-    [],
-    allPlayers,
-  )
+  const firstRound = generateChoiceRound(firstSlot.position, [], allPlayers)
   // 5. Create the first draft pick record
   const { expiresAt } = await createFirstPickRecord(prisma, session, firstSlot, firstRound)
   // 6. Load full player objects for the choice round
@@ -284,7 +288,9 @@ function positionForSlot(formationDef: Formation, nextSlot: number, picks: Draft
     positionNeeds[pos] = (positionNeeds[pos] || 0) + 1
   }
   for (const pos of usedInPosition) {
-    if (positionNeeds[pos]) {positionNeeds[pos]--}
+    if (positionNeeds[pos]) {
+      positionNeeds[pos]--
+    }
   }
   return Object.entries(positionNeeds).sort((a, b) => b[1] - a[1])[0]?.[0] || 'MID'
 }
@@ -326,10 +332,11 @@ function rerollDuplicateOffer(
 ): void {
   // Re-roll by swapping the last offered player
   const replacement = allPlayers.find(
-    (p) =>
-      !round.offeredPlayerIds.includes(p.id) && !excludePlayerIds.includes(p.id) && p.position === slotPosition,
+    (p) => !round.offeredPlayerIds.includes(p.id) && !excludePlayerIds.includes(p.id) && p.position === slotPosition,
   )
-  if (!replacement) {return}
+  if (!replacement) {
+    return
+  }
   round.offeredPlayerIds[2] = replacement.id
   round.offeredRarities[2] = replacement.rarityTier || 'BRONZE'
   round.players[2] = {
@@ -419,7 +426,10 @@ async function loadRoundContext(
     return { ok: false, result: { round: null, session: null, complete: false, error: 'Not your draft session' } }
   }
   if (session.status !== 'DRAFTING') {
-    return { ok: false, result: { round: null, session, complete: session.status === 'SQUAD_COMPLETE', error: undefined } }
+    return {
+      ok: false,
+      result: { round: null, session, complete: session.status === 'SQUAD_COMPLETE', error: undefined },
+    }
   }
   const formationDef = getFormation(session.formation)
   if (!formationDef) {

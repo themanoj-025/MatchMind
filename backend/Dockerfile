@@ -13,7 +13,7 @@ COPY packages/shared-types/package.json packages/shared-types/
 
 # Install all workspace dependencies. Scripts are skipped so prisma generate
 # and shared-types build run explicitly, in the right order, below.
-RUN apt-get update && apt-get upgrade -y --no-install-recommends \
+RUN apt-get update \
     && apt-get install -y --no-install-recommends openssl ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 RUN npm ci --ignore-scripts
@@ -50,7 +50,7 @@ FROM node:20-slim AS runner
 WORKDIR /app
 
 # Prisma needs OpenSSL at runtime; install before dropping privileges.
-RUN apt-get update && apt-get upgrade -y --no-install-recommends \
+RUN apt-get update \
     && apt-get install -y --no-install-recommends openssl \
     && rm -rf /var/lib/apt/lists/*
 

@@ -25,7 +25,13 @@ const mockMatchService = {
   ]),
   getFixtureDetails: vi.fn().mockImplementation((id: string) => {
     if (id === 'fix-1') {
-      return Promise.resolve({ id: 'fix-1', tournamentId: 'fifa-wc-2026', homeTeam: 'Brazil', awayTeam: 'Argentina', playerStats: [] })
+      return Promise.resolve({
+        id: 'fix-1',
+        tournamentId: 'fifa-wc-2026',
+        homeTeam: 'Brazil',
+        awayTeam: 'Argentina',
+        playerStats: [],
+      })
     }
     return Promise.resolve(null)
   }),
@@ -69,7 +75,12 @@ async function createTestApp() {
 
   // Error handler
   app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-    const httpErr = (typeof err === 'object' && err !== null ? err : {}) as { statusCode?: number; code?: string; message?: string; isAppError?: boolean }
+    const httpErr = (typeof err === 'object' && err !== null ? err : {}) as {
+      statusCode?: number
+      code?: string
+      message?: string
+      isAppError?: boolean
+    }
     if (httpErr.isAppError) {
       return res.status(httpErr.statusCode || 400).json({ error: { code: httpErr.code, message: httpErr.message } })
     }
@@ -158,7 +169,20 @@ describe('Fixtures Routes', () => {
         .set('Authorization', `Bearer ${token}`)
         .send({
           playerStats: [
-            { playerId: 'p-1', minutesPlayed: 90, goals: 1, assists: 0, cleanSheet: true, saves: 0, penaltiesSaved: 0, yellowCards: 0, redCards: 0, penaltiesMissed: 0, ownGoals: 0, goalsConceded: 0 },
+            {
+              playerId: 'p-1',
+              minutesPlayed: 90,
+              goals: 1,
+              assists: 0,
+              cleanSheet: true,
+              saves: 0,
+              penaltiesSaved: 0,
+              yellowCards: 0,
+              redCards: 0,
+              penaltiesMissed: 0,
+              ownGoals: 0,
+              goalsConceded: 0,
+            },
           ],
         })
 
@@ -169,9 +193,7 @@ describe('Fixtures Routes', () => {
 
     it('rejects unauthenticated request', async () => {
       const app = await createTestApp()
-      const res = await request(app)
-        .post('/api/fixtures/fix-1/player-stats')
-        .send({ playerStats: [] })
+      const res = await request(app).post('/api/fixtures/fix-1/player-stats').send({ playerStats: [] })
 
       expect(res.status).toBe(401)
     })
@@ -181,9 +203,7 @@ describe('Fixtures Routes', () => {
     it('finalizes a fixture', async () => {
       const app = await createTestApp()
       const token = createAdminToken()
-      const res = await request(app)
-        .post('/api/fixtures/fix-1/finalize')
-        .set('Authorization', `Bearer ${token}`)
+      const res = await request(app).post('/api/fixtures/fix-1/finalize').set('Authorization', `Bearer ${token}`)
 
       expect(res.status).toBe(200)
       expect(res.body.message).toBe('Fixture finalized')
