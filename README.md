@@ -20,6 +20,18 @@ I built MatchMind because existing fantasy sports platforms felt too static. I w
 
 ---
 
+## 📸 Screenshots
+
+> _To add screenshots: run the backend and frontend (`npm run dev` in each), open a draft room, capture your screen, save images to `docs/assets/`, and reference them below._
+>
+> **Suggested screenshots:**
+>
+> - Live auction room with the anti-snipe timer running
+> - Squad view showing the 15-man roster under the $100M cap
+> - Global leaderboard
+
+---
+
 ## 📋 Table of Contents
 
 - [⚽ Core Features](#-core-features)
