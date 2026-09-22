@@ -19,10 +19,10 @@ jobs:
       id-token: write
 
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -30,7 +30,7 @@ jobs:
 
       - name: Extract metadata (tags, labels) for Docker
         id: meta
-        uses: docker/metadata-action@v6
+        uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6
         with:
           images: ghcr.io/${{ github.repository }}/backend
           tags: |
@@ -39,11 +39,11 @@ jobs:
             type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
 
       - name: Build and push Docker image
         id: push
-        uses: docker/build-push-action@v7
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
         with:
           context: .
           file: ./backend/Dockerfile
@@ -54,7 +54,7 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Generate artifact attestation
-        uses: actions/attest-build-provenance@v4
+        uses: actions/attest-build-provenance@8beda2b7ed98355c0e97c0a63bec38ae472e66c4 # v4
         with:
           subject-name: ghcr.io/${{ github.repository }}/backend
           subject-digest: ${{ steps.push.outputs.digest }}
@@ -76,9 +76,9 @@ jobs:
       # secrets context is not allowed in `if:` — expose via env so the guard works
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '20'
           cache: 'npm'
@@ -97,7 +97,7 @@ jobs:
 
       - name: Deploy to Vercel
         if: ${{ env.VERCEL_TOKEN != '' }}
-        uses: amondnet/vercel-action@v42
+        uses: amondnet/vercel-action@de09aeac2ace6599ec9b11ef87558759a496bac4 # v42
         with:
           vercel-token: ${{ secrets.VERCEL_TOKEN }}
           vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
