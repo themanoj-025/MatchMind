@@ -19,7 +19,7 @@ MatchMind supports **two database backends** with identical APIs:
 
 ## 2. Architecture Overview
 
-```
+```text
 ┌─────────────────────────────────────────────────────────┐
 │                    Application Code                       │
 │  (Routes, Services, Socket Handlers, Middleware)          │

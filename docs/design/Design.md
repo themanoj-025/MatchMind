@@ -53,7 +53,7 @@
 
 **Bid ticket:**
 
-```
+```text
 ┌─────────────────────────┐
 │ Kane (FWD)   $18.5M     │
 │ [▲ +$1.5M]  Timer 8.2s │ ← anti-snipe

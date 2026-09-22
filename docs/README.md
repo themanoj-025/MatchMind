@@ -10,7 +10,7 @@ draft, fantasy points ledger, Stripe billing, and AI draft insights (Claude).
 
 ## Structure
 
-```
+```text
 docs/
 ├── README.md                      ← this index
 ├── architecture.md                system architecture
