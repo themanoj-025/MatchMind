@@ -2,7 +2,7 @@
 
 ## This pass (2026-08-11)
 
-```
+```text
 Before                                After
 ──────                                ─────
 docs/migration_summary.md      →      docs/migration/migration_summary.md
@@ -20,7 +20,7 @@ its record (scope, changes, file-move log, import updates, verification, risk,
 needs-human-review) lives at `docs/migration/migration_summary.md`.
 Tree-level view:
 
-```
+```text
 Before (flat)                         After (canonical)
 ──────                                ─────
 *.ts flat modules            →        backend/src/

@@ -106,7 +106,7 @@ graph TB
 
 ## 4. Complete Folder Structure Tree
 
-```
+```text
 Match-Mind/
 ├── .dockerignore
 ├── .editorconfig
@@ -405,7 +405,7 @@ npm run typecheck   # TypeScript check
 
 ## 11. Dependency Graph Summary
 
-```
+```text
 frontend/src/* → backend/src/routes/* (HTTP/WebSocket)
 backend/src/routes/* → backend/src/services/*
 backend/src/services/* → backend/src/repositories/*

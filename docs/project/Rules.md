@@ -24,7 +24,7 @@
 - TypeScript strict mode; ESLint + Prettier.
 - Structure:
 
-```
+```text
 frontend/            # React 19 SPA (views, store, socket client)
 backend/
   src/

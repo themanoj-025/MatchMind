@@ -1,6 +1,6 @@
 # MatchMind — Folder Structure
 
-```
+```text
 Match-Mind/
 ├── package.json                    # Root workspace manifest (workspaces: backend, frontend, packages/*)
 ├── README.md / LICENSE / Makefile
