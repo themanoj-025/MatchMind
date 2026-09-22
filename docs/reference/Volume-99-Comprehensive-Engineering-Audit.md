@@ -737,7 +737,7 @@ Others return simple strings or different formats:
 ```javascript
 // admin.js
 {
-  users, total, page, totalPages
+  ;(users, total, page, totalPages)
 } // No error envelope
 
 // predictions.js
@@ -1419,7 +1419,7 @@ Despite having a CHANGELOG with versions, there's no:
 
 The ../community/CONTRIBUTING.md recommends commit format:
 
-```
+```text
 type(scope): description
 ```
 
@@ -1994,7 +1994,7 @@ No way for the community to ask questions or discuss features outside of issues.
 
 README badges reference:
 
-```
+```text
 https://github.com/themanoj-025/MatchMind/actions/workflows/ci.yml/badge.svg
 ```
 

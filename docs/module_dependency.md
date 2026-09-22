@@ -6,7 +6,7 @@ npm workspaces monorepo: `backend/`, `frontend/`, `packages/shared-types/`.
 Dependencies flow: `frontend` → `shared-types` ← `backend`; the two apps
 never import each other.
 
-```
+```text
 backend/src/index.ts        → server.ts (boot), app.ts (Express app)
 backend/src/app.ts          → container.ts (composition root), config/*,
                               routes/*, middleware/*, socket/, lib/
