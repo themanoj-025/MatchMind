@@ -14,7 +14,7 @@ I built MatchMind because existing fantasy sports platforms felt too static. I w
 
 ## ⚠️ Known Limitations
 
-- **WebSocket Horizontal Scaling:** Currently runs on a single Node.js instance. Scaling horizontally would require a full `socket.io-redis-adapter` implementation which is not yet built.
+- **WebSocket Horizontal Scaling:** ✅ Implemented via `@socket.io/redis-adapter` — rooms/broadcasts span all backend replicas through the shared Redis. Ops requirements: every replica must point `REDIS_URL` at the same Redis (already true — it backs BullMQ, rate limiting, and idempotency), and HTTP long-polling clients need session stickiness. The frontend pins `transports: ['websocket']`, which is sticky-free. When Redis is unavailable at boot the server falls back to the single-node memory adapter and logs the reason.
 - **Race Condition Load Testing:** While Redis-backed locks are in place for the auction room, we lack an automated artillery/k6 load test to mathematically prove high-throughput concurrency safety under extreme load.
 - **Scoring Engine Blocking:** The scoring engine runs in the main Node.js event loop, which could block real-time WebSocket events if the player pool grows too large.
 
@@ -124,7 +124,7 @@ graph TB
 
 ### What I'd Do Differently at Scale
 
-- **WebSocket Horizontal Scaling:** Use `socket.io-redis-adapter` to publish/subscribe events across multiple instance nodes.
+- **WebSocket Horizontal Scaling:** Done — `@socket.io/redis-adapter` attached at boot (`backend/src/lib/socketAdapter.ts`), with graceful fallback to the memory adapter. Cross-node delivery is covered by an integration test (`socketAdapter.test.ts`). Remaining: an automated artillery/k6 run to prove high-throughput concurrency under extreme load.
 - **Read Replicas & Caching:** Postgres read replicas for queries, aggressively cache top leaderboard rows in Redis.
 - **Microservice Extraction:** Extract the scoring engine into an independent worker service to prevent Node.js event-loop blocking.
 

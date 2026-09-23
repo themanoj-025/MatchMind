@@ -103,14 +103,14 @@ flowchart LR
 - PostgreSQL + Redis available (BullMQ with sync fallback).
 - Stripe account for billing.
 - Claude API for AI insights.
-- Single-instance WebSocket in v1 (socket.io-redis-adapter = scale roadmap).
+- WebSocket horizontal scaling via socket.io-redis-adapter (implemented 2026-09; sticky sessions only needed for polling clients — the web client uses websocket-only transport).
 
 ## 10. Risks
 
 Top 3 (full list in ../project/RiskRegister.md):
 
 1. **WebSocket race conditions** — mitigated by Redis-backed distributed locks.
-2. **WebSocket horizontal scaling** — documented roadmap (socket.io-redis-adapter).
+2. **WebSocket horizontal scaling** — implemented via socket.io-redis-adapter (was roadmap).
 3. **N+1 queries** — mitigated during audit remediation.
 
 ## 11. Release Criteria
