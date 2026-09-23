@@ -140,12 +140,12 @@ sequenceDiagram
 
 ## 10. Technical Risks & Mitigations
 
-| Risk                  | Mitigation                              |
-| --------------------- | --------------------------------------- |
-| WS race conditions    | Redis distributed locks                 |
-| WS horizontal scaling | socket.io-redis-adapter (roadmap)       |
-| N+1 queries           | Repository patterns (audit remediation) |
-| Event-loop blocking   | Scoring worker extraction (roadmap)     |
+| Risk                  | Mitigation                                                   |
+| --------------------- | ------------------------------------------------------------ |
+| WS race conditions    | Redis distributed locks                                      |
+| WS horizontal scaling | socket.io-redis-adapter (attached in `lib/socketAdapter.ts`) |
+| N+1 queries           | Repository patterns (audit remediation)                      |
+| Event-loop blocking   | Scoring worker extraction (roadmap)                          |
 
 ## Deployment Topology
 
