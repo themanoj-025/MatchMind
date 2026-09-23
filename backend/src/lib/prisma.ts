@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client'
+import { PrismaPg } from '@prisma/adapter-pg'
 import { uuidv7 } from 'uuidv7'
 import { env } from '../config/env'
 
@@ -13,12 +14,11 @@ if (!dbUrl.searchParams.has('statement_timeout')) {
   dbUrl.searchParams.set('statement_timeout', '10000')
 } // 10s
 
+// Prisma 7 driver adapter: the client connects through node-postgres using
+// DATABASE_URL (schema no longer carries a datasource url — Prisma 7 moved
+// connection config to prisma.config.ts + runtime adapter).
 const rawPrisma = new PrismaClient({
-  datasources: {
-    db: {
-      url: dbUrl.toString(),
-    },
-  },
+  adapter: new PrismaPg({ connectionString: dbUrl.toString(), max: 20 }),
 })
 
 import logger from '../utils/logger'

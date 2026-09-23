@@ -6,8 +6,7 @@ import logger from './utils/logger'
 import { app } from './app'
 import { configurePassport } from './config/passport'
 import { setupSocket } from './socket'
-import { createAdapter } from '@socket.io/redis-adapter'
-import { redis } from './lib/redis'
+import { attachRedisAdapter } from './lib/socketAdapter'
 import { startAuctionRecovery } from './lib/auctionRecovery'
 import { errorHandler } from './middleware/errorHandler'
 import { initDatabase } from './infrastructure/database'
@@ -24,7 +23,17 @@ const io = new Server(httpServer, {
     origin: env.FRONTEND_URL || 'http://localhost:3000',
     credentials: true,
   },
-  adapter: createAdapter(redis, redis.duplicate()),
+})
+
+// WebSocket horizontal scaling: attach the Redis adapter when REDIS_URL is
+// available so rooms/broadcasts span all replicas. Falls back to the default
+// single-node memory adapter (with a logged reason) when Redis is absent —
+// e.g. the unit-test stub — so the server boots exactly as before.
+void attachRedisAdapter(io).catch((err: unknown) => {
+  logger.error(
+    { event: 'socket.adapter.attach_failed', err: (err as Error).message },
+    'Failed to attach Socket.IO Redis adapter — continuing with single-node memory adapter',
+  )
 })
 
 // Make prisma and io accessible in app context

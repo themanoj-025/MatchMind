@@ -11,7 +11,8 @@ generator erd {
 
 datasource db {
   provider = "postgresql"
-  url      = "postgresql://matchmind:matchmind_test_password@localhost:5433/matchmind_test"
+  // Prisma 7: connection URL lives in prisma.config.ts (migrate.connection)
+  // and is passed at runtime via DATABASE_URL / the pg driver adapter.
 }
 
 enum UserRole {

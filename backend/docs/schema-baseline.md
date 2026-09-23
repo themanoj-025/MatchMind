@@ -7,7 +7,7 @@ MODERATOR MODERATOR
 ADMIN ADMIN
 SUPERADMIN SUPERADMIN
         }
-
+    
 
 
         UserTier {
@@ -16,7 +16,7 @@ SILVER SILVER
 GOLD GOLD
 PLATINUM PLATINUM
         }
-
+    
 
 
         TournamentStatus {
@@ -24,7 +24,7 @@ PLATINUM PLATINUM
 ACTIVE ACTIVE
 COMPLETED COMPLETED
         }
-
+    
 
 
         PlayerPosition {
@@ -33,7 +33,7 @@ DEF DEF
 MID MID
 FWD FWD
         }
-
+    
 
 
         RoomStatus {
@@ -43,14 +43,14 @@ ACTIVE ACTIVE
 FINISHED FINISHED
 PAUSED PAUSED
         }
-
+    
 
 
         RoomMemberRole {
             member member
 host host
         }
-
+    
 
 
         AuctionPhase {
@@ -64,7 +64,7 @@ UNSOLD UNSOLD
 RE_AUCTION RE_AUCTION
 FINISHED FINISHED
         }
-
+    
 
 
         FixtureStatus {
@@ -73,7 +73,7 @@ IN_PLAY IN_PLAY
 PAUSED PAUSED
 FINISHED FINISHED
         }
-
+    
 
 
         PredictionStatus {
@@ -81,7 +81,7 @@ FINISHED FINISHED
 CORRECT CORRECT
 INCORRECT INCORRECT
         }
-
+    
 
 
         ChatMessageType {
@@ -90,7 +90,7 @@ system system
 text text
 gif gif
         }
-
+    
 
 
         ReportStatus {
@@ -98,14 +98,14 @@ gif gif
 REVIEWED REVIEWED
 RESOLVED RESOLVED
         }
-
+    
 
 
         DraftTicketStatus {
             AVAILABLE AVAILABLE
 USED USED
         }
-
+    
 
 
         DraftSessionStatus {
@@ -113,7 +113,7 @@ USED USED
 COMPLETED COMPLETED
 CANCELLED CANCELLED
         }
-
+    
 
 
         DraftRunResultStatus {
@@ -121,190 +121,190 @@ CANCELLED CANCELLED
 COMPLETED COMPLETED
 ELIMINATED ELIMINATED
         }
-
+    
   "User" {
     String id "🗝️"
-    String username
-    String email
-    Boolean emailVerified
+    String username 
+    String email 
+    Boolean emailVerified 
     String passwordHash "❓"
     String displayName "❓"
     String avatar "❓"
     String bannerImage "❓"
     String bio "❓"
     String countryCode "❓"
-    UserRole role
-    UserTier tier
-    Int totalPoints
-    Int weeklyPoints
+    UserRole role 
+    UserTier tier 
+    Int totalPoints 
+    Int weeklyPoints 
     Int globalRank "❓"
-    Float predAccuracy
-    Int totalPredictions
-    Int correctPredictions
-    Int streakCurrent
-    Int streakBest
-    Boolean isPro
+    Float predAccuracy 
+    Int totalPredictions 
+    Int correctPredictions 
+    Int streakCurrent 
+    Int streakBest 
+    Boolean isPro 
     DateTime proExpiresAt "❓"
-    Int tokenVersion
-    DateTime createdAt
-    DateTime updatedAt
+    Int tokenVersion 
+    DateTime createdAt 
+    DateTime updatedAt 
     DateTime deletedAt "❓"
     DateTime lastActiveAt "❓"
     }
-
+  
 
   "UserSport" {
     String id "🗝️"
-    String sport
-    DateTime createdAt
-    DateTime updatedAt
+    String sport 
+    DateTime createdAt 
+    DateTime updatedAt 
     }
-
+  
 
   "UserTeam" {
     String id "🗝️"
-    String teamId
-    DateTime createdAt
-    DateTime updatedAt
+    String teamId 
+    DateTime createdAt 
+    DateTime updatedAt 
     }
-
+  
 
   "Tournament" {
     String id "🗝️"
-    String name
-    String shortName
-    String status
-    String confederation
-    String gender
-    String format
-    Int teamCount
-    Int squadSize
-    Int launchPhase
+    String name 
+    String shortName 
+    String status 
+    String confederation 
+    String gender 
+    String format 
+    Int teamCount 
+    Int squadSize 
+    Int launchPhase 
     DateTime startDate "❓"
     DateTime endDate "❓"
-    DateTime createdAt
-    DateTime updatedAt
+    DateTime createdAt 
+    DateTime updatedAt 
     DateTime deletedAt "❓"
     }
-
+  
 
   "Player" {
     String id "🗝️"
-    String name
-    String club
-    String nationality
-    String position
-    Float basePrice
+    String name 
+    String club 
+    String nationality 
+    String position 
+    Float basePrice 
     String photoUrl "❓"
     String rarityTier "❓"
-    Boolean isEligibleForIcon
-    DateTime createdAt
-    DateTime updatedAt
+    Boolean isEligibleForIcon 
+    DateTime createdAt 
+    DateTime updatedAt 
     DateTime deletedAt "❓"
     }
-
+  
 
   "Room" {
     String id "🗝️"
-    String hostId
-    String name
-    String inviteCode
-    Float totalBudget
-    RoomStatus status
-    DateTime createdAt
-    DateTime updatedAt
+    String hostId 
+    String name 
+    String inviteCode 
+    Float totalBudget 
+    RoomStatus status 
+    DateTime createdAt 
+    DateTime updatedAt 
     DateTime deletedAt "❓"
     }
-
+  
 
   "RoomMember" {
     String id "🗝️"
-    RoomMemberRole role
-    Float remainingBudget
-    Boolean isReady
-    DateTime createdAt
-    DateTime updatedAt
+    RoomMemberRole role 
+    Float remainingBudget 
+    Boolean isReady 
+    DateTime createdAt 
+    DateTime updatedAt 
     }
-
+  
 
   "Bid" {
     String id "🗝️"
-    String playerId
-    Float amount
-    DateTime timestamp
-    Int version
-    DateTime createdAt
-    DateTime updatedAt
+    String playerId 
+    Float amount 
+    DateTime timestamp 
+    Int version 
+    DateTime createdAt 
+    DateTime updatedAt 
     }
-
+  
 
   "Roster" {
     String id "🗝️"
-    Float soldPrice
-    DateTime acquiredAt
-    Boolean isCaptain
-    Boolean isViceCaptain
-    DateTime createdAt
-    DateTime updatedAt
+    Float soldPrice 
+    DateTime acquiredAt 
+    Boolean isCaptain 
+    Boolean isViceCaptain 
+    DateTime createdAt 
+    DateTime updatedAt 
     }
-
+  
 
   "AuctionState" {
     String id "🗝️"
-    AuctionPhase phase
+    AuctionPhase phase 
     String currentPlayerId "❓"
-    Float currentBid
+    Float currentBid 
     String currentBidderId "❓"
     DateTime timerEndsAt "❓"
-    Int version
-    DateTime createdAt
-    DateTime updatedAt
+    Int version 
+    DateTime createdAt 
+    DateTime updatedAt 
     }
-
+  
 
   "Fixture" {
     String id "🗝️"
-    String stage
+    String stage 
     Int round "❓"
-    String homeTeamId
-    String awayTeamId
-    String homeTeam
-    String awayTeam
+    String homeTeamId 
+    String awayTeamId 
+    String homeTeam 
+    String awayTeam 
     String venueId "❓"
     Int homeScore "❓"
     Int awayScore "❓"
-    FixtureStatus status
-    DateTime scheduledAt
+    FixtureStatus status 
+    DateTime scheduledAt 
     DateTime kickoffAt "❓"
-    DateTime createdAt
-    DateTime updatedAt
+    DateTime createdAt 
+    DateTime updatedAt 
     DateTime deletedAt "❓"
     }
-
+  
 
   "PlayerMatchStat" {
     String id "🗝️"
-    Int minutesPlayed
-    Int goals
-    Int assists
-    Boolean cleanSheet
-    Int saves
-    Int penaltiesSaved
-    Int yellowCards
-    Int redCards
-    Int penaltiesMissed
-    Int ownGoals
-    Int goalsConceded
-    DateTime createdAt
-    DateTime updatedAt
+    Int minutesPlayed 
+    Int goals 
+    Int assists 
+    Boolean cleanSheet 
+    Int saves 
+    Int penaltiesSaved 
+    Int yellowCards 
+    Int redCards 
+    Int penaltiesMissed 
+    Int ownGoals 
+    Int goalsConceded 
+    DateTime createdAt 
+    DateTime updatedAt 
     }
-
+  
 
   "Prediction" {
     String id "🗝️"
-    Int homeGoals
-    Int awayGoals
-    String status
+    Int homeGoals 
+    Int awayGoals 
+    String status 
     Float pointsEarned "❓"
     Json pointsBreakdown "❓"
     DateTime lockedAt "❓"
@@ -313,228 +313,228 @@ ELIMINATED ELIMINATED
     String totalGoalsOU "❓"
     Float totalGoalsLine "❓"
     String firstScorerId "❓"
-    DateTime createdAt
-    DateTime updatedAt
+    DateTime createdAt 
+    DateTime updatedAt 
     }
-
+  
 
   "Follow" {
     String id "🗝️"
-    DateTime createdAt
-    DateTime updatedAt
+    DateTime createdAt 
+    DateTime updatedAt 
     }
-
+  
 
   "ChatMessage" {
     String id "🗝️"
-    String roomType
-    Boolean isRead
+    String roomType 
+    Boolean isRead 
     String text "❓"
-    DateTime timestamp
+    DateTime timestamp 
     String gifUrl "❓"
-    ChatMessageType type
+    ChatMessageType type 
     Json reactions "❓"
-    Boolean isPinned
-    Boolean isDeleted
-    Boolean isSystem
-    DateTime createdAt
-    DateTime updatedAt
+    Boolean isPinned 
+    Boolean isDeleted 
+    Boolean isSystem 
+    DateTime createdAt 
+    DateTime updatedAt 
     DateTime deletedAt "❓"
     }
-
+  
 
   "Notification" {
     String id "🗝️"
-    String type
-    String title
-    String message
-    Boolean isRead
+    String type 
+    String title 
+    String message 
+    Boolean isRead 
     Json data "❓"
-    DateTime createdAt
-    DateTime updatedAt
+    DateTime createdAt 
+    DateTime updatedAt 
     }
-
+  
 
   "Report" {
     String id "🗝️"
-    String reason
-    String status
-    DateTime createdAt
-    DateTime updatedAt
+    String reason 
+    String status 
+    DateTime createdAt 
+    DateTime updatedAt 
     }
-
+  
 
   "AdminLog" {
     String id "🗝️"
-    String adminId
-    String action
+    String adminId 
+    String action 
     String targetId "❓"
     String targetType "❓"
     Json detail "❓"
-    DateTime createdAt
-    DateTime updatedAt
+    DateTime createdAt 
+    DateTime updatedAt 
     }
-
+  
 
   "Subscription" {
     String id "🗝️"
-    String status
-    String plan
+    String status 
+    String plan 
     String stripeCustomerId "❓"
     String stripeSubscriptionId "❓"
     DateTime currentPeriodStart "❓"
     DateTime currentPeriodEnd "❓"
-    Boolean cancelAtPeriodEnd
+    Boolean cancelAtPeriodEnd 
     DateTime expiresAt "❓"
-    DateTime createdAt
-    DateTime updatedAt
+    DateTime createdAt 
+    DateTime updatedAt 
     }
-
+  
 
   "Session" {
     String id "🗝️"
-    String token
-    DateTime expiresAt
-    DateTime createdAt
-    DateTime updatedAt
+    String token 
+    DateTime expiresAt 
+    DateTime createdAt 
+    DateTime updatedAt 
     }
-
+  
 
   "StarredPlayer" {
     String id "🗝️"
-    String roomId
-    DateTime createdAt
-    DateTime updatedAt
+    String roomId 
+    DateTime createdAt 
+    DateTime updatedAt 
     }
-
+  
 
   "LeaderboardSnapshot" {
     String id "🗝️"
-    String period
-    Json data
-    DateTime createdAt
-    DateTime updatedAt
+    String period 
+    Json data 
+    DateTime createdAt 
+    DateTime updatedAt 
     }
-
+  
 
   "Achievement" {
     String id "🗝️"
-    String name
-    String description
-    String icon
-    Int points
-    DateTime createdAt
-    DateTime updatedAt
+    String name 
+    String description 
+    String icon 
+    Int points 
+    DateTime createdAt 
+    DateTime updatedAt 
     }
-
+  
 
   "UserAchievement" {
     String id "🗝️"
-    DateTime earnedAt
-    DateTime createdAt
-    DateTime updatedAt
+    DateTime earnedAt 
+    DateTime createdAt 
+    DateTime updatedAt 
     }
-
+  
 
   "DraftSession" {
     String id "🗝️"
-    String formation
-    String status
+    String formation 
+    String status 
     String ticketConsumedId "❓"
-    Float synergyScore
-    Boolean formationBonusApplied
+    Float synergyScore 
+    Boolean formationBonusApplied 
     DateTime completedAt "❓"
-    DateTime createdAt
-    DateTime updatedAt
+    DateTime createdAt 
+    DateTime updatedAt 
     DateTime deletedAt "❓"
     }
-
+  
 
   "DraftPick" {
     String id "🗝️"
-    Int slotIndex
-    String position
-    Json offeredPlayerIds
-    Json offeredRarities
+    Int slotIndex 
+    String position 
+    Json offeredPlayerIds 
+    Json offeredRarities 
     String pickedPlayerId "❓"
-    Boolean autoPicked
+    Boolean autoPicked 
     DateTime pickedAt "❓"
-    DateTime createdAt
-    DateTime updatedAt
+    DateTime createdAt 
+    DateTime updatedAt 
     }
-
+  
 
   "DraftRunResult" {
     String id "🗝️"
-    Int currentRound
-    Int totalWins
-    Int totalLosses
-    Int totalTies
-    String status
-    Json rewards
-    Json rounds
+    Int currentRound 
+    Int totalWins 
+    Int totalLosses 
+    Int totalTies 
+    String status 
+    Json rewards 
+    Json rounds 
     DateTime eliminatedAt "❓"
     DateTime clearedAt "❓"
-    DateTime createdAt
-    DateTime updatedAt
+    DateTime createdAt 
+    DateTime updatedAt 
     }
-
+  
 
   "DraftTicket" {
     String id "🗝️"
-    String userId
-    String tournamentId
-    DraftTicketStatus status
-    Int remaining
-    DateTime lastResetAt
-    DateTime resetsAt
-    Json sourceLog
-    DateTime createdAt
-    DateTime updatedAt
+    String userId 
+    String tournamentId 
+    DraftTicketStatus status 
+    Int remaining 
+    DateTime lastResetAt 
+    DateTime resetsAt 
+    Json sourceLog 
+    DateTime createdAt 
+    DateTime updatedAt 
     }
-
+  
 
   "DraftRewardsCatalog" {
     String id "🗝️"
-    Int winCountThreshold
-    String cosmeticId
-    String name
-    String description
-    DateTime createdAt
-    DateTime updatedAt
+    Int winCountThreshold 
+    String cosmeticId 
+    String name 
+    String description 
+    DateTime createdAt 
+    DateTime updatedAt 
     }
-
+  
 
   "PlayerRarityCache" {
     String id "🗝️"
-    String playerId
-    String rarityTier
-    DateTime createdAt
-    DateTime updatedAt
+    String playerId 
+    String rarityTier 
+    DateTime createdAt 
+    DateTime updatedAt 
     }
-
+  
 
   "RoomTemplate" {
     String id "🗝️"
-    String name
-    Json rosterRules
-    Float totalBudget
-    DateTime createdAt
-    DateTime updatedAt
+    String name 
+    Json rosterRules 
+    Float totalBudget 
+    DateTime createdAt 
+    DateTime updatedAt 
     }
-
+  
 
   "FantasyPointsLedger" {
     String id "🗝️"
-    String playerId
-    Float basePoints
-    Float captainMultiplier
-    Float totalPoints
+    String playerId 
+    Float basePoints 
+    Float captainMultiplier 
+    Float totalPoints 
     Json breakdown "❓"
-    DateTime createdAt
-    DateTime updatedAt
+    DateTime createdAt 
+    DateTime updatedAt 
     }
-
+  
     "User" |o--|| "UserRole" : "enum:role"
     "User" |o--|| "UserTier" : "enum:tier"
     "UserSport" }o--|| "User" : "user"

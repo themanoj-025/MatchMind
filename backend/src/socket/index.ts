@@ -25,6 +25,33 @@ import logger from '../utils/logger'
 
 const ALLOWED_ROOM_TYPES = ['match', 'squad', 'sport', 'room', 'dm']
 
+/**
+ * Emit a cluster-true viewer count for a match room.
+ *
+ * `io.in(room).fetchSockets()` routes through the Socket.IO adapter, so with
+ * the Redis adapter attached it counts sockets on EVERY node, not just this
+ * one (a local `adapter.rooms.get(room)?.size` read under-counts as soon as
+ * the backend scales past one replica). With the default memory adapter the
+ * behavior is identical to the previous local read.
+ */
+async function emitViewerCount(
+  io: Server,
+  roomId: string,
+  matchId: string,
+  opts: { includeSelf?: boolean } = {},
+): Promise<void> {
+  try {
+    const sockets = await io.in(roomId).fetchSockets()
+    const count = opts.includeSelf === false ? Math.max(0, sockets.length - 1) : sockets.length
+    io.to(roomId).emit('VIEWER_COUNT', { matchId, count })
+  } catch (err: unknown) {
+    logger.error(
+      { event: 'socket.viewer_count_error', roomId, err: (err as Error).message },
+      'Failed to compute viewer count',
+    )
+  }
+}
+
 import { redis } from '../lib/redis'
 import type { DatabaseClient } from '../repositories'
 import { scheduleAuctionTimer } from '../lib/queue'
@@ -228,8 +255,7 @@ export const setupSocket = (io: Server, prisma: DatabaseClient): void => {
 
       if (roomId.startsWith('match:')) {
         const matchId = roomId.replace('match:', '')
-        const roomSize = io.sockets.adapter.rooms.get(roomId)?.size || 1
-        io.to(roomId).emit('VIEWER_COUNT', { matchId, count: roomSize })
+        void emitViewerCount(io, roomId, matchId)
       }
     })
 
@@ -250,8 +276,7 @@ export const setupSocket = (io: Server, prisma: DatabaseClient): void => {
       }
       if (roomId.startsWith('match:')) {
         const matchId = roomId.replace('match:', '')
-        const roomSize = io.sockets.adapter.rooms.get(roomId)?.size || 0
-        io.to(roomId).emit('VIEWER_COUNT', { matchId, count: roomSize })
+        void emitViewerCount(io, roomId, matchId, { includeSelf: false })
       }
     })
 
