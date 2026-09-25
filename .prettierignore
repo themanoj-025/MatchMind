@@ -2,6 +2,11 @@
 **/tsconfig*.json
 **/tsconfig.*.json
 
+# Synced portfolio canonical (shared/loadtest/load-test.js, workspace root):
+# byte-identical across 16 repos; this repo's .prettierrc (single quotes,
+# no semis) differs from prettier defaults and would reformat it away
+load-test.js
+
 # Build outputs / dependencies
 **/node_modules/**
 **/dist/**
