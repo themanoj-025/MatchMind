@@ -17,31 +17,31 @@
 //     K6_TARGET=5
 //     K6_P95_MS=1000
 
-import http from 'k6/http'
-import { check, sleep } from 'k6'
+import http from 'k6/http';
+import { check, sleep } from 'k6';
 
-const BASE_URL = __ENV.K6_BASE_URL || 'http://localhost:8000'
-const HEALTH_PATH = __ENV.K6_HEALTH_PATH || '/health'
-const TARGET = Number(__ENV.K6_TARGET || 10)
-const P95_MS = Number(__ENV.K6_P95_MS || 500)
+const BASE_URL = __ENV.K6_BASE_URL || 'http://localhost:8000';
+const HEALTH_PATH = __ENV.K6_HEALTH_PATH || '/health';
+const TARGET = Number(__ENV.K6_TARGET || 10);
+const P95_MS = Number(__ENV.K6_P95_MS || 500);
 
 export const options = {
   stages: [
-    { duration: '30s', target: TARGET }, // ramp up
-    { duration: '1m', target: TARGET }, // sustain
-    { duration: '30s', target: 0 }, // ramp down
+    { duration: '30s', target: TARGET },  // ramp up
+    { duration: '1m', target: TARGET },   // sustain
+    { duration: '30s', target: 0 },       // ramp down
   ],
   thresholds: {
     http_req_duration: [`p(95)<${P95_MS}`],
     http_req_failed: ['rate<0.1'],
   },
-}
+};
 
 export default function () {
-  const res = http.get(`${BASE_URL}${HEALTH_PATH}`)
+  const res = http.get(`${BASE_URL}${HEALTH_PATH}`);
   check(res, {
     'status is 200': (r) => r.status === 200,
     [`response time < ${P95_MS}ms`]: (r) => r.timings.duration < P95_MS,
-  })
-  sleep(1)
+  });
+  sleep(1);
 }
