@@ -31,6 +31,9 @@ RUN npm run build
 WORKDIR /app/backend
 RUN mkdir -p /app/docs && npx prisma generate
 
+# Build backend (TypeScript compilation).
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=30s CMD wget -q -O - http://localhost:${PORT:-5000}/health > /dev/null 2>&1 || exit 1
+
 # Build backend (TypeScript compilation). The app declares "type": "commonjs" and
 # its start script targets dist/index.js, so we compile to CommonJS explicitly and
 # keep the src/ tree (tsconfig has no rootDir). Entry point ends up at dist/src/index.js.
