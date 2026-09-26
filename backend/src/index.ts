@@ -1,4 +1,5 @@
 // Server Entry Point — MatchMind
 // Delegates bootstrapping to server.ts for modularity
-import 'dotenv/config'
+import dotenv from 'dotenv'
+dotenv.config()
 import './server'
