@@ -65,6 +65,21 @@ export default tseslint.config(
 
       // Max params — prevents excessive coupling
       'max-params': ['warn', 5],
+
+      // Audit 9.2: zod's throwing `.parse()` must not run on untrusted
+      // request data — an invalid payload would surface as an unhandled
+      // ZodError (HTTP 500) instead of a 400. Use `.safeParse()` + explicit
+      // handling (see src/middleware/validate.ts for the canonical pattern).
+      // Build-time config loads that intentionally fail fast are exempted
+      // per-file below; src/config/no-raw-parse.cjs is the CI enforcement.
+      'no-restricted-syntax': [
+        'warn',
+        {
+          selector: "MemberExpression[object.name=/Schema$/][property.name='parse']",
+          message:
+            'Use `.safeParse()` on untrusted input; throwing `.parse()` turns malformed data into an unhandled ZodError (HTTP 500).',
+        },
+      ],
     },
   },
   {
@@ -73,6 +88,14 @@ export default tseslint.config(
     files: ['**/*.test.ts', '**/e2e/**/*.ts'],
     rules: {
       'max-lines-per-function': 'off',
+    },
+  },
+  {
+    // Audit 9.2: intentional fail-fast parse on a build-time registry file
+    // (throw is caught in-module → process.exit(1)). See src/config/tournaments.ts.
+    files: ['src/config/tournaments.ts'],
+    rules: {
+      'no-restricted-syntax': 'off',
     },
   },
 )

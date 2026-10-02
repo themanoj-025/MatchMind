@@ -89,9 +89,14 @@ const REGISTRY_PATH = path.join(__dirname, 'tournamentRegistry.json')
 function loadRegistry(): Tournament[] {
   try {
     const raw = fs.readFileSync(REGISTRY_PATH, 'utf-8')
-    const parsed = JSON.parse(raw)
-    const result = RegistrySchema.parse(parsed)
-    return result.tournaments as Tournament[]
+    const parsed: unknown = JSON.parse(raw)
+    // safeParse (audit 9.2): validation failure keeps the full ZodError detail
+    // in the log without risking a throwing-parse escape hatch in this module.
+    const result = RegistrySchema.safeParse(parsed)
+    if (!result.success) {
+      throw result.error
+    }
+    return result.data.tournaments as Tournament[]
   } catch (err: unknown) {
     console.error('[TournamentRegistry] Failed to load or validate:', err)
     process.exit(1)
