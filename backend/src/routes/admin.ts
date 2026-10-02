@@ -6,6 +6,8 @@ import { openapiRegistry } from '../config/openapi'
 import { env } from '../config/env'
 import logger from '../utils/logger'
 import type { Prisma, UserRole, UserTier, FixtureStatus } from '@prisma/client'
+import { z } from 'zod'
+import { DomainError } from '../errors/DomainError'
 import type { Tournament } from '../config/tournaments'
 import { paginationSchema } from '@matchmind/shared-types'
 import {
@@ -19,6 +21,23 @@ import {
   getAdminService,
 } from './admin/utils'
 const router = express.Router()
+
+/**
+ * Zod safeParse helper for query params (audit 9.2): every request-driven
+ * parse goes through here so malformed input becomes a 400 VALIDATION_ERROR
+ * instead of an unhandled ZodError bubbling to the 500 handler.
+ */
+export function parseQuery<S extends z.ZodType>(schema: S, query: unknown): z.output<S> {
+  const result = schema.safeParse(query)
+  if (!result.success) {
+    throw new DomainError(
+      `Invalid query parameters: ${result.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; ')}`,
+      'VALIDATION_ERROR',
+      400,
+    )
+  }
+  return result.data
+}
 router.use(authenticateToken, requireAdmin)
 
 // Audit Log Middleware for all mutations
@@ -108,7 +127,7 @@ openapiRegistry.registerPath({
 })
 router.get('/users', async (req: AuthenticatedRequest, res) => {
   const prisma = req.container.cradle.prisma
-  const { page, limit } = paginationSchema.parse(req.query)
+  const { page, limit } = parseQuery(paginationSchema, req.query)
   const search = (req.query.search as string) || ''
   const where: Prisma.UserWhereInput = { deletedAt: null }
   if (search) {
@@ -276,7 +295,7 @@ openapiRegistry.registerPath({
 })
 router.get('/fixtures', async (req: AuthenticatedRequest, res) => {
   const prisma = req.container.cradle.prisma
-  const { page, limit } = paginationSchema.parse(req.query)
+  const { page, limit } = parseQuery(paginationSchema, req.query)
   const tournamentId = req.query.tournamentId as string | undefined
   const where: Prisma.FixtureWhereInput = {}
   if (tournamentId) {
@@ -338,7 +357,7 @@ openapiRegistry.registerPath({
 })
 router.get('/reports', async (req: AuthenticatedRequest, res) => {
   const prisma = req.container.cradle.prisma
-  const { page, limit } = paginationSchema.parse(req.query)
+  const { page, limit } = parseQuery(paginationSchema, req.query)
   const status = (req.query.status as string) || 'pending'
   const [reports, total] = await Promise.all([
     prisma.report.findMany({
@@ -401,7 +420,7 @@ openapiRegistry.registerPath({
 })
 router.get('/activity-log', async (req: AuthenticatedRequest, res) => {
   const prisma = req.container.cradle.prisma
-  const { page, limit } = paginationSchema.parse(req.query)
+  const { page, limit } = parseQuery(paginationSchema, req.query)
   const [logs, total] = await Promise.all([
     prisma.adminLog.findMany({
       orderBy: { createdAt: 'desc' },

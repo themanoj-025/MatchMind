@@ -9,6 +9,7 @@ import express from 'express'
 import { openapiRegistry } from '../config/openapi'
 import { z } from 'zod'
 import { cursorPaginationSchema, CursorPaginationParams, PaginatedResponse } from '@matchmind/shared-types'
+import { DomainError } from '../errors/DomainError'
 import logger from '../utils/logger'
 
 const router = express.Router()
@@ -23,9 +24,16 @@ openapiRegistry.registerPath({
 router.get('/', async (req, res) => {
   const prisma = req.container.cradle.prisma
   const cacheService = req.container.cradle.cacheService
-  const { tournamentId, cursor, take } = cursorPaginationSchema
-    .extend({ tournamentId: z.string().optional() })
-    .parse(req.query)
+  // safeParse (audit 9.2): malformed query → 400 VALIDATION_ERROR, not a 500.
+  const validated = cursorPaginationSchema.extend({ tournamentId: z.string().optional() }).safeParse(req.query)
+  if (!validated.success) {
+    throw new DomainError(
+      `Invalid query parameters: ${validated.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; ')}`,
+      'VALIDATION_ERROR',
+      400,
+    )
+  }
+  const { tournamentId, cursor, take } = validated.data
 
   const cacheKey = `players:list:${tournamentId || 'all'}:cursor:${cursor || 'none'}:take:${take}`
 

@@ -167,6 +167,16 @@ app.get('/api/metrics', async (_req: express.Request, res: express.Response) => 
   res.send(metrics)
 })
 
+// ─── JSON 404 for unknown API routes ────────────────────────────────
+// Without this, unknown /api/* paths fall through to Express's default
+// HTML 404 — wrong content type for API clients (caught by the app-boot
+// smoke test, audit 9.1).
+app.use('/api', (req: express.Request, res: express.Response) => {
+  res.status(404).json({
+    error: { code: 'NOT_FOUND', message: `No route for ${req.method} ${req.originalUrl}` },
+  })
+})
+
 // ─── Global Error Handler ─────────────────────────────────────────────
 import { DomainError } from './errors/DomainError'
 

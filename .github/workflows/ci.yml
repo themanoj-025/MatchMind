@@ -145,6 +145,11 @@ jobs:
       - name: Run Linter
         run: npm run lint
 
+      # Audit 9.3: flag the legacy JSON persistence layer; ratchet fails if
+      # src/data grows or runtime code starts reading it again.
+      - name: Legacy inventory ratchet
+        run: cd backend && node scripts/legacy-inventory.cjs
+
       - name: Run Typecheck
         run: npm run typecheck
 
@@ -176,6 +181,13 @@ jobs:
         run: cd frontend && npx vitest run --coverage
         env:
           NODE_ENV: test
+
+      # Audit 9.4: fail CI when realistic read queries exceed the time budget.
+      - name: Slow-query probe
+        run: cd backend && node scripts/slow-query-probe.cjs
+        env:
+          DATABASE_URL: postgresql://matchmind:matchmind_test_password@localhost:5433/matchmind_test
+          SLOW_QUERY_BUDGET_MS: '2000'
 
       - name: Security Scan (Trivy / npm audit)
         run: |
