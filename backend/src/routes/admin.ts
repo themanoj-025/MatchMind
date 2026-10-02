@@ -8,7 +8,7 @@ import logger from '../utils/logger'
 import type { Prisma, UserRole, UserTier, FixtureStatus } from '@prisma/client'
 import { z } from 'zod'
 import { DomainError } from '../errors/DomainError'
-import type { Tournament } from '../config/tournaments'
+import { TOURNAMENTS, type Tournament } from '../config/tournaments'
 import { paginationSchema } from '@matchmind/shared-types'
 import {
   readPlayers,
@@ -524,7 +524,6 @@ openapiRegistry.registerPath({
   responses: { 200: { description: 'Success' } },
 })
 router.get('/draft/pool-validation', async (_req: AuthenticatedRequest, res) => {
-  const { TOURNAMENTS } = require('../config/tournaments')
   const results = TOURNAMENTS.map((t: Tournament) => {
     const result = validateTournamentDraftPool(t.id)
     return {
