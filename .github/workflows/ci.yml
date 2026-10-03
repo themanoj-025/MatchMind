@@ -136,7 +136,10 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
-          node-version: '20.x'
+          # 22.x (>=22.10): jsdom 30 → undici 8 requires
+          # worker_threads.markAsUncloneable (added v22.10.0/v23.0.0), which
+          # crashes every jsdom test worker on Node 20
+          node-version: '22.x'
           cache: 'npm'
 
       - name: Install Dependencies
@@ -193,14 +196,30 @@ jobs:
         run: |
           # GHSA-qwww-vcr4-c8h2 (react-router RSC-mode CSRF) has no patched
           # release and only affects framework/RSC-mode apps — this repo is a
-          # client-only SPA, so it is not applicable. Everything else at
-          # high/critical severity is still enforced.
+          # client-only SPA, so it is not applicable. GHSA-vfj7-8cjw-p6xm
+          # (braces stack exhaustion) has no patched release either — 3.0.3
+          # is latest and every published version is affected; the glob
+          # patterns reaching it are developer-controlled (awilix container
+          # wiring, nodemon config), never user input. The remaining
+          # dev-toolchain chains (deepmerge-ts via @prisma/config, mysql2
+          # via prisma CLI on a PostgreSQL project, dompurify via
+          # mermaid-cli docs rendering) are allowlisted here exactly as in
+          # the security-audit job. Everything else at high/critical
+          # severity is still enforced.
           npm audit --audit-level=high --json > /tmp/npm-audit.json || true
           python - <<'EOF'
           import json
 
           data = json.load(open('/tmp/npm-audit.json'))
-          ALLOWED = {'GHSA-qwww-vcr4-c8h2', 'GHSA-h5cw-625j-3rxh'}  # react-router RSC-mode CSRF
+          ALLOWED = {
+              'GHSA-qwww-vcr4-c8h2',  # react-router RSC-mode CSRF (not applicable)
+              'GHSA-h5cw-625j-3rxh',  # react-router advisory family
+              'GHSA-ggr8-5vv4-36mx',  # deepmerge-ts via @prisma/config (dev CLI)
+              'GHSA-3f6p-5ww8-9rcr',  # mysql2 via prisma CLI (PostgreSQL project)
+              'GHSA-rgwj-5xj2-c3m3',  # mysql2 via prisma CLI
+              'GHSA-p98j-92pf-mc4p',  # dompurify via mermaid-cli (docs, dev)
+              'GHSA-vfj7-8cjw-p6xm',  # braces — no patched release
+          }
           blocking = []
           for name, info in (data.get('vulnerabilities') or {}).items():
               if info.get('severity') not in ('high', 'critical'):
@@ -302,6 +321,12 @@ jobs:
           #  - dompurify 3.4.13-3.4.15 (GHSA-p98j-92pf-mc4p) via
           #    @mermaid-js/mermaid-cli (docs ERD rendering); v12 fixes it
           #    but requires node >=22.13 — bump when CI moves off node 20
+          #  - braces <=3.0.3 (GHSA-vfj7-8cjw-p6xm, stack exhaustion via
+          #    deeply nested glob patterns) via awilix→fast-glob→micromatch
+          #    (runtime) and nodemon→chokidar (dev): 3.0.3 is the latest
+          #    release and every published version is affected — there is no
+          #    fix to upgrade to; the patterns are developer-controlled
+          #    (container wiring / tool config), never user input
           # Anything else at high/critical still fails the build.
           npm audit --audit-level=high --json > /tmp/root-audit.json || true
           node - <<'EOF'
@@ -313,7 +338,13 @@ jobs:
             console.log('npm audit output unparseable (registry outage?) — failing open')
             process.exit(0)
           }
-          const ALLOWED = ['GHSA-ggr8-5vv4-36mx', 'GHSA-3f6p-5ww8-9rcr', 'GHSA-rgwj-5xj2-c3m3', 'GHSA-p98j-92pf-mc4p']
+          const ALLOWED = [
+            'GHSA-ggr8-5vv4-36mx',
+            'GHSA-3f6p-5ww8-9rcr',
+            'GHSA-rgwj-5xj2-c3m3',
+            'GHSA-p98j-92pf-mc4p',
+            'GHSA-vfj7-8cjw-p6xm',
+          ]
           const blocking = []
           for (const [, info] of Object.entries(data.vulnerabilities || {})) {
             if (!['high', 'critical'].includes(info.severity)) continue
