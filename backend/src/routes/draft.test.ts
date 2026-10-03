@@ -15,6 +15,10 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import request from 'supertest'
 import express from 'express'
 import jwt from 'jsonwebtoken'
+// Import the router statically so the (heavy) module graph is loaded during
+// the file's import phase — a dynamic import inside the first test can blow
+// past the 10s per-test timeout on slower runners.
+import draftRouter from './draft'
 
 process.env.JWT_SECRET = 'test-jwt-secret-64-chars-minimum-for-testing-purposes-only'
 
@@ -40,44 +44,49 @@ vi.mock('../utils/logger', () => ({
   default: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
 }))
 
-// ─── Mock DraftService ─────────────────────────────────
+// ─── Mock DraftService (mirrors the current draftAppService API) ─
+
+const mockSession = {
+  sessionId: 'draft-1',
+  tournamentId: 'fifa-wc-2026',
+  userId: 'user-1',
+  formation: '4-3-3',
+  status: 'IN_PROGRESS',
+  currentRound: 1,
+  totalRounds: 11,
+}
 
 const mockDraftService = {
   startDraft: vi.fn().mockResolvedValue({
-    sessionId: 'draft-1',
-    tournamentId: 'fifa-wc-2026',
-    formation: '4-3-3',
-    status: 'IN_PROGRESS',
-    currentRound: 1,
-    totalRounds: 11,
-    picks: [],
+    success: true,
+    session: mockSession,
+    nextRound: { roundNumber: 1, choices: [] },
   }),
-  getSession: vi.fn().mockImplementation((id: string) => {
-    if (id === 'draft-1') {
-      return Promise.resolve({
-        sessionId: 'draft-1',
-        tournamentId: 'fifa-wc-2026',
-        formation: '4-3-3',
-        status: 'IN_PROGRESS',
-        currentRound: 1,
-        totalRounds: 11,
-        picks: [],
-        choices: [],
-      })
+  loadFormations: vi.fn().mockReturnValue([{ id: '4-3-3', name: '4-3-3', slots: 11 }]),
+  listUserDrafts: vi.fn().mockResolvedValue([]),
+  getTicketBalance: vi.fn().mockResolvedValue({ balance: 5, total: 10, used: 5, remaining: 5 }),
+  getSessionState: vi.fn().mockImplementation((sessionId: string) => {
+    if (sessionId === 'draft-1') {
+      return Promise.resolve({ error: undefined, session: mockSession, picks: [], squad: [] })
     }
-    return Promise.resolve(null)
+    return Promise.resolve({ error: 'Session not found' })
   }),
-  getNextChoices: vi.fn().mockResolvedValue([
-    { playerId: 'p-1', name: 'Lionel Messi', position: 'FW', basePrice: 50, club: 'Inter Miami' },
-    { playerId: 'p-2', name: 'Kylian Mbappé', position: 'FW', basePrice: 45, club: 'Real Madrid' },
-  ]),
-  makePick: vi.fn().mockResolvedValue({ success: true, pick: { playerId: 'p-1', round: 1 } }),
-  commitSquad: vi.fn().mockResolvedValue({ success: true, squadId: 'squad-1' }),
-  getUserSessions: vi.fn().mockResolvedValue([]),
+  processPick: vi.fn().mockResolvedValue({ success: true, nextRound: null, session: mockSession, complete: false }),
+  commitSquad: vi.fn().mockResolvedValue({
+    success: true,
+    session: mockSession,
+    synergyScore: 12,
+    formationBonus: 2,
+    squad: [],
+  }),
 }
 
 const mockUserService = {
-  getDraftTickets: vi.fn().mockResolvedValue({ balance: 5, total: 10, used: 5 }),
+  getUser: vi.fn().mockResolvedValue({ id: 'user-1', isPro: true }),
+}
+
+const mockPrisma = {
+  player: { findMany: vi.fn().mockResolvedValue([]) },
 }
 
 // ─── Helpers ───────────────────────────────────────────
@@ -91,11 +100,10 @@ async function createTestApp() {
   app.use(express.json())
 
   app.use((req: express.Request & { container?: { cradle: Record<string, unknown> }; userId?: string }, _res, next) => {
-    req.container = { cradle: { draftService: mockDraftService, userService: mockUserService } }
+    req.container = { cradle: { draftService: mockDraftService, userService: mockUserService, prisma: mockPrisma } }
     next()
   })
 
-  const { default: draftRouter } = await import('./draft')
   app.use('/api/draft', draftRouter)
 
   return app
@@ -135,7 +143,7 @@ describe('Draft Routes', () => {
         .send({ tournamentId: 'fifa-wc-2026', formation: '4-3-3' })
 
       expect(res.status).toBe(201)
-      expect(res.body.sessionId).toBe('draft-1')
+      expect(res.body.session.sessionId).toBe('draft-1')
       expect(mockDraftService.startDraft).toHaveBeenCalled()
     })
 
@@ -167,7 +175,10 @@ describe('Draft Routes', () => {
   describe('GET /api/draft/tickets', () => {
     it('returns ticket balance', async () => {
       const app = await createTestApp()
-      const res = await request(app).get('/api/draft/tickets').set('Authorization', `Bearer ${createAuthToken()}`)
+      const res = await request(app)
+        .get('/api/draft/tickets')
+        .query({ tournamentId: 'fifa-wc-2026' })
+        .set('Authorization', `Bearer ${createAuthToken()}`)
 
       expect(res.status).toBe(200)
       expect(res.body.balance).toBe(5)
@@ -180,7 +191,7 @@ describe('Draft Routes', () => {
       const res = await request(app).get('/api/draft/draft-1').set('Authorization', `Bearer ${createAuthToken()}`)
 
       expect(res.status).toBe(200)
-      expect(res.body.sessionId).toBe('draft-1')
+      expect(res.body.session.sessionId).toBe('draft-1')
     })
 
     it('returns 404 for non-existent session', async () => {
@@ -197,7 +208,7 @@ describe('Draft Routes', () => {
       const res = await request(app)
         .post('/api/draft/draft-1/pick')
         .set('Authorization', `Bearer ${createAuthToken()}`)
-        .send({ playerId: 'p-1' })
+        .send({ slotIndex: 0, pickedPlayerId: 'p-1' })
 
       expect(res.status).toBe(200)
       expect(res.body.success).toBe(true)

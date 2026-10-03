@@ -14,8 +14,22 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Audit 9.3: the deploy gate for the legacy JSON persistence layer.
+  # Fails (and blocks the image build + release) if src/data grew or runtime
+  # code started reading the legacy files again. Delete migrated legacy files
+  # and lower scripts/legacy-ratchet.json to shrink the surface over time.
+  legacy-guard:
+    name: Legacy code deploy gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Enforce legacy ratchet
+        run: node backend/scripts/legacy-inventory.cjs
+
   # ─── Backend: Build Docker image → Push to GHCR ─────
   backend:
+    needs: legacy-guard
     runs-on: ubuntu-latest
     timeout-minutes: 90
     permissions:

@@ -37,7 +37,9 @@ const mockTournaments = [
     id: 'old-tournament',
     name: 'Past Tournament',
     sport: 'football',
-    status: 'FINISHED',
+    // Hidden from end users — the registry only allows LIVE, ANNOUNCED and
+    // ANNOUNCED_NOT_CONFIRMED, and GET /:id 404s the unconfirmed ones.
+    status: 'ANNOUNCED_NOT_CONFIRMED',
     startDate: '2024-01-01',
     endDate: '2024-12-31',
     draftEnabled: false,
@@ -77,7 +79,7 @@ describe('Tournament Routes', () => {
       expect(res.body).toHaveLength(2) // fifa-wc-2026 (LIVE) + ucl-2025-26 (ANNOUNCED)
       expect(res.body.map((t: { id: string }) => t.id)).toContain('fifa-wc-2026')
       expect(res.body.map((t: { id: string }) => t.id)).toContain('ucl-2025-26')
-      // FINISHED tournament should not be included
+      // hidden (ANNOUNCED_NOT_CONFIRMED) tournament should not be included
       expect(res.body.map((t: { id: string }) => t.id)).not.toContain('old-tournament')
     })
   })
@@ -124,7 +126,7 @@ describe('Tournament Routes', () => {
       expect(res.body.error.code).toBe('TOURNAMENT_NOT_FOUND')
     })
 
-    it('returns 404 for FINISHED tournament', async () => {
+    it('returns 404 for hidden (ANNOUNCED_NOT_CONFIRMED) tournament', async () => {
       const app = await createTestApp()
       const res = await request(app).get('/api/tournaments/old-tournament')
 

@@ -183,7 +183,7 @@ export const Landing: React.FC = () => {
               Log in
             </Button>
             <Button
-              className="px-4 py-1.5 text-xs cursor-pointer font-medium bg-accent hover:bg-accent-bright"
+              className="px-4 py-1.5 text-xs cursor-pointer font-medium bg-accent-deep hover:bg-accent-bright"
               onClick={() => navigate('/login')}
             >
               Sign up
@@ -260,7 +260,7 @@ export const Landing: React.FC = () => {
               className="flex flex-col md:flex-row items-center gap-4 justify-center w-full md:w-auto mb-16"
             >
               <Button
-                className="w-full md:w-auto px-8 py-4 text-sm font-medium bg-accent hover:bg-accent-bright cursor-pointer"
+                className="w-full md:w-auto px-8 py-4 text-sm font-medium bg-accent-deep hover:bg-accent-bright cursor-pointer"
                 onClick={() => navigate('/login')}
               >
                 Enter Lobby <ArrowRight className="w-4 h-4 ml-2" />
@@ -324,12 +324,12 @@ export const Landing: React.FC = () => {
                 <div className="w-10 h-10 rounded-lg border border-live-red/20 flex items-center justify-center bg-live-red/5 mb-4 group-hover:scale-105 transition-all">
                   <Activity className="w-5 h-5 text-live-red" />
                 </div>
-                <h3 className="text-lg font-semibold tracking-tight mb-2 flex items-center justify-between">
+                <h2 className="text-lg font-semibold tracking-tight mb-2 flex items-center justify-between">
                   Real-Time Bids
                   <span className="text-[10px] font-mono bg-live-red/10 text-live-red px-1.5 py-0.5 rounded uppercase">
                     0.1s latency
                   </span>
-                </h3>
+                </h2>
                 <p className="text-xs text-foreground-muted leading-relaxed">
                   Live auction console with sub-second WebSocket sync — watch bids climb, timers tick down, and rivals
                   get outbid in real time.
@@ -338,7 +338,7 @@ export const Landing: React.FC = () => {
               {/* Micro-visual mockup */}
               <div className="mt-6 border border-white/[0.04] bg-[#05060a] rounded-lg p-3 font-mono text-[10px] flex items-center justify-between">
                 <span className="text-foreground-muted">Haaland Lead Bid</span>
-                <span className="text-pitch-green font-bold animate-pulse">£24.8M</span>
+                <span className="text-pitch-green font-bold">£24.8M</span>
               </div>
             </Card>
 
@@ -348,12 +348,12 @@ export const Landing: React.FC = () => {
                 <div className="w-10 h-10 rounded-lg border border-accent/20 flex items-center justify-center bg-accent/5 mb-4 group-hover:scale-105 transition-all">
                   <Sliders className="w-5 h-5 text-accent-bright" />
                 </div>
-                <h3 className="text-lg font-semibold tracking-tight mb-2 flex items-center justify-between">
+                <h2 className="text-lg font-semibold tracking-tight mb-2 flex items-center justify-between">
                   Smart Strategy Advisor
                   <span className="text-[10px] font-mono bg-accent/10 text-accent-bright px-1.5 py-0.5 rounded uppercase">
                     ADVANCED ANALYTICS
                   </span>
-                </h3>
+                </h2>
                 <p className="text-xs text-foreground-muted leading-relaxed">
                   Get formation-aware, budget-optimized recommendations — using analytical models trained on real
                   transfer market and performance data.
@@ -377,12 +377,12 @@ export const Landing: React.FC = () => {
                 <div className="w-10 h-10 rounded-lg border border-gold/20 flex items-center justify-center bg-gold/5 mb-4 group-hover:scale-105 transition-all">
                   <Trophy className="w-5 h-5 text-gold" />
                 </div>
-                <h3 className="text-lg font-semibold tracking-tight mb-2 flex items-center justify-between">
+                <h2 className="text-lg font-semibold tracking-tight mb-2 flex items-center justify-between">
                   Leaderboard Standing
                   <span className="text-[10px] font-mono bg-gold/10 text-gold px-1.5 py-0.5 rounded uppercase">
                     GLOBAL RANKS
                   </span>
-                </h3>
+                </h2>
                 <p className="text-xs text-foreground-muted leading-relaxed">
                   Track your rank against a global gaffer pool after every completed draft — climb the table matchday by
                   matchday.
@@ -453,7 +453,7 @@ export const Landing: React.FC = () => {
                       {room.league}
                     </span>
                     <div>
-                      <h4 className="text-sm font-semibold text-white">{room.name}</h4>
+                      <h3 className="text-sm font-semibold text-white">{room.name}</h3>
                       <p className="text-xs text-foreground-muted mt-0.5 flex items-center gap-1.5">
                         <Users className="w-3.5 h-3.5" /> {room.managers} Managers Joined
                       </p>
@@ -474,6 +474,7 @@ export const Landing: React.FC = () => {
                       </span>
                       <button
                         onClick={() => navigate('/login')}
+                        aria-label={`View ${room.name}`}
                         className="p-1 hover:bg-white/5 rounded-lg text-foreground-subtle hover:text-white cursor-pointer"
                       >
                         <ChevronRight className="w-4 h-4" />
@@ -505,7 +506,7 @@ export const Landing: React.FC = () => {
                 statistics.
               </p>
               <div className="flex gap-4">
-                <span className="px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-accent text-white border border-accent cursor-pointer">
+                <span className="px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-accent-deep text-white border border-accent cursor-pointer">
                   4-3-3 Formation
                 </span>
                 <span className="px-3.5 py-1.5 text-xs font-semibold rounded-lg border border-white/10 text-foreground-muted hover:text-white hover:bg-white/[0.02] cursor-pointer">
@@ -623,9 +624,9 @@ export const Landing: React.FC = () => {
                 >
                   <div className="flex justify-between items-start mb-4">
                     <div>
-                      <h4 className="font-semibold text-white group-hover:text-accent-bright transition-colors">
+                      <h3 className="font-semibold text-white group-hover:text-accent-bright transition-colors">
                         {player.name}
-                      </h4>
+                      </h3>
                       <p className="text-[10px] text-foreground-muted mt-0.5">{player.team}</p>
                     </div>
                     <span
@@ -678,7 +679,7 @@ export const Landing: React.FC = () => {
               <Card className="p-6 border border-white/[0.04] bg-[#0c0d13]/30 backdrop-blur-md">
                 <div className="flex items-center gap-2.5 mb-3">
                   <Coins className="w-5 h-5 text-gold" />
-                  <h4 className="font-semibold text-white">1. Draft Tickets & Roster Budget</h4>
+                  <h3 className="font-semibold text-white">1. Draft Tickets & Roster Budget</h3>
                 </div>
                 <p className="text-xs text-foreground-muted leading-relaxed">
                   Start a draft room session by consuming a ticket. Each manager receives a baseline budget of
@@ -690,7 +691,7 @@ export const Landing: React.FC = () => {
               <Card className="p-6 border border-white/[0.04] bg-[#0c0d13]/30 backdrop-blur-md">
                 <div className="flex items-center gap-2.5 mb-3">
                   <Activity className="w-5 h-5 text-live-red" />
-                  <h4 className="font-semibold text-white">2. Bidding increments & Snipe Extension</h4>
+                  <h3 className="font-semibold text-white">2. Bidding increments & Snipe Extension</h3>
                 </div>
                 <p className="text-xs text-foreground-muted leading-relaxed">
                   The minimum bidding increment adjusts dynamically based on the current price. To prevent sniper
@@ -702,7 +703,7 @@ export const Landing: React.FC = () => {
               <Card className="p-6 border border-white/[0.04] bg-[#0c0d13]/30 backdrop-blur-md">
                 <div className="flex items-center gap-2.5 mb-3">
                   <UserCheck className="w-5 h-5 text-pitch-green" />
-                  <h4 className="font-semibold text-white">3. Captain Multiplier</h4>
+                  <h3 className="font-semibold text-white">3. Captain Multiplier</h3>
                 </div>
                 <p className="text-xs text-foreground-muted leading-relaxed">
                   Assign a Captain and Vice-Captain from your drafted roster in the franchise panel. Your Captain earns
@@ -713,7 +714,7 @@ export const Landing: React.FC = () => {
               <Card className="p-6 border border-white/[0.04] bg-[#0c0d13]/30 backdrop-blur-md">
                 <div className="flex items-center gap-2.5 mb-3">
                   <Sliders className="w-5 h-5 text-accent-bright" />
-                  <h4 className="font-semibold text-white">4. AI Auction Advices</h4>
+                  <h3 className="font-semibold text-white">4. AI Auction Advices</h3>
                 </div>
                 <p className="text-xs text-foreground-muted leading-relaxed">
                   Pro-tier subscribers can activate the AI strategy console during auctions. Get live suggestions

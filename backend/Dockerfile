@@ -46,6 +46,12 @@ RUN mkdir -p /app/backend/dist/src/config /app/backend/dist/src/data && \
     cp -r /app/backend/src/config/. /app/backend/dist/src/config/ && \
     cp -r /app/backend/src/data/. /app/backend/dist/src/data/
 
+# The runner stage copies /app/node_modules wholesale — drop devDependencies
+# (prisma CLI, typescript, nodemon, @prisma/config→deepmerge-ts, …) first so
+# the shipped image only contains runtime dependencies. The build above is
+# already done, so nothing still needs them.
+RUN npm prune --omit=dev
+
 # Production image — same glibc base as the builder so the Prisma
 # engine binary generated at build time runs unmodified.
 FROM node:20-slim AS runner
@@ -53,7 +59,10 @@ FROM node:20-slim AS runner
 WORKDIR /app
 
 # Prisma needs OpenSSL at runtime; install before dropping privileges.
+# `upgrade` clears the fixable HIGH/CRITICAL debian advisories Trivy reports
+# against the base image (libgnutls30, libcap2, libpcre2-8-0, …).
 RUN apt-get update \
+    && apt-get upgrade -y --no-install-recommends \
     && apt-get install -y --no-install-recommends openssl \
     && rm -rf /var/lib/apt/lists/*
 
