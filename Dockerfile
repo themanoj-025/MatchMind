@@ -1,7 +1,7 @@
 # ── Match-Mind — Multi-stage Docker Build ───────────────────────────────────
 # Targets:
-#   backend  — Express + Prisma (Node 20-slim, glibc for Prisma engines)
-#   frontend — Vite-built React SPA (Node 20-alpine → nginx)
+#   backend  — Express + Prisma (Node 25-slim, glibc for Prisma engines)
+#   frontend — Vite-built React SPA (Node 25-alpine → nginx)
 #
 # Usage:
 #   docker compose up               # builds both services

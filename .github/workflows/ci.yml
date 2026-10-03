@@ -311,7 +311,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: npm
       - name: Install dependencies
         run: npm ci
@@ -327,7 +327,7 @@ jobs:
           #    unfixable until prisma >7.10.0 changes its pin
           #  - dompurify 3.4.13-3.4.15 (GHSA-p98j-92pf-mc4p) via
           #    @mermaid-js/mermaid-cli (docs ERD rendering); v12 fixes it
-          #    but requires node >=22.13 — bump when CI moves off node 20
+          #    but requires node >=22.13; v12 upgrade not yet validated here
           #  - braces <=3.0.3 (GHSA-vfj7-8cjw-p6xm, stack exhaustion via
           #    deeply nested glob patterns) via awilix→fast-glob→micromatch
           #    (runtime) and nodemon→chokidar (dev): 3.0.3 is the latest
@@ -376,7 +376,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: npm
       - name: Install dependencies
         run: npm ci

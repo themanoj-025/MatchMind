@@ -1,0 +1,53 @@
+# Gitleaks configuration — MatchMind
+#
+# gitleaks auto-discovers this file at the repo root, so it applies to every
+# scan: the standalone "Secret scan (gitleaks)" workflow (pull-request diff
+# scans + the weekly full-history cron) and the gitleaks step inside the
+# build-and-test job.
+#
+# Background: b046b68 ("ci(security): hard-fail gitleaks ... allowlist dummy
+# fixtures") documented that a full-history scan only ever matched known-dummy
+# values in test fixtures / doc snippets and said each was allowlisted here —
+# but the file itself was never committed, so the hard-fail gate has been
+# running with the bare default config since. Verified on 2026-10-03:
+# full-history scans (296 commits) with gitleaks 8.24.3 (the version the
+# action pins), 8.30.1 (the version used in b046b68's local scan) and latest
+# all report zero findings. The entries below are therefore preventive: they
+# pin the fabricated credential literals that DO exist in this repo so that
+# future default-rule churn cannot flip the gate on content that was never a
+# secret. Every other match still fails CI as designed.
+
+[extend]
+# Keep gitleaks' full built-in rule set — this file only subtracts
+# known-dummy matches; it must never narrow what gets scanned.
+useDefault = true
+
+[allowlist]
+description = "Fabricated credentials in test fixtures, CI config and example env files"
+
+# Exact dummy values, matched wherever they appear in history:
+#  - test-(jwt|refresh|reset)-secret / test-secret: JWT secrets hardcoded by
+#    the vitest suites (backend/src/**/*.test.ts, e2e setup) and the
+#    throwaway JWT_SECRET/JWT_RESET_SECRET env values in CI workflows and
+#    .env.test — all documented fakes, never a real signing key
+#  - test-secret-key-that-is-at-least-32-chars: authService/tokenService
+#    test literals
+#  - replace-with-… / your-…-key / sk_test_… / whsec_…: placeholder text in
+#    backend/.env.example (the file is placeholders by design)
+#  - matchmind_test_password: throwaway password for the throwaway postgres
+#    container in docker-compose.test.yml and the CI service containers
+#  - testhashedpassword: obviously-fake bcrypt hash in e2e-setup.ts
+regexes = [
+  '''test-(jwt-|refresh-|reset-)?secret''',
+  '''test-secret-key-that-is-at-least-32-chars''',
+  '''replace-with-[a-z0-9-]+''',
+  '''your-[a-z-]+-(key|secret)''',
+  '''sk_test_\.\.\.''',
+  '''whsec_\.\.\.''',
+  '''matchmind_test_password''',
+  '''testhashedpassword''',
+]
+
+# .env.example contains only placeholders by design — belt and braces on top
+# of the value regexes above.
+paths = ['''backend/\.env\.example''']
