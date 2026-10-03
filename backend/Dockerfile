@@ -1,7 +1,7 @@
-# node:20-slim (Debian/glibc) — Prisma 5 engines require libssl/glibc, which
-# Alpine/musl images do not ship (the app fails at runtime with
-# "libquery_engine... libssl.so.1.1 not found" otherwise).
-FROM node:20-slim AS builder
+# node:25-slim (Debian/glibc) — same base as the root Dockerfile's backend
+# stages; Prisma tooling and native modules need glibc/OpenSSL, which
+# Alpine/musl images do not ship.
+FROM node:25-slim AS builder
 
 WORKDIR /app
 
@@ -54,7 +54,7 @@ RUN npm prune --omit=dev
 
 # Production image — same glibc base as the builder so the Prisma
 # engine binary generated at build time runs unmodified.
-FROM node:20-slim AS runner
+FROM node:25-slim AS runner
 
 WORKDIR /app
 
@@ -69,7 +69,7 @@ RUN apt-get update \
 # The runtime image only runs `node dist/src/index.js` — npm is not needed.
 # Removing npm also removes its bundled deps (tar, glob, brace-expansion,
 # minimatch, sigstore, cross-spawn, ip-address), which carry known
-# HIGH/CRITICAL advisories in node:20-slim (Trivy image scan findings).
+# HIGH/CRITICAL advisories shipped with npm in node slim images (Trivy image scan findings).
 RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx
 
 # Non-root user setup per Security Volume 8
