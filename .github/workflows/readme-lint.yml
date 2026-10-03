@@ -15,6 +15,9 @@ on:
 
 jobs:
   lint-readme:
+    # Check runs report the job name, and the main-branch ruleset gates on
+    # the context "README Lint" — keep this display name in sync with it.
+    name: README Lint
     timeout-minutes: 5
     runs-on: ubuntu-latest
     steps:
