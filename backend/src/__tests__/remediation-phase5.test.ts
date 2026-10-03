@@ -22,6 +22,15 @@ vi.mock('../lib/redis', () => {
   }
 })
 
+// Bypass authenticateToken middleware for every route under test.
+// Must live at the top level: vi.mock is hoisted above the test body.
+vi.mock('../middleware/auth', () => ({
+  authenticateToken: (req: express.Request, _res: express.Response, next: express.NextFunction) => {
+    req.userId = 'user-1'
+    next()
+  },
+}))
+
 describe('Remediation Phase 5 Tests — AI Hint Caching', () => {
   it('should hit the cache on subsequent requests with identical inputs', async () => {
     const app = express()
@@ -75,14 +84,6 @@ describe('Remediation Phase 5 Tests — AI Hint Caching', () => {
 
     const { default: aiRoutes } = await import('../routes/ai')
     app.use('/api/ai', aiRoutes)
-
-    // Bypass authenticateToken middleware in test
-    vi.mock('../middleware/auth', () => ({
-      authenticateToken: (req: express.Request, _res: express.Response, next: express.NextFunction) => {
-        req.userId = 'user-1'
-        next()
-      },
-    }))
 
     // First request should result in cache miss and generate heuristic/anthropic response
     const res1 = await request(app).post('/api/ai/auction-advice').send({ roomId: 'room-1' })
