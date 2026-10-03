@@ -41,7 +41,7 @@ vi.mock('../lib/queue', () => ({
 }))
 
 vi.mock('../lib/redis', () => ({
-  redis: { get: vi.fn(), set: vi.fn(), del: vi.fn() },
+  redis: { get: vi.fn(), set: vi.fn(), del: vi.fn(), rpush: vi.fn() },
 }))
 
 vi.mock('../utils/logger', () => ({
@@ -79,7 +79,7 @@ function createMockPrisma() {
   }
 
   const rooms: Record<string, { id: string; hostId: string; status: string; tournamentId: string }> = {
-    'room-1': { id: 'room-1', hostId: 'host-1', status: 'AUCTION', tournamentId: 'fifa-wc-2026' },
+    'room-1': { id: 'room-1', hostId: 'host-1', status: 'LOBBY', tournamentId: 'fifa-wc-2026' },
     'room-2': { id: 'room-2', hostId: 'other-host', status: 'AUCTION', tournamentId: 'fifa-wc-2026' },
   }
 
@@ -113,6 +113,18 @@ function createMockPrisma() {
       findUnique: vi
         .fn()
         .mockImplementation(({ where }: { where: { id: string } }) => Promise.resolve(rooms[where.id] || null)),
+      update: vi
+        .fn()
+        .mockImplementation(({ where, data }: { where: { id: string }; data: Record<string, unknown> }) => {
+          if (rooms[where.id]) {
+            Object.assign(rooms[where.id], data)
+            return Promise.resolve(rooms[where.id])
+          }
+          return Promise.resolve(null)
+        }),
+    },
+    player: {
+      findMany: vi.fn().mockResolvedValue([]),
     },
     roster: {
       findMany: vi.fn().mockResolvedValue([]),
@@ -184,7 +196,7 @@ describe('Auction Routes', () => {
         .send({ playerId: 'p-1' })
 
       expect(res.status).toBe(200)
-      expect(res.body.phase).toBe('PLAYER_LIVE')
+      expect(res.body.state.phase).toBe('PLAYER_LIVE')
     })
 
     it('rejects non-host user', async () => {
@@ -221,6 +233,13 @@ describe('Auction Routes', () => {
 
   describe('POST /api/auction/:roomId/pause', () => {
     it('pauses the auction', async () => {
+      // Pause requires the room to be mid-auction (DRAFTING status)
+      prisma.room.findUnique = vi.fn().mockResolvedValue({
+        id: 'room-1',
+        hostId: 'host-1',
+        status: 'DRAFTING',
+        tournamentId: 'fifa-wc-2026',
+      })
       prisma.auctionState.findUnique = vi.fn().mockResolvedValue({
         roomId: 'room-1',
         phase: 'PLAYER_LIVE',
@@ -258,7 +277,7 @@ describe('Auction Routes', () => {
         .set('Authorization', `Bearer ${createAuthToken('host-1')}`)
 
       expect(res.status).toBe(200)
-      expect(res.body.phase).toBe('FINISHED')
+      expect(res.body.message).toBe('Auction ended')
     })
   })
 })

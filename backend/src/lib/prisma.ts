@@ -192,15 +192,31 @@ const prismaWithSoftDelete = rawPrisma.$extends({
   },
 })
 
+// Audit 9.4: flag queries slower than SLOW_QUERY_MS (default 500ms).
+// The CI slow-query probe (backend/scripts/slow-query-probe.cjs) enforces a
+// budget against the same database in CI; this gives the production view.
+const SLOW_QUERY_MS = Number(process.env.SLOW_QUERY_MS || 500)
+
 export const prisma = prismaWithSoftDelete.$extends({
   query: {
     $allModels: {
-      async findMany({ model, operation, args, query }) {
-        const take = args?.take
-        if (take === undefined || take > 500) {
-          logger.warn({ event: 'db.unbounded_query', model, take }, `Unbounded findMany query on ${model}`)
+      async $allOperations({ model, operation, args, query }) {
+        const start = performance.now()
+        const result = await query(args)
+        const elapsedMs = performance.now() - start
+        if (operation === 'findMany') {
+          const take = (args as { take?: number } | undefined)?.take
+          if (take === undefined || take > 500) {
+            logger.warn({ event: 'db.unbounded_query', model, take }, `Unbounded findMany query on ${model}`)
+          }
         }
-        return query(args)
+        if (elapsedMs >= SLOW_QUERY_MS) {
+          logger.warn(
+            { event: 'db.slow_query', model, operation, durationMs: Math.round(elapsedMs), thresholdMs: SLOW_QUERY_MS },
+            `Slow query on ${model}.${operation}: ${Math.round(elapsedMs)}ms (threshold ${SLOW_QUERY_MS}ms)`,
+          )
+        }
+        return result
       },
     },
   },

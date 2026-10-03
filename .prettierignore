@@ -12,3 +12,8 @@ load-test.js
 **/dist/**
 **/build/**
 package-lock.json
+
+# Generated Prisma ERD baseline — rewritten by `prisma generate` (run on every
+# typecheck) with trailing whitespace on blank lines; raw copy also lives on
+# main, so formatting it only fights the generator
+backend/docs/schema-baseline.md

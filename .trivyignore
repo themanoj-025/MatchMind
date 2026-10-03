@@ -1,0 +1,25 @@
+# Trivy ignore list — scanned by the `docker` job in .github/workflows/ci.yml
+# (backend runtime image, HIGH/CRITICAL, ignore-unfixed).
+#
+# The backend image ships Prisma's CLI dependency chain even though the
+# container never executes it: @prisma/client 7 declares `prisma` and
+# `typescript` as optional peers, npm keeps them in the pruned production
+# tree, and prisma pins its own transitive deps.
+#
+#   CVE-2026-40345 — deepmerge-ts 7.1.5 stack exhaustion (fixed in 8.0.0)
+#     via @prisma/config ← prisma CLI. Only used to merge prisma.config.ts
+#     at build/CLI time; the container CMD is `node dist/src/index.js` and
+#     database access goes through @prisma/adapter-pg (PostgreSQL), so this
+#     code path never runs inside the image.
+#
+#   GHSA-3f6p-5ww8-9rcr / GHSA-rgwj-5xj2-c3m3 — mysql2 auth-plugin
+#     downgrade (plaintext credential leak) via prisma CLI's bundled MySQL
+#     driver. This project is PostgreSQL-only; mysql2 is unreachable, and
+#     prisma pins it to exactly 3.15.3, so there is no upgrade path until
+#     prisma >7.10.0 moves its pin (same chain is allowlisted in the npm
+#     audit gates in this workflow).
+#
+# Neither package is reachable from application code at runtime.
+CVE-2026-40345
+GHSA-3f6p-5ww8-9rcr
+GHSA-rgwj-5xj2-c3m3
