@@ -16,9 +16,11 @@ FROM node:25-slim AS backend-builder
 
 WORKDIR /app
 
-# Copy workspace manifests for dependency install
+# Copy workspace manifests for dependency install (root lockfile drives
+# the whole workspace tree — npm needs every workspace's package.json)
 COPY package.json package-lock.json* ./
 COPY backend/package.json backend/
+COPY frontend/package.json frontend/
 COPY packages/shared-types/package.json packages/shared-types/
 
 # System deps for Prisma (OpenSSL + glibc)
@@ -87,11 +89,16 @@ FROM node:25-alpine AS frontend-build
 
 WORKDIR /app
 
-COPY frontend/package.json frontend/package-lock.json* ./
+# Workspace manifests (root lockfile drives the install). The frontend
+# depends on the workspace-internal @matchmind/shared-types — it must be
+# linked from packages/, not fetched from the npm registry (404).
+COPY package.json package-lock.json* ./
+COPY backend/package.json backend/
+COPY frontend/package.json frontend/
 COPY packages/shared-types/package.json packages/shared-types/
 RUN npm ci --no-audit --no-fund
 
-COPY frontend/ .
+COPY frontend/ frontend/
 COPY packages/ packages/
 
 # Build shared-types (frontend imports it)

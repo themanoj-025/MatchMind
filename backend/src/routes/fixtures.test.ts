@@ -46,6 +46,11 @@ vi.mock('../services/fantasyPoints', () => ({
   computeFantasyPoints: vi.fn().mockReturnValue([]),
 }))
 
+// requireAdmin reads cradle.prisma.user.findUnique to check the caller's role.
+const mockPrisma = {
+  user: { findUnique: vi.fn().mockResolvedValue({ role: 'ADMIN' }) },
+}
+
 vi.mock('../config/openapi', () => ({
   openapiRegistry: { registerPath: vi.fn() },
 }))
@@ -66,7 +71,7 @@ async function createTestApp() {
 
   // DI middleware
   app.use((req: express.Request & { container?: { cradle: Record<string, unknown> }; userId?: string }, _res, next) => {
-    req.container = { cradle: { matchService: mockMatchService } }
+    req.container = { cradle: { matchService: mockMatchService, prisma: mockPrisma } }
     next()
   })
 

@@ -317,7 +317,9 @@ jobs:
           const blocking = []
           for (const [, info] of Object.entries(data.vulnerabilities || {})) {
             if (!['high', 'critical'].includes(info.severity)) continue
-            const via = (info.via || []).filter((v) => typeof v === 'object' && !ALLOWED.includes(v.url))
+            const via = (info.via || []).filter(
+              (v) => typeof v === 'object' && v.url && !ALLOWED.some((a) => v.url.endsWith(a)),
+            )
             if (via.length > 0) blocking.push(info.name + ': ' + via.map((v) => v.url).join(', '))
           }
           if (blocking.length) {

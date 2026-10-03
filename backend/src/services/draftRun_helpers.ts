@@ -3,6 +3,7 @@ import type { DatabaseClient } from '../repositories'
 import logger from '../utils/logger'
 import { DRAFT, RUN_REWARD_TIERS } from '../config/constants'
 import { BENCHMARK_SCORE_BASE, BENCHMARK_VARIANCE } from './draftRun_types'
+import { computeApproximatePoints } from './draftScoring'
 
 type DraftSession = { id: string; userId: string; tournamentId: string; status: string; synergyScore?: number }
 type DraftPick = {
@@ -16,16 +17,6 @@ type DraftPick = {
 }
 type SquadPlayer = { playerId: string; position: string; slotIndex: number; isAutoPicked: boolean; rarityTier: string }
 type DraftRunStatus = 'WAITING_FOR_MATCHDAY' | 'COMPLETE'
-
-function computeApproximatePoints(
-  stats: { totalPoints?: number; goals?: number; assists?: number; minutesPlayed?: number },
-  position: string,
-): number {
-  if (stats.totalPoints) {
-    return stats.totalPoints
-  }
-  return (stats.goals || 0) * 6 + (stats.assists || 0) * 3 + Math.floor((stats.minutesPlayed || 0) / 90)
-}
 
 async function computeSquadPoints(
   prisma: DatabaseClient,
@@ -61,7 +52,7 @@ async function computeSquadPoints(
       // Fallback: compute approximate fantasy points from raw stats
       const player = playerMap.get(sp.playerId)
       const position = player?.position || sp.position
-      const points = computeApproximatePoints(stats, position)
+      const points = stats.totalPoints ? stats.totalPoints : computeApproximatePoints(stats, position)
       userSquadPoints += points
       breakdown[sp.playerId] = points
     }

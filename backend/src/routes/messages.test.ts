@@ -37,7 +37,7 @@ const mockMessageService = {
   getConversationPartners: vi.fn().mockImplementation((ids: string[]) => {
     return Promise.resolve(ids.map((id) => ({ id, username: `user_${id}`, displayName: `User ${id}` })))
   }),
-  getRoomMessages: vi.fn().mockResolvedValue([
+  getDMs: vi.fn().mockResolvedValue([
     {
       id: 'msg-1',
       roomId: 'dm:user-1:user-2',
@@ -64,6 +64,15 @@ vi.mock('../utils/logger', () => ({
   default: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
 }))
 
+// The DM routes verify the other user exists before reading/sending.
+const mockUserService = {
+  getUser: vi
+    .fn()
+    .mockImplementation((userId: string) =>
+      Promise.resolve({ id: userId, username: `user_${userId}`, displayName: `User ${userId}` }),
+    ),
+}
+
 // ─── Helpers ───────────────────────────────────────────
 
 function createAuthToken(userId = 'user-1') {
@@ -75,7 +84,7 @@ async function createTestApp() {
   app.use(express.json())
 
   app.use((req: express.Request & { container?: { cradle: Record<string, unknown> }; userId?: string }, _res, next) => {
-    req.container = { cradle: { messageService: mockMessageService } }
+    req.container = { cradle: { messageService: mockMessageService, userService: mockUserService } }
     next()
   })
 
@@ -117,43 +126,42 @@ describe('Messages Routes', () => {
     })
   })
 
-  describe('GET /api/messages/:roomId', () => {
+  describe('GET /api/messages/:userId', () => {
     it('returns messages for a room', async () => {
       const app = await createTestApp()
-      const res = await request(app)
-        .get('/api/messages/dm:user-1:user-2')
-        .set('Authorization', `Bearer ${createAuthToken()}`)
+      const res = await request(app).get('/api/messages/user-2').set('Authorization', `Bearer ${createAuthToken()}`)
 
       expect(res.status).toBe(200)
-      expect(res.body).toHaveLength(2)
-      expect(mockMessageService.getRoomMessages).toHaveBeenCalledWith('dm:user-1:user-2')
+      expect(res.body.messages).toHaveLength(2)
+      expect(res.body.otherUser.id).toBe('user-2')
+      expect(mockMessageService.getDMs).toHaveBeenCalledWith('dm:user-1:user-2')
     })
 
     it('rejects unauthenticated request', async () => {
       const app = await createTestApp()
-      const res = await request(app).get('/api/messages/dm:user-1:user-2')
+      const res = await request(app).get('/api/messages/user-2')
       expect(res.status).toBe(401)
     })
   })
 
-  describe('POST /api/messages/:roomId', () => {
+  describe('POST /api/messages/:userId', () => {
     it('sends a message', async () => {
       const app = await createTestApp()
       const res = await request(app)
-        .post('/api/messages/dm:user-1:user-2')
+        .post('/api/messages/user-2')
         .set('Authorization', `Bearer ${createAuthToken()}`)
-        .send({ content: 'New message' })
+        .send({ text: 'New message' })
 
       expect(res.status).toBe(201)
       expect(res.body.id).toBe('msg-new')
       expect(res.body.content).toBe('New message')
-      expect(mockMessageService.sendMessage).toHaveBeenCalledWith('dm:user-1:user-2', 'user-1', 'New message')
+      expect(mockMessageService.sendMessage).toHaveBeenCalledWith('dm:user-1:user-2', 'user-1', 'New message', null)
     })
 
     it('rejects empty content', async () => {
       const app = await createTestApp()
       const res = await request(app)
-        .post('/api/messages/dm:user-1:user-2')
+        .post('/api/messages/user-2')
         .set('Authorization', `Bearer ${createAuthToken()}`)
         .send({ content: '' })
 
@@ -163,7 +171,7 @@ describe('Messages Routes', () => {
     it('rejects missing content', async () => {
       const app = await createTestApp()
       const res = await request(app)
-        .post('/api/messages/dm:user-1:user-2')
+        .post('/api/messages/user-2')
         .set('Authorization', `Bearer ${createAuthToken()}`)
         .send({})
 
@@ -172,7 +180,7 @@ describe('Messages Routes', () => {
 
     it('rejects unauthenticated request', async () => {
       const app = await createTestApp()
-      const res = await request(app).post('/api/messages/dm:user-1:user-2').send({ content: 'Hello' })
+      const res = await request(app).post('/api/messages/user-2').send({ text: 'Hello' })
 
       expect(res.status).toBe(401)
     })
