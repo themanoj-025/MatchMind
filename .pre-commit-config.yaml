@@ -10,6 +10,9 @@ repos:
     rev: v6.0.0
     hooks:
       - id: trailing-whitespace
+        # generated Prisma ERD baseline: raw output has trailing whitespace on
+        # blank lines; prisma generate rewrites it on every typecheck
+        exclude: '^backend/docs/schema-baseline\.md$'
       - id: end-of-file-fixer
       - id: check-yaml
         # k8s/deployment.yaml is a multi-document manifest
