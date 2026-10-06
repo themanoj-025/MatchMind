@@ -16,7 +16,7 @@
   },
   "dependencies": {
     "@matchmind/shared-types": "*",
-    "@tanstack/react-query": "^5.101.2",
+    "@tanstack/react-query": "^5.104.0",
     "clsx": "^2.1.1",
     "framer-motion": "^13.2.0",
     "lucide-react": "^1.49.0",
