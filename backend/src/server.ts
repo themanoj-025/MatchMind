@@ -1,0 +1,69 @@
+import { env } from './config/env'
+import { createServer } from 'http'
+import { Server } from 'socket.io'
+import { prisma } from './lib/prisma'
+import logger from './utils/logger'
+import { app } from './app'
+import { configurePassport } from './config/passport'
+import { setupSocket } from './socket'
+import { attachRedisAdapter } from './lib/socketAdapter'
+import { startAuctionRecovery } from './lib/auctionRecovery'
+import { errorHandler } from './middleware/errorHandler'
+import { initDatabase } from './infrastructure/database'
+import { healthRouter } from './infrastructure/health'
+import { setupGracefulShutdown } from './infrastructure/shutdown'
+import './workers'
+
+// Initialize Passport strategies
+configurePassport(prisma)
+
+const httpServer = createServer(app)
+const io = new Server(httpServer, {
+  cors: {
+    origin: env.FRONTEND_URL || 'http://localhost:3000',
+    credentials: true,
+  },
+})
+
+// WebSocket horizontal scaling: attach the Redis adapter when REDIS_URL is
+// available so rooms/broadcasts span all replicas. Falls back to the default
+// single-node memory adapter (with a logged reason) when Redis is absent —
+// e.g. the unit-test stub — so the server boots exactly as before.
+void attachRedisAdapter(io).catch((err: unknown) => {
+  logger.error(
+    { event: 'socket.adapter.attach_failed', err: (err as Error).message },
+    'Failed to attach Socket.IO Redis adapter — continuing with single-node memory adapter',
+  )
+})
+
+// Make prisma and io accessible in app context
+app.set('prisma', prisma)
+app.set('io', io)
+
+// Mount health check
+app.use('/api/health', healthRouter)
+
+// Error handler MUST be last
+app.use(errorHandler)
+
+// Setup Socket.io
+setupSocket(io, prisma)
+
+const PORT = parseInt(env.PORT || '5000', 10)
+
+// Start database then server
+initDatabase().then(() => {
+  httpServer.listen(PORT, () => {
+    logger.info(
+      { event: 'server.start', port: PORT, env: env.NODE_ENV || 'development' },
+      `MatchMind API server running on port ${PORT}`,
+    )
+  })
+  // Re-arm BullMQ timers for auctions that were PLAYER_LIVE before this
+  // process (re)started — jobs lost to a Redis restart are recreated,
+  // surviving ones deduped by jobId. Fire-and-forget; failures only log.
+  void startAuctionRecovery()
+})
+
+// Setup Graceful Shutdown
+setupGracefulShutdown(httpServer)

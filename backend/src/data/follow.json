@@ -1,0 +1,44 @@
+[
+  {
+    "followerId": "user_mr4s28o2_0e71nr",
+    "followingId": "user_mr4s28ns_2tqull",
+    "id": "follow_mr4s28o3_fot8uv",
+    "createdAt": "2026-06-28T10:15:31.672Z"
+  },
+  {
+    "followerId": "user_mr4s28o2_0e71nr",
+    "followingId": "user_mr4s28nt_56260q",
+    "id": "follow_mr4s28o4_y7m5il",
+    "createdAt": "2026-07-03T10:15:31.672Z"
+  },
+  {
+    "followerId": "user_mr4s28o2_0e71nr",
+    "followingId": "user_mr4s28nu_320jkb",
+    "id": "follow_mr4s28o5_gomroo",
+    "createdAt": "2026-06-27T10:15:31.672Z"
+  },
+  {
+    "followerId": "user_mr4s28ns_2tqull",
+    "followingId": "user_mr4s28nt_56260q",
+    "id": "follow_mr4s28o6_28gupc",
+    "createdAt": "2026-06-23T10:15:31.672Z"
+  },
+  {
+    "followerId": "user_mr4s28nt_56260q",
+    "followingId": "user_mr4s28ns_2tqull",
+    "id": "follow_mr4s28o7_wuf02o",
+    "createdAt": "2026-06-26T10:15:31.672Z"
+  },
+  {
+    "followerId": "user_mr4s28nx_5mjzql",
+    "followingId": "user_mr4s28ns_2tqull",
+    "id": "follow_mr4s28o8_lr0ktz",
+    "createdAt": "2026-06-18T10:15:31.672Z"
+  },
+  {
+    "followerId": "user_mr4s28nz_bd6jim",
+    "followingId": "user_mr4s28ny_0a3kwi",
+    "id": "follow_mr4s28o9_5csq0n",
+    "createdAt": "2026-06-22T10:15:31.672Z"
+  }
+]

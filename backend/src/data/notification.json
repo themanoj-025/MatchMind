@@ -1,0 +1,57 @@
+[
+  {
+    "id": "notif_mr4s28pr_e59102",
+    "userId": "user_mr4s28o2_0e71nr",
+    "type": "leaderboard",
+    "title": "Rank Update",
+    "message": "You moved up to #234 on the global leaderboard!",
+    "link": null,
+    "payload": null,
+    "isRead": true,
+    "createdAt": "2026-07-02T19:15:31.672Z"
+  },
+  {
+    "id": "notif_mr4s28ps_m5mqoy",
+    "userId": "user_mr4s28o2_0e71nr",
+    "type": "prediction",
+    "title": "Prediction Locked",
+    "message": "Your prediction for Man City vs Arsenal has been locked.",
+    "link": null,
+    "payload": null,
+    "isRead": false,
+    "createdAt": "2026-07-02T14:15:31.672Z"
+  },
+  {
+    "id": "notif_mr4s28pt_b648kl",
+    "userId": "user_mr4s28o2_0e71nr",
+    "type": "social",
+    "title": "New Follower",
+    "message": "SportsKing started following you!",
+    "link": null,
+    "payload": null,
+    "isRead": false,
+    "createdAt": "2026-07-03T10:15:31.672Z"
+  },
+  {
+    "id": "notif_mr4s28pu_8ghr6h",
+    "userId": "user_mr4s28o2_0e71nr",
+    "type": "league",
+    "title": "League Update",
+    "message": "You moved to 3rd place in Premier League Fans 2025!",
+    "link": null,
+    "payload": null,
+    "isRead": false,
+    "createdAt": "2026-07-02T23:15:31.672Z"
+  },
+  {
+    "id": "notif_mr4s28pv_zldbnx",
+    "userId": "user_mr4s28o2_0e71nr",
+    "type": "match",
+    "title": "Match Starting Soon",
+    "message": "Liverpool vs Bayern Munich kicks off in 30 minutes.",
+    "link": null,
+    "payload": null,
+    "isRead": false,
+    "createdAt": "2026-07-02T23:15:31.672Z"
+  }
+]

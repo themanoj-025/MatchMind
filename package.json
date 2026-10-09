@@ -1,0 +1,48 @@
+{
+  "name": "matchmind",
+  "version": "1.0.0",
+  "private": true,
+  "description": "🏟️ MatchMind — The Internet's Sports Bar",
+  "workspaces": [
+    "backend",
+    "frontend",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -n api,web -c cyan,green \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:up": "docker-compose up -d && node -e \"setTimeout(()=>{}, 5000)\" && cd backend && npx prisma migrate deploy && cd .. && npm run dev",
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev:watch": "concurrently -n api,web -c cyan,green \"cd backend && npm run dev:watch\" \"cd frontend && npm run dev\"",
+    "install:all": "npm install && npm run build -w @matchmind/shared-types && cd backend && npx prisma generate",
+    "build": "cd frontend && npm run build",
+    "setup": "npm run install:all",
+    "prepare": "node -e \"try { require('child_process').execSync('husky', { stdio: 'inherit' }) } catch (e) {}\"",
+    "lint": "cd backend && npm run lint && cd ../frontend && npm run lint",
+    "typecheck": "cd backend && npm run typecheck && cd ../frontend && npm run typecheck",
+    "test": "cd backend && npm run test:ci && cd ../frontend && npm run test"
+  },
+  "lint-staged": {
+    "frontend/**/*.{ts,tsx}": [
+      "prettier --write --ignore-unknown",
+      "bash -c 'cd frontend && npm run typecheck'"
+    ],
+    "backend/**/*.ts": [
+      "eslint --fix --config backend/eslint.config.mjs",
+      "prettier --write --ignore-unknown",
+      "bash -c 'cd backend && npm run typecheck'"
+    ],
+    "*.{ts,tsx,js,jsx}": [
+      "prettier --write --ignore-unknown"
+    ],
+    "*.{json,md,yml,yaml}": [
+      "prettier --write --ignore-unknown"
+    ]
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.5.1",
+    "prettier": "^3.9.6"
+  }
+}

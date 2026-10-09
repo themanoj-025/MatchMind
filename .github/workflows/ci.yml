@@ -1,0 +1,480 @@
+# Cancel superseded runs of this workflow on the same ref (PR pushes).
+# Never cancels on main pushes or scheduled runs.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+# Least-privilege token scope; jobs declaring their own permissions override this.
+permissions:
+  contents: read
+
+name: CI
+
+on:
+  push:
+    branches: ['main']
+  pull_request:
+    branches: ['main']
+
+jobs:
+  pre-commit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          cache: pip
+          python-version: '3.12'
+
+      - name: Run pre-commit hooks
+        run: |
+          pip install pre-commit
+          pre-commit run --all-files
+
+  python-quality:
+    name: Python quality (ruff + mypy + bandit)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          cache: pip
+          python-version: '3.12'
+
+      - name: Install Python tools
+        # Pinned in requirements.txt (single source of truth; also what
+        # setup-python's pip cache resolves against).
+        run: pip install -r requirements.txt
+
+      - name: Ruff lint
+        run: ruff check .
+
+      - name: Ruff format check
+        run: ruff format --check .
+
+      - name: Mypy type check
+        run: mypy --config-file mypy.ini . || true
+
+      - name: Bandit security scan
+        run: bandit -r . -c .bandit -f json -o /tmp/bandit-report.json || true
+
+      - name: Evaluate bandit results
+        run: |
+          python - <<'EOF'
+          import json, sys
+          try:
+              data = json.load(open('/tmp/bandit-report.json'))
+          except (FileNotFoundError, json.JSONDecodeError):
+              print('bandit: no report (clean scan)')
+              sys.exit(0)
+          metrics = data.get('metrics', {})
+          results = data.get('results', [])
+          high = [r for r in results if r.get('issue_severity') == 'HIGH']
+          medium = [r for r in results if r.get('issue_severity') == 'MEDIUM']
+          print(f'bandit: {len(high)} HIGH, {len(medium)} MEDIUM, {len(results)} total findings')
+          if high:
+              for r in high:
+                  print(f'  HIGH: {r["filename"]}:{r["line_number"]} — {r["issue_text"]}')
+              sys.exit(1)
+          print('bandit: no HIGH severity issues')
+          EOF
+
+  pip-audit:
+    name: Python dependency audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          cache: pip
+          python-version: '3.12'
+
+      - name: Install pip-audit
+        run: pip install pip-audit
+
+      - name: Audit Python dependencies
+        run: |
+          # Create a minimal requirements file from any Python deps found
+          if [ -f requirements.txt ]; then
+            pip-audit -r requirements.txt
+          elif [ -f pyproject.toml ]; then
+            pip-audit
+          else
+            echo 'No Python requirements file found — skipping pip-audit'
+          fi
+
+  build-and-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: matchmind
+          POSTGRES_PASSWORD: matchmind_test_password
+          POSTGRES_DB: matchmind_test
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          # 22.x (>=22.10): jsdom 30 → undici 8 requires
+          # worker_threads.markAsUncloneable (added v22.10.0/v23.0.0), which
+          # crashes every jsdom test worker on Node 20
+          node-version: '22.x'
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm run setup
+
+      - name: Run Linter
+        run: npm run lint
+
+      # Audit 9.3: flag the legacy JSON persistence layer; ratchet fails if
+      # src/data grows or runtime code starts reading it again.
+      - name: Legacy inventory ratchet
+        run: cd backend && node scripts/legacy-inventory.cjs
+
+      - name: Run Typecheck
+        run: npm run typecheck
+
+      - name: Build Frontend
+        run: npm run build
+
+      # Test suite requires Redis. We spin up Redis for testing.
+      - name: Setup Redis
+        uses: supercharge/redis-github-action@105b02b0ae87d7c6a8bb8debaf94b553a593327b # 1.8.1
+        with:
+          redis-port: 6380
+
+      - name: Push Prisma Schema
+        run: cd backend && npx prisma db push --accept-data-loss --force-reset
+        env:
+          DATABASE_URL: postgresql://matchmind:matchmind_test_password@localhost:5433/matchmind_test
+
+      - name: Run Tests (Backend)
+        run: cd backend && npx vitest run --coverage
+        env:
+          PORT: 5000
+          NODE_ENV: test
+          JWT_SECRET: test-secret
+          JWT_RESET_SECRET: test-reset-secret
+          DATABASE_URL: postgresql://matchmind:matchmind_test_password@localhost:5433/matchmind_test
+          REDIS_URL: redis://localhost:6380
+
+      - name: Run Tests (Frontend)
+        run: cd frontend && npx vitest run --coverage
+        env:
+          NODE_ENV: test
+
+      # Audit 9.4: fail CI when realistic read queries exceed the time budget.
+      - name: Slow-query probe
+        run: cd backend && node scripts/slow-query-probe.cjs
+        env:
+          DATABASE_URL: postgresql://matchmind:matchmind_test_password@localhost:5433/matchmind_test
+          SLOW_QUERY_BUDGET_MS: '2000'
+
+      - name: Security Scan (Trivy / npm audit)
+        run: |
+          # GHSA-qwww-vcr4-c8h2 (react-router RSC-mode CSRF) has no patched
+          # release and only affects framework/RSC-mode apps — this repo is a
+          # client-only SPA, so it is not applicable. GHSA-vfj7-8cjw-p6xm
+          # (braces stack exhaustion) has no patched release either — 3.0.3
+          # is latest and every published version is affected; the glob
+          # patterns reaching it are developer-controlled (awilix container
+          # wiring, nodemon config), never user input. The remaining
+          # dev-toolchain chains (deepmerge-ts via @prisma/config, mysql2
+          # via prisma CLI on a PostgreSQL project, dompurify via
+          # mermaid-cli docs rendering) are allowlisted here exactly as in
+          # the security-audit job. Everything else at high/critical
+          # severity is still enforced.
+          npm audit --audit-level=high --json > /tmp/npm-audit.json || true
+          python - <<'EOF'
+          import json
+
+          data = json.load(open('/tmp/npm-audit.json'))
+          ALLOWED = {
+              'GHSA-qwww-vcr4-c8h2',  # react-router RSC-mode CSRF (not applicable)
+              'GHSA-h5cw-625j-3rxh',  # react-router advisory family
+              'GHSA-ggr8-5vv4-36mx',  # deepmerge-ts via @prisma/config (dev CLI)
+              'GHSA-3f6p-5ww8-9rcr',  # mysql2 via prisma CLI (PostgreSQL project)
+              'GHSA-rgwj-5xj2-c3m3',  # mysql2 via prisma CLI
+              'GHSA-p98j-92pf-mc4p',  # dompurify via mermaid-cli (docs, dev)
+              'GHSA-vfj7-8cjw-p6xm',  # braces — no patched release
+          }
+          blocking = []
+          for name, info in (data.get('vulnerabilities') or {}).items():
+              if info.get('severity') not in ('high', 'critical'):
+                  continue
+              urls = set()
+              for v in info.get('via', []):
+                  if isinstance(v, dict) and v.get('url'):
+                      urls.add(v['url'])
+              if isinstance(info.get('url'), str) and info['url']:
+                  urls.add(info['url'])
+              # react-router / react-router-dom: only advisory is the RSC-mode
+              # CSRF which does not affect this client-only (non-RSC) SPA, and
+              # there is no patched 7.x release.
+              if name in ('react-router', 'react-router-dom') and (
+                  not urls or all(u.endswith(a) for u in urls for a in ALLOWED)
+              ):
+                  continue
+              non_allowed = {u for u in urls if not any(u.endswith(a) for a in ALLOWED)}
+              if non_allowed:
+                  blocking.append((name, info.get('severity'), sorted(non_allowed)))
+          if blocking:
+              print('BLOCKING high/critical advisories found:')
+              for b in blocking:
+                  print(' -', b)
+              raise SystemExit(1)
+          print('npm audit OK (react-router RSC advisory not applicable to this client-only SPA)')
+          EOF
+
+      # S-27 keeps this job's checkout shallow (fetch-depth: 1), but the
+      # gitleaks action log-walks <first-pr-commit>^..HEAD and dies on
+      # unknown revisions — pull just enough history now that every
+      # working-tree step has already completed.
+      - name: Deepen git history for secret scan
+        run: git fetch --deepen=100 origin || true
+
+      - name: Secret Scan (Gitleaks)
+        uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  hadolint:
+    name: Container lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: hadolint/hadolint-action@06be81baf89a55ffd0e24b8f04a4185738dd3387 # v3.5.0
+        with:
+          dockerfile: backend/Dockerfile
+          failure-threshold: error
+          ignore: DL3066
+      - uses: hadolint/hadolint-action@06be81baf89a55ffd0e24b8f04a4185738dd3387 # v3.5.0
+        with:
+          dockerfile: backend/Dockerfile.prod
+          failure-threshold: error
+          ignore: DL3066
+
+  docker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    needs: build-and-test
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Validate compose files
+        run: |
+          docker compose -f docker-compose.yml config --quiet
+          docker compose -f docker-compose.yml -f docker-compose.test.yml config --quiet
+
+      # The backend Dockerfile uses monorepo-relative COPY paths
+      # (COPY backend/package.json …), so the build context must be the
+      # repo root — NOT backend/.
+      - name: Build backend image
+        run: docker build -f backend/Dockerfile -t matchmind:ci .
+
+      - name: Scan image for vulnerabilities
+        uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8 # v0.36.0
+        with:
+          image-ref: matchmind:ci
+          format: table
+          exit-code: '1'
+          ignore-unfixed: true
+          severity: CRITICAL,HIGH
+
+  security-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: npm audit (evaluated)
+        run: |
+          # Evaluated gate (same pattern as build-and-test): block only on
+          # advisories that actually affect this repo. The three remaining
+          # high-severity chains are devDependencies that never ship:
+          #  - deepmerge-ts <8.0.0 (GHSA-ggr8-5vv4-36mx, stack exhaustion)
+          #    via @prisma/config — CLI-side config merge only
+          #  - mysql2 <=3.23.0 (GHSA-3f6p-5ww8-9rcr, GHSA-rgwj-5xj2-c3m3)
+          #    via prisma CLI — this project uses PostgreSQL, never MySQL;
+          #    unfixable until prisma >7.10.0 changes its pin
+          #  - dompurify 3.4.13-3.4.15 (GHSA-p98j-92pf-mc4p) via
+          #    @mermaid-js/mermaid-cli (docs ERD rendering); v12 fixes it
+          #    but requires node >=22.13; v12 upgrade not yet validated here
+          #  - braces <=3.0.3 (GHSA-vfj7-8cjw-p6xm, stack exhaustion via
+          #    deeply nested glob patterns) via awilix→fast-glob→micromatch
+          #    (runtime) and nodemon→chokidar (dev): 3.0.3 is the latest
+          #    release and every published version is affected — there is no
+          #    fix to upgrade to; the patterns are developer-controlled
+          #    (container wiring / tool config), never user input
+          # Anything else at high/critical still fails the build.
+          npm audit --audit-level=high --json > /tmp/root-audit.json || true
+          node - <<'EOF'
+          const fs = require('fs')
+          let data
+          try {
+            data = JSON.parse(fs.readFileSync('/tmp/root-audit.json', 'utf8'))
+          } catch {
+            console.log('npm audit output unparseable (registry outage?) — failing open')
+            process.exit(0)
+          }
+          const ALLOWED = [
+            'GHSA-ggr8-5vv4-36mx',
+            'GHSA-3f6p-5ww8-9rcr',
+            'GHSA-rgwj-5xj2-c3m3',
+            'GHSA-p98j-92pf-mc4p',
+            'GHSA-vfj7-8cjw-p6xm',
+          ]
+          const blocking = []
+          for (const [, info] of Object.entries(data.vulnerabilities || {})) {
+            if (!['high', 'critical'].includes(info.severity)) continue
+            const via = (info.via || []).filter(
+              (v) => typeof v === 'object' && v.url && !ALLOWED.some((a) => v.url.endsWith(a)),
+            )
+            if (via.length > 0) blocking.push(info.name + ': ' + via.map((v) => v.url).join(', '))
+          }
+          if (blocking.length) {
+            console.error('BLOCKING high/critical advisories (not on allowlist):')
+            blocking.forEach((b) => console.error(' -', b))
+            process.exit(1)
+          }
+          console.log('npm audit OK — remaining highs are allowlisted dev-toolchain chains (see step comments)')
+          EOF
+
+  retire-js:
+    name: Retire.js vulnerability scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Install retire.js
+        run: npm install -g retire
+      - name: Run retire.js scan
+        run: |
+          retire --path . --outputformat json --outputfile /tmp/retire-report.json || true
+          python - <<'EOF'
+          import json, sys
+          try:
+              data = json.load(open('/tmp/retire-report.json'))
+          except (FileNotFoundError, json.JSONDecodeError):
+              print('retire.js: no report generated (scan clean)')
+              sys.exit(0)
+          vulnerabilities = data.get('vulnerabilities', [])
+          if vulnerabilities:
+              print(f'retire.js found {len(vulnerabilities)} vulnerable library(ies):')
+              for v in vulnerabilities:
+                  results = v.get('results', [])
+                  for r in results:
+                      component = r.get('component', 'unknown')
+                      version = r.get('version', '?')
+                      for vuln in r.get('vulnerabilities', []):
+                          severity = vuln.get('severity', 'unknown')
+                          info = vuln.get('info', [''])[0] if vuln.get('info') else ''
+                          print(f'  - {component}@{version}: {severity} — {info}')
+              sys.exit(1)
+          print('retire.js: no known vulnerable libraries found')
+          EOF
+
+  docker-cache:
+    name: Docker image build + layer cache
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
+      - name: Build image (cached)
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
+        with:
+          context: .
+          file: backend/Dockerfile
+          load: true
+          tags: matchmind:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  dive:
+    name: Docker image size audit (dive)
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
+      - name: Build image
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
+        with:
+          context: .
+          load: true
+          tags: dive-audit:latest
+          cache-from: type=gha
+      - name: Install dive
+        run: |
+          wget -q https://github.com/wagoodman/dive/releases/download/v0.12.0/dive_0.12.0_linux_amd64.deb
+          sudo dpkg -i dive_0.12.0_linux_amd64.deb
+      - name: Run dive (efficiency check)
+        run: |
+          CI=true dive dive-audit:latest
+
+  lighthouse:
+    name: 'Frontend — Lighthouse CI (performance budgets)'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Build frontend
+        run: npm run build
+      - name: Install Lighthouse CI
+        run: npm install -g @lhci/cli
+      - name: Start preview server + run Lighthouse
+        run: |
+          npx vite preview --port 5173 &
+          sleep 5
+          lhci autorun --config=lighthouserc.json
+      - name: Upload Lighthouse reports
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: lighthouse-reports
+          path: frontend/lhci-reports

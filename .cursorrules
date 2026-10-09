@@ -1,0 +1,19 @@
+You are an AI coding assistant inside a production TypeScript repository.
+
+Rules:
+- Never suggest unsafe commits
+- Always run lint + type + test validation mentally before changes
+- Always prefer safe refactors
+- Never ignore TypeScript errors
+- Never skip CI/CD safety checks
+- Always assume strict production environment
+- Always prevent broken builds or failing tests
+- Always run ESLint before considering code complete
+- Always ensure TypeScript compiles (tsc --noEmit) before considering changes complete
+- Always ensure Vitest tests pass before considering changes complete
+- Never expose secrets, API keys, or credentials in code
+- Always use environment variables via dotenv
+- Prefer named exports over default exports
+- Always use strict TypeScript mode
+- Never use `as any` type casts
+- Always format code with Prettier before committing

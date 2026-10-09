@@ -1,0 +1,57 @@
+import { DatabaseClient } from '../repositories'
+import { env } from '../config/env'
+import logger from '../utils/logger'
+import type Stripe from 'stripe'
+
+function subscriptionFields(sub: Stripe.Subscription, customerId: string, subscriptionId: string) {
+  const item = sub.items.data[0]
+  return {
+    stripeCustomerId: customerId,
+    stripeSubscriptionId: subscriptionId,
+    plan: item?.price?.recurring?.interval === 'year' ? 'annual' : 'monthly',
+    status: 'ACTIVE',
+    currentPeriodStart: new Date((item?.current_period_start ?? sub.created) * 1000),
+    currentPeriodEnd: new Date((item?.current_period_end ?? sub.created) * 1000),
+    cancelAtPeriodEnd: sub.cancel_at_period_end,
+  }
+}
+
+export class StripeService {
+  constructor(private opts: { prisma: DatabaseClient }) {}
+
+  async getSubscriptionByUserId(userId: string) {
+    return this.opts.prisma.subscription.findUnique({ where: { userId } })
+  }
+
+  async getSubscriptionByStripeId(stripeSubscriptionId: string) {
+    return this.opts.prisma.subscription.findUnique({ where: { stripeSubscriptionId } })
+  }
+
+  async upsertSubscription(userId: string, customerId: string, subscriptionId: string, sub: Stripe.Subscription) {
+    return this.opts.prisma.subscription.upsert({
+      where: { userId },
+      create: { userId, ...subscriptionFields(sub, customerId, subscriptionId) },
+      update: subscriptionFields(sub, customerId, subscriptionId),
+    })
+  }
+
+  async updateSubscriptionStatus(subscriptionId: string, sub: Stripe.Subscription) {
+    const item = sub.items.data[0]
+    return this.opts.prisma.subscription.update({
+      where: { stripeSubscriptionId: subscriptionId },
+      data: {
+        status: sub.status === 'active' ? 'ACTIVE' : sub.status === 'past_due' ? 'PAST_DUE' : 'CANCELLED',
+        currentPeriodStart: new Date((item?.current_period_start ?? sub.created) * 1000),
+        currentPeriodEnd: new Date((item?.current_period_end ?? sub.created) * 1000),
+        cancelAtPeriodEnd: sub.cancel_at_period_end,
+      },
+    })
+  }
+
+  async cancelSubscription(subscriptionId: string) {
+    return this.opts.prisma.subscription.update({
+      where: { stripeSubscriptionId: subscriptionId },
+      data: { status: 'CANCELLED', cancelAtPeriodEnd: true },
+    })
+  }
+}

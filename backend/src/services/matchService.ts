@@ -1,0 +1,190 @@
+import { DatabaseClient } from '../repositories'
+import { computeFantasyPoints } from './fantasyPoints'
+import logger from '../utils/logger'
+import type { Prisma } from '@prisma/client'
+
+export class MatchService {
+  private prisma: DatabaseClient
+
+  constructor({ prisma }: { prisma: DatabaseClient }) {
+    this.prisma = prisma
+  }
+
+  async getMatches(take: number = 50) {
+    return this.prisma.fixture.findMany({
+      orderBy: { scheduledAt: 'asc' },
+      take,
+    })
+  }
+
+  async getMatchById(id: string) {
+    return this.prisma.fixture.findUnique({ where: { id } })
+  }
+
+  async getFixtures(tournamentId?: string) {
+    const where: Prisma.FixtureWhereInput = {}
+    if (tournamentId) {
+      where.tournamentId = tournamentId
+    }
+
+    return this.prisma.fixture.findMany({
+      where,
+      orderBy: { scheduledAt: 'asc' },
+      take: 100,
+    })
+  }
+
+  async getFixtureDetails(id: string) {
+    return this.prisma.fixture.findUnique({
+      where: { id },
+      include: {
+        playerMatchStats: {
+          include: { player: { select: { id: true, name: true, position: true } } },
+        },
+      },
+    })
+  }
+
+  async createFixture(data: Prisma.FixtureCreateInput) {
+    return this.prisma.fixture.create({ data })
+  }
+
+  async enterPlayerStats(
+    fixtureId: string,
+    playerStats: Omit<Prisma.PlayerMatchStatUncheckedCreateInput, 'fixtureId'>[],
+  ) {
+    const created = []
+    for (const stat of playerStats) {
+      const entry = await this.prisma.playerMatchStat.create({
+        data: { ...stat, fixtureId },
+      })
+      created.push(entry)
+    }
+    return created
+  }
+
+  async finalizeFixture(
+    fixtureId: string,
+    adminId: string,
+    io?: { to: (room: string) => { emit: (event: string, payload: unknown) => void } },
+  ): Promise<{ roomsProcessed: number; fantasyEntries: number }> {
+    // Mark fixture as FINISHED
+    await this.prisma.fixture.update({
+      where: { id: fixtureId },
+      data: { status: 'FINISHED' },
+    })
+
+    // Get all player match stats for this fixture
+    const stats = await this.prisma.playerMatchStat.findMany({
+      where: { fixtureId },
+    })
+
+    // Get all rooms for this fixture's tournament
+    const fixture = await this.prisma.fixture.findUnique({ where: { id: fixtureId } })
+    if (!fixture) {
+      throw new Error('Fixture not found')
+    }
+
+    const rooms = await this.prisma.room.findMany({
+      where: { tournamentId: fixture.tournamentId },
+    })
+
+    // Batch-load all players referenced in stats
+    const playerIds = [...new Set(stats.map((s) => s.playerId))]
+    const allPlayers = await this.prisma.player.findMany({
+      where: { id: { in: playerIds } },
+      select: { id: true, position: true, name: true },
+    })
+    const playerMap = new Map<string, { id: string; position: string; name: string }>(allPlayers.map((p) => [p.id, p]))
+
+    // Batch-load all rosters for all rooms
+    const roomIds = rooms.map((r) => r.id)
+    const allRosters = await this.prisma.roster.findMany({
+      where: { roomId: { in: roomIds } },
+    })
+    const rostersByRoom = groupRostersByRoom(allRosters)
+
+    // Build player stats map
+    const playerStatsMap = buildPlayerStatsMap(stats, playerMap)
+
+    let totalEntries = 0
+    for (const room of rooms) {
+      const rosters = rostersByRoom.get(room.id) || []
+      if (rosters.length === 0) {
+        continue
+      }
+
+      const results = await computeFantasyPoints(
+        fixtureId,
+        playerStatsMap,
+        rosters,
+        async () => null,
+        async (entry) => {
+          await this.prisma.fantasyPointsLedger.create({ data: entry })
+          totalEntries++
+        },
+      )
+
+      // Emit socket events for real-time updates
+      emitFantasyUpdates(io, room.id, results, fixtureId)
+    }
+
+    // Log admin action
+    await this.prisma.adminLog.create({
+      data: {
+        adminId,
+        action: 'FIXTURE_FINALIZED',
+        targetId: fixtureId,
+        targetType: 'fixture',
+        detail: { rooms: rooms.length, fantasyEntries: totalEntries },
+      },
+    })
+
+    return { roomsProcessed: rooms.length, fantasyEntries: totalEntries }
+  }
+}
+
+function groupRostersByRoom<T extends { roomId: string }>(allRosters: T[]): Map<string, T[]> {
+  const rostersByRoom = new Map<string, T[]>()
+  for (const roster of allRosters) {
+    const existing = rostersByRoom.get(roster.roomId) || []
+    existing.push(roster)
+    rostersByRoom.set(roster.roomId, existing)
+  }
+  return rostersByRoom
+}
+
+function buildPlayerStatsMap(
+  stats: Array<import('./fantasyPoints').PlayerMatchStats>,
+  playerMap: Map<string, { id: string; position: string; name: string }>,
+): Record<string, { stats: import('./fantasyPoints').PlayerMatchStats; position: string }> {
+  const playerStatsMap: Record<string, { stats: import('./fantasyPoints').PlayerMatchStats; position: string }> = {}
+  for (const stat of stats) {
+    const player = playerMap.get(stat.playerId)
+    if (player) {
+      playerStatsMap[stat.playerId] = { stats: stat, position: player.position }
+    }
+  }
+  return playerStatsMap
+}
+
+function emitFantasyUpdates(
+  io: { to: (room: string) => { emit: (event: string, payload: unknown) => void } } | undefined,
+  roomId: string,
+  results: Array<{ userId: string; totalPoints: number; playerId: string; breakdown: Record<string, number> }>,
+  fixtureId: string,
+): void {
+  if (!io) {
+    return
+  }
+  for (const result of results) {
+    io.to(`room:${roomId}`).emit('FANTASY_POINTS_UPDATE', {
+      roomId,
+      userId: result.userId,
+      delta: result.totalPoints,
+      playerId: result.playerId,
+      fixtureId,
+      breakdown: result.breakdown,
+    })
+  }
+}
