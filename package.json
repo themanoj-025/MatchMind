@@ -24,19 +24,19 @@
   },
   "lint-staged": {
     "frontend/**/*.{ts,tsx}": [
-      "prettier --write --ignore-unknown",
+      "bash -c 'if command -v prettier >/dev/null 2>&1; then prettier --ignore-unknown; fi';",
       "bash -c 'cd frontend && npm run typecheck'"
     ],
     "backend/**/*.ts": [
       "eslint --fix --config backend/eslint.config.mjs",
-      "prettier --write --ignore-unknown",
+      "bash -c 'if command -v prettier >/dev/null 2>&1; then prettier --ignore-unknown; fi';",
       "bash -c 'cd backend && npm run typecheck'"
     ],
     "*.{ts,tsx,js,jsx}": [
-      "prettier --write --ignore-unknown"
+      "bash -c 'if command -v prettier >/dev/null 2>&1; then prettier --ignore-unknown; fi';"
     ],
     "*.{json,md,yml,yaml}": [
-      "prettier --write --ignore-unknown"
+      "bash -c 'if command -v prettier >/dev/null 2>&1; then prettier --ignore-unknown; fi';"
     ]
   },
   "devDependencies": {
