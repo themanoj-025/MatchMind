@@ -101,3 +101,25 @@ coverage.xml
 *.db-wal
 
 # KEEP: AI provenance & transparency files — these must remain
+
+# AI / Assistant tooling & artifacts
+.claude/
+CLAUDE.md
+.cursor/
+.cursorrules
+.windsurf/
+.windsurfrules
+.cline/
+.clinerules
+.continue/
+.roo/
+.gemini/
+.copilot/
+copilot-instructions.md
+.github/copilot-instructions.md
+AGENTS.md
+AGENTS_FIX.md
+.purge-reports/
+.cleanup-audit/
+ai-provenance.json
+AI_DISCLOSURE.md

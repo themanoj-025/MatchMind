@@ -1,0 +1,3 @@
+# For plan-only (MODE=plan-only default), moves.tsv is intentionally empty.
+# Each line is: old_path<TAB>new_path   (# comments allowed)
+# Bulb: no moves executed; this file exists for the execute-staged run.
