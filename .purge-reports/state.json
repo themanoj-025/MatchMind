@@ -1,0 +1,14 @@
+{
+  "repository": "Match-Mind",
+  "mode": "AUDIT_ONLY",
+  "aggressiveness": 3,
+  "phase": 9,
+  "status": "COMPLETED_AUDIT",
+  "baseline_sha": "9845c5504060c4ccffd2daef5ec2a195c62cf4e0",
+  "total_candidates": 212,
+  "t0_count": 59,
+  "t1_count": 17,
+  "t2_count": 136,
+  "t3_count": 0,
+  "updated_at": "2026-10-11T07:39:34.718Z"
+}
