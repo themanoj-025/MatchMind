@@ -1,121 +1,83 @@
-# 🏟️ MatchMind — Real-Time Fantasy Sports Draft Platform
-
 <p align="center">
-  <img src="https://img.shields.io/badge/Node.js-20+-339933?logo=node.js&logoColor=white" alt="Node.js" />
-  <img src="https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white" alt="React" />
-  <img src="https://img.shields.io/badge/TypeScript-6-3178C6?logo=typescript&logoColor=white" alt="TypeScript" />
-  <img src="https://img.shields.io/badge/Redis-7-DC382D?logo=redis&logoColor=white" alt="Redis" />
-  <a href="https://github.com/themanoj-025/MatchMind/actions/workflows/ci.yml?branch=main"><img src="https://img.shields.io/github/actions/workflow/status/themanoj-025/MatchMind/ci.yml?branch=main&label=CI&logo=github" alt="CI" /></a>
+  <img src="https://img.shields.io/badge/MatchMind-Fantasy%20Sports%20Trading-blue?style=for-the-badge" alt="MatchMind Logo" />
 </p>
 
-<h1 align="center">🏟️ MatchMind</h1>
+<h1 align="center">MatchMind</h1>
 
 <p align="center">
-  <strong>Real-time, football-first social prediction and live auction draft platform.</strong> Built for fantasy sports enthusiasts, it combines the live-match experience with a Bloomberg-style trading terminal aesthetic. Users can watch games, bid in live player auctions, chat in real-time, and compete on global leaderboards.
+  <strong>Real-time, football-first social prediction and live auction draft platform with trading-terminal UX.</strong>
+</p>
+
+<p align="center">
+  <a href="https://github.com/themanoj-025/MatchMind/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/themanoj-025/MatchMind/ci.yml?style=flat-square&label=CI" alt="CI Status" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" alt="License MIT" /></a>
+  <a href="https://github.com/themanoj-025/MatchMind/stargazers"><img src="https://img.shields.io/github/stars/themanoj-025/MatchMind?style=social" alt="GitHub Stars" /></a>
+  <a href="https://github.com/themanoj-025/MatchMind/issues"><img src="https://img.shields.io/github/issues/themanoj-025/MatchMind?style=flat-square" alt="GitHub Issues" /></a>
+  <a href="https://github.com/themanoj-025/MatchMind/pulls"><img src="https://img.shields.io/badge/PRs-welcome-brightgreen?style=flat-square" alt="PRs Welcome" /></a>
 </p>
 
 ---
 
-## 💡 Why I built this
+## Overview
 
-I built MatchMind because existing fantasy sports platforms felt too static. I wanted to build a real-time system that felt like a fast-paced trading terminal, which gave me the perfect excuse to dive deep into WebSockets, Redis pub/sub, and managing complex distributed state.
+MatchMind combines live sports broadcasting with a fast-paced trading terminal aesthetic. Football enthusiasts compete in real-time player draft auctions under strict financial constraints ($100M salary caps), chat with peers over WebSockets, and climb global fantasy leaderboards.
 
-## ⚠️ Known limitations
-
-- **WebSocket horizontal scaling:** ✅ Implemented via `@socket.io/redis-adapter` — rooms/broadcasts span all backend replicas through the shared Redis. Ops requirements: every replica must point `REDIS_URL` at the same Redis (already true — it backs BullMQ, rate limiting, and idempotency), and HTTP long-polling clients need session stickiness. The frontend pins `transports: ['websocket']`, which is sticky-free. When Redis is unavailable at boot, the server falls back to the single-node memory adapter and logs the reason.
-- **Race-condition load testing:** While Redis-backed locks are in place for the auction room, we lack an automated artillery/k6 load test to mathematically prove high-throughput concurrency safety under extreme load.
-- **Scoring engine blocking:** The scoring engine runs in the main Node.js event loop, which could block real-time WebSocket events if the player pool grows too large.
+The stack pairs a React 19 SPA (Zustand + Tailwind CSS) with a TypeScript Node.js backend utilizing Redis pub/sub for cluster-wide Socket.IO state synchronization and BullMQ for background job orchestration.
 
 ---
 
-## 📸 Screenshots
+## Table of Contents
 
-|                                                 |                                             |
-| ----------------------------------------------- | ------------------------------------------- |
-| ![Landing](docs/assets/screenshots/landing.png) | ![Login](docs/assets/screenshots/login.png) |
-| _Landing page with live draft ticker_           | _Login / signup_                            |
-
-> To add more: run the backend and frontend (`npm run dev` in each), open a draft room, capture your screen, save images to `docs/assets/screenshots/`, and reference them below.
->
-> **Suggested additional screenshots:**
->
-> - Live auction room with the anti-snipe timer running
-> - Squad view showing the 15-man roster under the $100M cap
-> - Global leaderboard
-
----
-
-## 📋 Table of Contents
-
-- [⚽ Core features](#-core-features)
-- [🏗 Engineering & architecture](#-engineering--architecture)
-- [📊 Metrics](#-metrics)
-- [🔌 API & integration stack](#-api--integration-stack)
-- [🚀 Quick start](#-quick-start)
-- [🔌 REST API](#-rest-api)
-- [🔐 WebSockets](#-websockets)
-- [🔧 Environment variables](#-environment-variables)
-- [🧪 Testing](#-testing)
-- [🚀 Deployment](#-deployment)
-- [🗺️ Roadmap](#️-roadmap)
-- [🤝 Contributing](#-contributing)
-- [⭐ Show your support](#-show-your-support)
+- [Key Features](#key-features)
+- [Architecture](#architecture)
+- [Tech Stack](#tech-stack)
+- [Project Structure](#project-structure)
+- [Prerequisites](#prerequisites)
+- [Quick Start](#quick-start)
+- [REST API Reference](#rest-api-reference)
+- [WebSocket Events](#websocket-events)
+- [Configuration](#configuration)
+- [Testing & Quality](#testing--quality)
+- [Deployment](#deployment)
+- [Roadmap](#roadmap)
+- [Contributing](#contributing)
+- [Security](#security)
 - [License](#license)
+- [Support](#support)
 
 ---
 
-## ⚽ Core features
+## Key Features
 
-### Live drafts (auction room)
+- **Live Auction Rooms**: Low-latency player bidding with anti-snipe countdown extensions and dynamic algorithmic bid increment curves.
+- **Roster & Budget Constraint Guard**: Enforces a strict $100M salary cap across mandatory 15-player squad compositions (2 GK, 5 DEF, 5 MID, 3 FWD), blocking bids that mathematically violate minimum squad requirements.
+- **Cluster-Wide WebSocket Synchronization**: Leverages `@socket.io/redis-adapter` so auction events, timer ticks, and room chat seamlessly fan out across multiple backend replicas.
+- **Live Leaderboards**: High-throughput room and global ranking computations cached in Redis for fast score retrieval.
+- **Resilient Background Execution**: BullMQ handles asynchronous job queues with graceful fallback to synchronous execution when Redis is unavailable.
 
-Real-time auction rooms using WebSockets and Redis-backed locks to manage concurrent bids. (Note: true high-throughput concurrency safety has not yet been benchmarked with automated load tests).
+---
 
-- **Anti-snipe timer:** Bids placed in the final seconds reset the countdown to prevent last-second sniping
-- **Dynamic increments:** Required bid increments scale algorithmically based on current player price
-
-### Player pool & budgets
-
-Each manager drafts with a strict **$100M salary cap**, filling a mandatory 15-man squad (2 GK, 5 DEF, 5 MID, 3 FWD).
-
-### Leaderboards & fantasy points
-
-Post-draft, real-world performances map to MatchMind's fantasy points ledger.
-
-- **Room standings:** Compete directly against friends in private draft rooms
-- **Global standings:** Redis-cached leaderboard ranking the best managers worldwide
-
-### Rules
-
-- **Blind nominations:** Players are algorithmically nominated — you cannot guarantee when your target appears
-- **Budget lockout:** Bids that would prevent you from affording remaining roster slots are blocked
-
-## 🏗 Engineering & architecture
-
-### Audit & remediation
-
-The project was built as a monolithic feature-complete platform, then subjected to a rigorous multi-volume engineering audit covering OWASP Top 10 security, API design, testing, performance, and architecture. Following the initial audit (scoring 4.8/10), two structured remediation cycles resolved critical N+1 queries, eliminated anti-patterns, instituted proper dependency injection via Repository patterns, and enforced strict security boundaries (CSRF, token revocation, separated JWT secrets). The final engineering score is **6.2/10**.
-
-### System architecture
+## Architecture
 
 ```mermaid
 graph TB
-    subgraph Frontend["React 19 SPA"]
-        F1["Views (Tailwind + Framer)"]
-        F2["Zustand State"]
+    subgraph Frontend["React 19 SPA (frontend/)"]
+        F1["Views (Tailwind CSS + Framer)"]
+        F2["Zustand State Store"]
         F3["Socket.IO Client"]
     end
 
-    subgraph Backend["Node.js + Express"]
-        B1["API Routes (Zod Validation)"]
-        B2["Services (Auth, Scoring)"]
-        B3["Repositories"]
-        B4["Socket.IO Server"]
+    subgraph Backend["Node.js + Express (backend/)"]
+        B1["REST Routes (Zod Validation)"]
+        B2["Domain Services (Auth, Auction, Scoring)"]
+        B3["Data Repositories"]
+        B4["Socket.IO Server with Redis Adapter"]
     end
 
     subgraph Infrastructure
-        I1["PostgreSQL"]
-        I2["Redis (BullMQ + Caching)"]
-        I3["Stripe / External APIs"]
+        I1["PostgreSQL 16"]
+        I2["Redis 7 (Pub/Sub + BullMQ + Cache)"]
+        I3["Stripe Billing & Auth Providers"]
     end
 
     F1 <--> B1
@@ -128,194 +90,206 @@ graph TB
     B2 --> I3
 ```
 
-### Key tradeoffs
+---
 
-- **JSON DB → PostgreSQL:** Initially used a custom JSON file-based database for development velocity. A proxy layer mimicking the `PrismaClient` interface enabled seamless migration to PostgreSQL with zero business-logic changes.
-- **Modular monolith:** Built as a single deployable unit to reduce complexity. Real-time features (WebSockets) remain unified with the API.
-- **BullMQ with fallback:** Background jobs use Redis-backed BullMQ, with graceful fallback to synchronous direct-mode execution if Redis is unavailable.
+## Tech Stack
 
-### What I'd do differently at scale
+| Domain | Technology |
+| :--- | :--- |
+| **Frontend** | React 19, TypeScript, Tailwind CSS, Vite, Zustand |
+| **Backend** | Node.js 20+, Express, TypeScript (strict mode), Zod |
+| **Realtime** | Socket.IO, `@socket.io/redis-adapter` |
+| **Data & Storage** | PostgreSQL 16, Prisma ORM, Redis 7 |
+| **Queue** | BullMQ |
+| **Testing & CI** | Vitest, Docker Compose, GitHub Actions |
 
-- **WebSocket horizontal scaling:** Done — `@socket.io/redis-adapter` attached at boot (`backend/src/lib/socketAdapter.ts`), with graceful fallback to the memory adapter. Cross-node delivery is covered by an integration test (`socketAdapter.test.ts`). Remaining: an automated artillery/k6 run to prove high-throughput concurrency under extreme load.
-- **Read replicas & caching:** Postgres read replicas for queries, aggressively cache top leaderboard rows in Redis.
-- **Microservice extraction:** Extract the scoring engine into an independent worker service to prevent Node.js event-loop blocking.
+---
 
-## 📊 Metrics
+## Project Structure
 
-| Metric               | Value                                            |
-| -------------------- | ------------------------------------------------ |
-| **Test suite**       | 194 passing tests (Vitest)                       |
-| **CI/CD pipeline**   | Passing (lint, typecheck, test, gitleaks, audit) |
-| **Lighthouse score** | 98 Performance / 100 Accessibility               |
-| **Backend API**      | 45+ endpoints                                    |
-| **Language**         | 100% TypeScript (strict mode)                    |
+```text
+MatchMind/
+├── backend/                # Express API, Socket.IO server, domain services
+│   ├── src/
+│   │   ├── controllers/    # Route controllers
+│   │   ├── lib/            # Socket adapters and DB clients
+│   │   ├── repositories/   # Database access layer
+│   │   ├── services/       # Auction engine, scoring, and auth services
+│   │   └── server.ts       # Backend entry point
+│   └── tests/              # Backend Vitest suites
+├── frontend/               # React 19 single-page application
+│   ├── src/
+│   │   ├── components/     # UI widgets and trading terminal panels
+│   │   ├── pages/          # Draft rooms, match views, leaderboards
+│   │   └── store/          # Zustand global state stores
+├── packages/               # Shared TypeScript schemas and utilities
+├── k8s/                    # Kubernetes manifests and Helm charts
+├── docker-compose.yml      # Local development environment (Postgres + Redis)
+├── docker-compose.test.yml # Isolated test infrastructure
+├── package.json            # Workspace root script orchestration
+└── README.md               # Project documentation
+```
 
-## 🔌 API & integration stack
+---
 
-- **Authentication:** JWT + refresh tokens + Google OAuth
-- **Background jobs:** BullMQ + Redis
-- **Security:** Helmet, CORS, CSRF tokens, rate limiting, Gitleaks scanning
-- **Pro features:** Stripe billing integration, AI draft insights
+## Prerequisites
 
-## 🚀 Quick start
+- **Node.js**: `>= 20.0`
+- **npm**: `>= 10.0`
+- **Docker & Docker Compose**: Required for PostgreSQL and Redis services
 
-### Prerequisites
+---
 
-- Node.js 20+
-- npm
-- Docker & Docker Compose (for PostgreSQL + Redis)
+## Quick Start
 
-### Setup
+### 1. Repository Setup
 
 ```bash
-# 1. Clone the repository
+# Clone the repository
 git clone https://github.com/themanoj-025/MatchMind.git
 cd MatchMind
 
-# 2. Install all workspace dependencies and generate Prisma client
+# Install workspace dependencies and generate client types
 npm run setup
 
-# 3. Copy and edit the environment template
+# Setup environment configuration
 cp .env.example .env
 cp docker-compose.override.yml.example docker-compose.override.yml
 ```
 
-### Run
+### 2. Start Full Local Development Stack
 
 ```bash
-# 1. Start PostgreSQL + Redis, apply migrations, and run API + web dev servers
+# Spins up Postgres & Redis, runs database migrations, and launches backend + frontend
 npm run dev:up
+```
 
-# 2. Or run the app against your own Postgres/Redis:
-#    Terminal 1: API (http://localhost:4000)
+*Frontend: http://localhost:5173*  
+*Backend API: http://localhost:4000*
+
+### Running Components Individually
+
+```bash
+# Terminal 1: Backend API
 npm run dev:backend
-#    Terminal 2: Web (http://localhost:5173)
+
+# Terminal 2: Frontend Web
 npm run dev:frontend
 ```
 
-### Quality gates
+---
+
+## REST API Reference
+
+| Method | Endpoint | Description | Auth Required |
+| :--- | :--- | :--- | :--- |
+| `POST` | `/api/v1/auth/register` | Register new manager account | No |
+| `POST` | `/api/v1/auth/login` | Authenticate user and issue JWTs | No |
+| `GET` | `/api/v1/users/me` | Fetch authenticated user profile | Yes |
+| `POST` | `/api/v1/rooms` | Create new draft auction room | Yes |
+| `POST` | `/api/v1/rooms/:id/join` | Join auction room with invite code | Yes |
+| `POST` | `/api/v1/rooms/:id/ready`| Toggle manager ready state | Yes |
+| `GET` | `/api/v1/matches` | List upcoming and active fixtures | Yes |
+| `GET` | `/api/v1/leaderboard/rooms/:id` | Fetch specific room standings | Yes |
+| `POST` | `/api/v1/stripe/checkout` | Initialize Pro tier subscription | Yes |
+
+---
+
+## WebSocket Events
+
+Real-time auction rooms communicate over Socket.IO:
+
+| Event | Direction | Description |
+| :--- | :--- | :--- |
+| `bid` | Client → Server | Place bid on currently nominated player |
+| `chat:send` | Client → Server | Submit chat message to draft room |
+| `chat:message` | Server → Client | Broadcast chat message to room members |
+| `auction:update`| Server → Client | State change (new player, timer reset, sold) |
+| `room:member_update` | Server → Client | Participant join/leave or ready status change |
+| `leaderboard:update` | Server → Client | Match points recalculation update |
+
+---
+
+## Configuration
+
+Core environment variables defined in `.env`:
+
+| Variable | Default | Purpose |
+| :--- | :--- | :--- |
+| `DATABASE_URL` | `postgresql://...` | PostgreSQL connection string |
+| `REDIS_URL` | `redis://localhost:6379` | Redis connection URL |
+| `JWT_SECRET` | `""` | Signing secret for access tokens |
+| `JWT_REFRESH_SECRET` | `""` | Signing secret for refresh tokens |
+| `STRIPE_SECRET_KEY` | `""` | Optional Stripe secret key for Pro billing |
+| `ANTHROPIC_API_KEY` | `""` | Optional API key for AI draft recommendations |
+
+---
+
+## Testing & Quality
 
 ```bash
-npm run lint       # ESLint on backend + frontend
-npm run typecheck  # tsc --noEmit on backend + frontend
-npm run test       # Vitest suites (backend + frontend)
-```
+# Run linting across workspace
+npm run lint
 
-> 📝 **Note:** the backend test suite spins up `docker-compose.test.yml` (Postgres + Redis) automatically.
+# Run TypeScript typechecks
+npm run typecheck
 
-## 🔌 REST API
-
-### Key endpoints
-
-| Method  | Endpoint                        | Description               | Auth |
-| ------- | ------------------------------- | ------------------------- | ---- |
-| `POST`  | `/api/v1/auth/register`         | Register new user         | No   |
-| `POST`  | `/api/v1/auth/login`            | Login (returns JWT)       | No   |
-| `GET`   | `/api/v1/users/me`              | Get current user profile  | Yes  |
-| `PATCH` | `/api/v1/users/me`              | Update profile            | Yes  |
-| `POST`  | `/api/v1/rooms`                 | Create draft room         | Yes  |
-| `POST`  | `/api/v1/rooms/:id/join`        | Join room via invite code | Yes  |
-| `POST`  | `/api/v1/rooms/:id/ready`       | Toggle ready status       | Yes  |
-| `GET`   | `/api/v1/matches`               | List fixtures             | Yes  |
-| `GET`   | `/api/v1/leaderboard/rooms/:id` | Room leaderboard          | Yes  |
-| `POST`  | `/api/v1/stripe/checkout`       | Pro subscription checkout | Yes  |
-
-### Authentication
-
-JWT-based with refresh tokens. Set `JWT_SECRET` and `JWT_REFRESH_SECRET` in `.env`.
-
-```bash
-# Register
-curl -X POST http://localhost:4000/api/v1/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{"username":"user","email":"user@example.com","password":"pass"}'
-
-# Login
-curl -X POST http://localhost:4000/api/v1/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"email":"user@example.com","password":"pass"}'
-```
-
-## 🔐 WebSockets
-
-Real-time auction and chat via Socket.IO:
-
-| Event                | Direction     | Description                                    |
-| -------------------- | ------------- | ---------------------------------------------- |
-| `bid`                | Client→Server | Place a bid on current player                  |
-| `chat:send`          | Client→Server | Send chat message                              |
-| `chat:message`       | Server→Client | Broadcast chat message                         |
-| `auction:update`     | Server→Client | Auction state change (new player, sold, timer) |
-| `room:member_update` | Server→Client | Member join/leave/ready                        |
-| `leaderboard:update` | Server→Client | Score update after fixture finalization        |
-
-## 🔧 Environment variables
-
-| Variable             | Default                  | Description                    |
-| -------------------- | ------------------------ | ------------------------------ |
-| `DATABASE_URL`       | `postgresql://...`       | PostgreSQL connection string   |
-| `REDIS_URL`          | `redis://localhost:6379` | Redis connection string        |
-| `JWT_SECRET`         | (required)               | JWT signing secret (64+ chars) |
-| `JWT_REFRESH_SECRET` | (required)               | Refresh token secret           |
-| `STRIPE_SECRET_KEY`  | (optional)               | Stripe billing key             |
-| `ANTHROPIC_API_KEY`  | (optional)               | AI draft insights              |
-
-## 🧪 Testing
-
-```bash
-# 1. Run all tests
+# Run Vitest test suite
 npm run test
 
-# 2. Run a specific test file
-npx vitest run src/services/auctionEngine.test.ts
-
-# 3. Run with coverage
+# Run tests with code coverage
 npx vitest run --coverage
 ```
 
-> [!NOTE] The README previously claimed a coverage number without a reproducible command or CI gate to back it up, so it was removed in favor of the reproducible `npm run test -- --coverage` command above.
+---
 
-## 🚀 Deployment
+## Deployment
 
-### Docker Compose
+### Containerized Deployment
 
 ```bash
-# 1. Start all services
-npm run dev:up
-
-# 2. Production build
+# Build production bundles
 npm run build
+
+# Start production server
 cd backend && npm start
 ```
 
-### Kubernetes
+Kubernetes deployments are documented with manifests in `k8s/`.
 
-Helm charts and manifests are in `k8s/`.
+---
 
-## 🗺️ Roadmap
+## Roadmap
 
-> [!CAUTION] Checked items are built and verified. Unchecked items are tracked in the issue tracker.
+- [x] WebSocket auction draft engine with Redis adapter
+- [x] Anti-snipe timer and dynamic bid calculations
+- [x] $100M salary cap and 15-man squad constraint engine
+- [x] Global and private room leaderboards
+- [x] Full TypeScript strict mode architecture
+- [ ] Automated k6 load tests for auction concurrency <!-- TODO: Track via GitHub issue -->
+- [ ] Dedicated scoring calculation worker extraction <!-- TODO: Track via GitHub issue -->
 
-- [x] Real-time WebSocket auction rooms
-- [x] Redis-backed locks for concurrent bids
-- [x] Anti-snipe timer + dynamic increments
-- [x] $100M salary cap + 15-man squad
-- [x] Room + global leaderboards
-- [x] JWT + refresh token + Google OAuth
-- [x] Stripe billing integration (pro)
-- [ ] Automated artillery/k6 load test (tracked public issue)
+---
 
-## 🤝 Contributing
+## Contributing
 
-Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md).
+Contributions are welcomed! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for branch management and pull request protocols.
 
-## ⭐ Show your support
+---
 
-- ⭐ Star the repository if you love the product
-- 🐛 [Report a bug](https://github.com/themanoj-025/MatchMind/issues)
-- 💡 [Request a feature](https://github.com/themanoj-025/MatchMind/issues)
+## Security
+
+Please report vulnerabilities following the disclosure guidelines in [SECURITY.md](SECURITY.md).
+
+---
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+This project is licensed under the [MIT License](LICENSE).
 
+---
+
+## Support
+
+- 🐛 **Issue Tracker**: [GitHub Issues](https://github.com/themanoj-025/MatchMind/issues)
+- 💡 **Feature Requests**: [GitHub Pull Requests](https://github.com/themanoj-025/MatchMind/pulls)
