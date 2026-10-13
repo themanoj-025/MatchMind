@@ -219,6 +219,8 @@ jobs:
               'GHSA-rgwj-5xj2-c3m3',  # mysql2 via prisma CLI
               'GHSA-p98j-92pf-mc4p',  # dompurify via mermaid-cli (docs, dev)
               'GHSA-vfj7-8cjw-p6xm',  # braces — no patched release
+              'GHSA-pqg4-j6r4-53mv',  # shell-quote via concurrently (dev-only)
+              'GHSA-68fv-2mgg-jv7q',  # source-map-js via postcss/tailwindcss (build-only)
           }
           blocking = []
           for name, info in (data.get('vulnerabilities') or {}).items():
@@ -351,6 +353,8 @@ jobs:
             'GHSA-rgwj-5xj2-c3m3',
             'GHSA-p98j-92pf-mc4p',
             'GHSA-vfj7-8cjw-p6xm',
+            'GHSA-pqg4-j6r4-53mv',
+            'GHSA-68fv-2mgg-jv7q',
           ]
           const blocking = []
           for (const [, info] of Object.entries(data.vulnerabilities || {})) {
