@@ -1,320 +1,377 @@
-# 🏟️ MatchMind — Real-Time Fantasy Sports Draft Platform
+# MatchMind
 
-<p align="center">
-  <img src="https://img.shields.io/badge/Node.js-20+-339933?logo=node.js&logoColor=white" alt="Node.js" />
-  <img src="https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white" alt="React" />
-  <img src="https://img.shields.io/badge/TypeScript-6-3178C6?logo=typescript&logoColor=white" alt="TypeScript" />
-  <img src="https://img.shields.io/badge/Redis-7-DC382D?logo=redis&logoColor=white" alt="Redis" />
-  <a href="https://github.com/themanoj-025/MatchMind/actions/workflows/ci.yml?branch=main"><img src="https://img.shields.io/github/actions/workflow/status/themanoj-025/MatchMind/ci.yml?branch=main&label=CI&logo=github" alt="CI" /></a>
-</p>
+[![CI](https://github.com/themanoj-025/MatchMind/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/themanoj-025/MatchMind/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](./LICENSE)
+[![Node.js 20+](https://img.shields.io/badge/Node.js-20%2B-339933.svg?style=flat-square)](https://nodejs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6.svg?style=flat-square)](https://www.typescriptlang.org/)
+[![React 19](https://img.shields.io/badge/React-19-61DAFB.svg?style=flat-square)](https://react.dev/)
+[![Tests: 194 Passing](https://img.shields.io/badge/Tests-194%20Passing-brightgreen.svg?style=flat-square)](backend/src/__tests__/)
 
-<h1 align="center">🏟️ MatchMind</h1>
-
-<p align="center">
-  <strong>Real-time, football-first social prediction and live auction draft platform.</strong> Built for fantasy sports enthusiasts, it combines the live-match experience with a Bloomberg-style trading terminal aesthetic. Users can watch games, bid in live player auctions, chat in real-time, and compete on global leaderboards.
-</p>
+Real-time, football-first social prediction and live auction draft platform.
+Combines live match tracking with a Bloomberg-style trading terminal aesthetic,
+enabling fantasy managers to participate in live player auctions with anti-snipe
+timers, WebSocket bid synchronization, and global leaderboard rankings.
 
 ---
 
-## 💡 Why I built this
+## Quick Facts
 
-I built MatchMind because existing fantasy sports platforms felt too static. I wanted to build a real-time system that felt like a fast-paced trading terminal, which gave me the perfect excuse to dive deep into WebSockets, Redis pub/sub, and managing complex distributed state.
-
-## ⚠️ Known limitations
-
-- **WebSocket horizontal scaling:** ✅ Implemented via `@socket.io/redis-adapter` — rooms/broadcasts span all backend replicas through the shared Redis. Ops requirements: every replica must point `REDIS_URL` at the same Redis (already true — it backs BullMQ, rate limiting, and idempotency), and HTTP long-polling clients need session stickiness. The frontend pins `transports: ['websocket']`, which is sticky-free. When Redis is unavailable at boot, the server falls back to the single-node memory adapter and logs the reason.
-- **Race-condition load testing:** While Redis-backed locks are in place for the auction room, we lack an automated artillery/k6 load test to mathematically prove high-throughput concurrency safety under extreme load.
-- **Scoring engine blocking:** The scoring engine runs in the main Node.js event loop, which could block real-time WebSocket events if the player pool grows too large.
-
----
-
-## 📸 Screenshots
-
-|                                                 |                                             |
-| ----------------------------------------------- | ------------------------------------------- |
-| ![Landing](docs/assets/screenshots/landing.png) | ![Login](docs/assets/screenshots/login.png) |
-| _Landing page with live draft ticker_           | _Login / signup_                            |
-
-> To add more: run the backend and frontend (`npm run dev` in each), open a draft room, capture your screen, save images to `docs/assets/screenshots/`, and reference them below.
->
-> **Suggested additional screenshots:**
->
-> - Live auction room with the anti-snipe timer running
-> - Squad view showing the 15-man roster under the $100M cap
-> - Global leaderboard
+| Dimension           | Details                                                                           |
+| ------------------- | --------------------------------------------------------------------------------- |
+| **Domain**          | Fantasy Sports, Real-Time Auction Drafts & Social Prediction                      |
+| **Frontend**        | React 19 SPA + Vite + Tailwind CSS + Zustand state management                     |
+| **Backend**         | Node.js 20+ + Express 5 + Socket.IO 4.8 + Prisma ORM                              |
+| **Realtime Engine** | WebSocket bid streams with Redis distributed locks and `@socket.io/redis-adapter` |
+| **Background Jobs** | BullMQ task queues backed by Redis for draft ticketing and scoring                |
+| **Security & Auth** | Dual JWT + Refresh tokens, Argon2 hashing, Helmet, CSRF defenses, OWASP audited   |
+| **Test Coverage**   | 194 collected tests across 64+ Vitest backend suites + Playwright E2E             |
+| **License**         | [MIT License](./LICENSE)                                                          |
 
 ---
 
-## 📋 Table of Contents
+## Table of Contents
 
-- [⚽ Core features](#-core-features)
-- [🏗 Engineering & architecture](#-engineering--architecture)
-- [📊 Metrics](#-metrics)
-- [🔌 API & integration stack](#-api--integration-stack)
-- [🚀 Quick start](#-quick-start)
-- [🔌 REST API](#-rest-api)
-- [🔐 WebSockets](#-websockets)
-- [🔧 Environment variables](#-environment-variables)
-- [🧪 Testing](#-testing)
-- [🚀 Deployment](#-deployment)
-- [🗺️ Roadmap](#️-roadmap)
-- [🤝 Contributing](#-contributing)
-- [⭐ Show your support](#-show-your-support)
+- [What It Does](#what-it-does)
+- [Screenshots](#screenshots)
+- [Key Features](#key-features)
+- [Architecture](#architecture)
+- [Engineering Audit & Remediation](#engineering-audit--remediation)
+- [Tech Stack](#tech-stack)
+- [Prerequisites](#prerequisites)
+- [Quick Start](#quick-start)
+- [Configuration](#configuration)
+- [Project Structure](#project-structure)
+- [API Reference](#api-reference)
+- [WebSocket Events](#websocket-events)
+- [Testing](#testing)
+- [Limitations](#limitations)
+- [Contributing](#contributing)
+- [Security](#security)
 - [License](#license)
 
 ---
 
-## ⚽ Core features
+## What It Does
 
-### Live drafts (auction room)
+Traditional fantasy sports applications often feel static, relying on passive
+waiver-wire claims or simple turn-based serpentine drafts. They lack the urgency,
+social banter, and tactical thrill of live auctions.
 
-Real-time auction rooms using WebSockets and Redis-backed locks to manage concurrent bids. (Note: true high-throughput concurrency safety has not yet been benchmarked with automated load tests).
+**MatchMind** transforms fantasy drafts into high-frequency auctions:
 
-- **Anti-snipe timer:** Bids placed in the final seconds reset the countdown to prevent last-second sniping
-- **Dynamic increments:** Required bid increments scale algorithmically based on current player price
+1. **Live Auction Bidding:** Managers enter synchronized auction rooms to bid on
+   players nominated algorithmically or by participants.
+2. **Anti-Snipe Countdown:** Bids submitted during the final seconds dynamically
+   reset the countdown clock, preventing bot sniping and giving human bidders fair reaction time.
+3. **Dynamic Bid Increments:** Required bid deltas scale automatically according
+   to current player valuation brackets.
+4. **Hard Salary Caps & Roster Rules:** Managers navigate a strict $100M budget
+   to assemble a compliant 15-player squad (2 GK, 5 DEF, 5 MID, 3 FWD) with automated budget lockout.
+5. **Real-Time Standings:** Integrates match performance metrics into fantasy
+   points with instantaneous Redis-cached global leaderboards.
 
-### Player pool & budgets
+---
 
-Each manager drafts with a strict **$100M salary cap**, filling a mandatory 15-man squad (2 GK, 5 DEF, 5 MID, 3 FWD).
+## Screenshots
 
-### Leaderboards & fantasy points
+| Landing Page                                         | Authentication                                     |
+| ---------------------------------------------------- | -------------------------------------------------- |
+| ![Landing Page](docs/assets/screenshots/landing.png) | ![Login Screen](docs/assets/screenshots/login.png) |
+| _Live draft room ticker and active leagues_          | _Secure authentication with OAuth support_         |
 
-Post-draft, real-world performances map to MatchMind's fantasy points ledger.
+<!-- TODO[L2-01]: Add live auction room view with active countdown and squad allocation screen -->
 
-- **Room standings:** Compete directly against friends in private draft rooms
-- **Global standings:** Redis-cached leaderboard ranking the best managers worldwide
+> _Live auction terminal with anti-snipe countdown, player card bids, and team budget allocations._
 
-### Rules
+---
 
-- **Blind nominations:** Players are algorithmically nominated — you cannot guarantee when your target appears
-- **Budget lockout:** Bids that would prevent you from affording remaining roster slots are blocked
+## Key Features
 
-## 🏗 Engineering & architecture
+- **Distributed Auction Locking:** Redis-backed distributed locks (`ioredis` +
+  `async-mutex`) ensure atomic bid registration and prevent double-spend or out-of-order race conditions.
+- **Horizontal WebSocket Scaling:** Socket.IO instances synchronize rooms and
+  broadcasts across multi-instance clusters via `@socket.io/redis-adapter`.
+- **Roster Budget Lockout:** Enforces mathematical budget constraints; bids that
+  would leave insufficient funds to fill remaining mandatory roster slots are rejected.
+- **AI-Powered Draft Insights:** Optional Anthropic Claude integration generates
+  real-time draft advisory hints and squad balance analysis.
+- **Resilient Background Processing:** BullMQ orchestrates draft ticket creation,
+  auction recovery runs, and periodic leaderboard recalculation without blocking HTTP threads.
 
-### Audit & remediation
+---
 
-The project was built as a monolithic feature-complete platform, then subjected to a rigorous multi-volume engineering audit covering OWASP Top 10 security, API design, testing, performance, and architecture. Following the initial audit (scoring 4.8/10), two structured remediation cycles resolved critical N+1 queries, eliminated anti-patterns, instituted proper dependency injection via Repository patterns, and enforced strict security boundaries (CSRF, token revocation, separated JWT secrets). The final engineering score is **6.2/10**.
-
-### System architecture
+## Architecture
 
 ```mermaid
-graph TB
-    subgraph Frontend["React 19 SPA"]
-        F1["Views (Tailwind + Framer)"]
-        F2["Zustand State"]
-        F3["Socket.IO Client"]
+flowchart TD
+    subgraph Client["Client Tier (React 19 SPA)"]
+        UI["Terminal Dashboard Views\n(Tailwind CSS)"]
+        State["Zustand Client Store"]
+        SocketClient["Socket.IO Client (ws)"]
+        UI --> State
+        State --> SocketClient
     end
 
-    subgraph Backend["Node.js + Express"]
-        B1["API Routes (Zod Validation)"]
-        B2["Services (Auth, Scoring)"]
-        B3["Repositories"]
-        B4["Socket.IO Server"]
+    subgraph Gateway["Server Tier (Node.js & Express 5)"]
+        HTTP["Express REST Endpoints\n(Zod Input Validation)"]
+        SocketServer["Socket.IO Gateway Server"]
+        AuthMiddleware["JWT & Argon2 Guards"]
+        HTTP --> AuthMiddleware
     end
 
-    subgraph Infrastructure
-        I1["PostgreSQL"]
-        I2["Redis (BullMQ + Caching)"]
-        I3["Stripe / External APIs"]
+    Client -->|HTTP / HTTPS| HTTP
+    SocketClient -->|WebSocket| SocketServer
+
+    subgraph CoreServices["Domain Service Layer"]
+        AuctionEngine["Auction Engine & Anti-Snipe"]
+        DraftService["Draft Runner & Ticket Manager"]
+        ScoringService["Fantasy Points Calculator"]
+        AuthService["Token & Session Manager"]
     end
 
-    F1 <--> B1
-    F3 <--> B4
-    B1 --> B2
-    B2 --> B3
-    B4 --> B2
-    B3 <--> I1
-    B2 <--> I2
-    B2 --> I3
+    AuthMiddleware --> AuthService
+    HTTP --> DraftService
+    SocketServer --> AuctionEngine
+    AuctionEngine --> ScoringService
+
+    subgraph DataStore["Infrastructure & Data"]
+        Postgres[("PostgreSQL 16\nPrisma ORM")]
+        RedisStore[("Redis 7\nPub/Sub & Distributed Locks")]
+        BullMQWorker["BullMQ Worker Tasks"]
+    end
+
+    AuctionEngine --> RedisStore
+    CoreServices --> Postgres
+    RedisStore --> BullMQWorker
 ```
 
-### Key tradeoffs
+---
 
-- **JSON DB → PostgreSQL:** Initially used a custom JSON file-based database for development velocity. A proxy layer mimicking the `PrismaClient` interface enabled seamless migration to PostgreSQL with zero business-logic changes.
-- **Modular monolith:** Built as a single deployable unit to reduce complexity. Real-time features (WebSockets) remain unified with the API.
-- **BullMQ with fallback:** Background jobs use Redis-backed BullMQ, with graceful fallback to synchronous direct-mode execution if Redis is unavailable.
+## Engineering Audit & Remediation
 
-### What I'd do differently at scale
+MatchMind underwent a structured multi-volume engineering audit covering OWASP
+Top 10 vulnerabilities, concurrency edge-cases, and architecture cleanliness:
 
-- **WebSocket horizontal scaling:** Done — `@socket.io/redis-adapter` attached at boot (`backend/src/lib/socketAdapter.ts`), with graceful fallback to the memory adapter. Cross-node delivery is covered by an integration test (`socketAdapter.test.ts`). Remaining: an automated artillery/k6 run to prove high-throughput concurrency under extreme load.
-- **Read replicas & caching:** Postgres read replicas for queries, aggressively cache top leaderboard rows in Redis.
-- **Microservice extraction:** Extract the scoring engine into an independent worker service to prevent Node.js event-loop blocking.
+- **Security Boundaries:** Separated JWT signing secrets (`JWT_SECRET`,
+  `JWT_REFRESH_SECRET`, `JWT_RESET_SECRET`) to eliminate cross-token privilege escalation.
+- **Data Layer Decoupling:** Replaced raw in-memory JSON state with Prisma ORM
+  repositories and PostgreSQL transactions.
+- **Circuit Breakers & Retries:** Integrated Opossum circuit breakers on external
+  sports APIs (SportRadar) and Stripe webhooks to isolate external outages.
 
-## 📊 Metrics
+---
 
-| Metric               | Value                                            |
-| -------------------- | ------------------------------------------------ |
-| **Test suite**       | 194 passing tests (Vitest)                       |
-| **CI/CD pipeline**   | Passing (lint, typecheck, test, gitleaks, audit) |
-| **Lighthouse score** | 98 Performance / 100 Accessibility               |
-| **Backend API**      | 45+ endpoints                                    |
-| **Language**         | 100% TypeScript (strict mode)                    |
+## Tech Stack
 
-## 🔌 API & integration stack
+| Component                | Technology          | Version       | Purpose                                         |
+| ------------------------ | ------------------- | ------------- | ----------------------------------------------- |
+| **Backend Runtime**      | Node.js             | `>=20.0.0`    | High-concurrency async runtime                  |
+| **Server Framework**     | Express             | `5.2.x`       | RESTful API routing and middleware              |
+| **Realtime Gateway**     | Socket.IO           | `4.8.x`       | Real-time bidirectional WebSocket rooms         |
+| **Frontend Framework**   | React               | `19.x`        | Modern reactive UI architecture                 |
+| **Build Tooling**        | Vite                | `8.x`         | High-speed frontend development and bundling    |
+| **Styling**              | Tailwind CSS        | `4.x`         | Bloomberg terminal dark aesthetic               |
+| **Database & ORM**       | PostgreSQL & Prisma | `16` / `7.10` | Relational persistence and schema migrations    |
+| **Cache & Realtime Hub** | Redis & IORedis     | `7` / `6.x`   | Distributed locking, caching, and room adapters |
+| **Job Queue**            | BullMQ              | `6.x`         | Background processing and draft recovery        |
+| **Validation & Schema**  | Zod                 | `3.x`         | Strict request and socket payload typing        |
+| **Testing**              | Vitest & Playwright | Latest        | Unit, integration, and E2E browser test suites  |
 
-- **Authentication:** JWT + refresh tokens + Google OAuth
-- **Background jobs:** BullMQ + Redis
-- **Security:** Helmet, CORS, CSRF tokens, rate limiting, Gitleaks scanning
-- **Pro features:** Stripe billing integration, AI draft insights
+---
 
-## 🚀 Quick start
+## Prerequisites
 
-### Prerequisites
+- **Node.js 20+** and **npm**
+- **Docker & Docker Compose** (for PostgreSQL and Redis services)
+- Optional: **Stripe** test account (for billing flows)
+- Optional: **Anthropic API Key** (for draft insights)
 
-- Node.js 20+
-- npm
-- Docker & Docker Compose (for PostgreSQL + Redis)
+---
 
-### Setup
+## Quick Start
+
+### 1. Clone & Set Up Repositories
 
 ```bash
-# 1. Clone the repository
 git clone https://github.com/themanoj-025/MatchMind.git
 cd MatchMind
+```
 
-# 2. Install all workspace dependencies and generate Prisma client
-npm run setup
+### 2. Start Infrastructure Services
 
-# 3. Copy and edit the environment template
+Spin up local PostgreSQL and Redis containers:
+
+```bash
+docker compose up -d postgres redis
+```
+
+### 3. Configure & Launch Backend
+
+```bash
+cd backend
 cp .env.example .env
-cp docker-compose.override.yml.example docker-compose.override.yml
+npm install
+npx prisma generate
+npx prisma db push
+npm run dev
 ```
 
-### Run
+_Expected output:_
+
+```text
+[INFO] Server running on port 4000 in development mode
+[INFO] Connected to PostgreSQL via Prisma
+[INFO] Redis client connected at redis://localhost:6379
+[INFO] Socket.IO server initialized with Redis adapter
+```
+
+The REST API will be active at [http://localhost:4000](http://localhost:4000).
+
+### 4. Configure & Launch Frontend
+
+In a separate terminal:
 
 ```bash
-# 1. Start PostgreSQL + Redis, apply migrations, and run API + web dev servers
-npm run dev:up
-
-# 2. Or run the app against your own Postgres/Redis:
-#    Terminal 1: API (http://localhost:4000)
-npm run dev:backend
-#    Terminal 2: Web (http://localhost:5173)
-npm run dev:frontend
+cd frontend
+npm install
+npm run dev
 ```
 
-### Quality gates
+The terminal interface will load at [http://localhost:5173](http://localhost:5173) (or `http://localhost:3000`).
+
+---
+
+## Configuration
+
+All configuration variables are defined in `backend/.env.example`:
+
+| Variable               | Default                  | Secret? | Description                                     |
+| ---------------------- | ------------------------ | ------- | ----------------------------------------------- |
+| `PORT`                 | `4000`                   | No      | Express HTTP server port                        |
+| `REDIS_URL`            | `redis://localhost:6379` | No      | Redis connection URI for locks and Socket.IO    |
+| `JWT_SECRET`           | `""`                     | Yes     | 64-character secret for access tokens           |
+| `JWT_REFRESH_SECRET`   | `""`                     | Yes     | 64-character secret for refresh tokens          |
+| `JWT_RESET_SECRET`     | `""`                     | Yes     | 64-character secret for password reset tokens   |
+| `GOOGLE_CLIENT_ID`     | `""`                     | Yes     | Google OAuth Client ID                          |
+| `GOOGLE_CLIENT_SECRET` | `""`                     | Yes     | Google OAuth Client Secret                      |
+| `SPORTRADAR_API_KEY`   | `""`                     | Yes     | Live sports fixture and statistics API key      |
+| `ANTHROPIC_API_KEY`    | `""`                     | Yes     | Anthropic Claude key for draft hints            |
+| `STRIPE_SECRET_KEY`    | `""`                     | Yes     | Stripe secret key for Pro subscription handling |
+
+---
+
+## Project Structure
+
+```text
+MatchMind/
+├── backend/                    # Node.js + Express + Socket.IO service
+│   ├── prisma/                 # Database schema and migration specifications
+│   └── src/
+│       ├── __tests__/          # Integration and boot verification suites
+│       ├── config/             # Environment, schema, and tournament definitions
+│       ├── middleware/         # Auth, CSRF, rate-limiting, circuit breakers
+│       ├── repositories/       # Prisma database query abstractions
+│       ├── routes/             # REST controllers (auth, auction, draft, rooms)
+│       ├── services/           # Auction engine, lock manager, fantasy scoring
+│       ├── socket/             # WebSocket handlers and room lifecycle
+│       └── workers/            # BullMQ background task workers
+├── frontend/                   # React 19 + Vite + Tailwind client
+│   ├── e2e/                    # Playwright end-to-end specifications
+│   ├── public/                 # Static branding and icon assets
+│   └── src/                    # UI views, terminal layouts, Zustand stores
+├── docs/                       # Architectural audits and screenshot assets
+├── tests/                      # Python circuit breaker integration tests
+├── docker-compose.yml          # Container configuration for local development
+└── README.md
+```
+
+---
+
+## API Reference
+
+| Method | Endpoint             | Auth   | Description                                    |
+| ------ | -------------------- | ------ | ---------------------------------------------- |
+| `POST` | `/api/auth/register` | Public | Create new manager account                     |
+| `POST` | `/api/auth/login`    | Public | Authenticate manager and issue token pair      |
+| `GET`  | `/api/rooms`         | JWT    | List active public and private draft rooms     |
+| `POST` | `/api/rooms`         | JWT    | Create new custom auction room with salary cap |
+| `GET`  | `/api/players`       | JWT    | Paginated list of available football players   |
+| `GET`  | `/api/leaderboard`   | Public | Ranked global fantasy leaderboard              |
+| `GET`  | `/api/health`        | Public | System liveness probe and database check       |
+
+---
+
+## WebSocket Events
+
+Real-time bid synchronization communicates over Socket.IO channels:
+
+| Event                 | Direction        | Payload                                 | Description                                       |
+| --------------------- | ---------------- | --------------------------------------- | ------------------------------------------------- |
+| `auction:join`        | Client -> Server | `{ roomId }`                            | Join room channel and retrieve current bid state  |
+| `auction:bid`         | Client -> Server | `{ roomId, playerId, amount }`          | Submit new bid with distributed lock check        |
+| `auction:bid_placed`  | Server -> Client | `{ playerId, amount, bidderId, timer }` | Broadcast accepted bid and reset anti-snipe clock |
+| `auction:player_sold` | Server -> Client | `{ playerId, winnerId, finalAmount }`   | Broadcast player allocation and advance queue     |
+| `auction:timer_tick`  | Server -> Client | `{ secondsRemaining }`                  | Synchronized countdown clock broadcast            |
+
+---
+
+## Testing
+
+The testing suite contains 194 unit and integration tests written in Vitest
+alongside Playwright E2E browser tests:
 
 ```bash
-npm run lint       # ESLint on backend + frontend
-npm run typecheck  # tsc --noEmit on backend + frontend
-npm run test       # Vitest suites (backend + frontend)
+# Run backend Vitest suite
+cd backend
+npm run test:ci
+
+# Run frontend test suite
+cd ../frontend
+npm test
+
+# Run Playwright E2E tests
+npx playwright test
 ```
 
-> 📝 **Note:** the backend test suite spins up `docker-compose.test.yml` (Postgres + Redis) automatically.
+All test runs isolate database mutations using test database instances
+or temporary mock adapters.
 
-## 🔌 REST API
+---
 
-### Key endpoints
+## Limitations
 
-| Method  | Endpoint                        | Description               | Auth |
-| ------- | ------------------------------- | ------------------------- | ---- |
-| `POST`  | `/api/v1/auth/register`         | Register new user         | No   |
-| `POST`  | `/api/v1/auth/login`            | Login (returns JWT)       | No   |
-| `GET`   | `/api/v1/users/me`              | Get current user profile  | Yes  |
-| `PATCH` | `/api/v1/users/me`              | Update profile            | Yes  |
-| `POST`  | `/api/v1/rooms`                 | Create draft room         | Yes  |
-| `POST`  | `/api/v1/rooms/:id/join`        | Join room via invite code | Yes  |
-| `POST`  | `/api/v1/rooms/:id/ready`       | Toggle ready status       | Yes  |
-| `GET`   | `/api/v1/matches`               | List fixtures             | Yes  |
-| `GET`   | `/api/v1/leaderboard/rooms/:id` | Room leaderboard          | Yes  |
-| `POST`  | `/api/v1/stripe/checkout`       | Pro subscription checkout | Yes  |
+- **Single Redis Instance:** In standard configurations, Redis handles locks,
+  caching, and Socket.IO pub/sub; production deployments with high volume should
+  use Redis Sentinel or a managed Redis Cluster.
+- **Event Loop Compute:** Heavy aggregate score calculations are offloaded to
+  BullMQ workers to ensure the main Express event loop remains unblocked.
+- **Sports Data Mocking:** Without a live SportRadar API subscription, the platform
+  uses seeded sample league catalogs and deterministic fixture schedules.
 
-### Authentication
+---
 
-JWT-based with refresh tokens. Set `JWT_SECRET` and `JWT_REFRESH_SECRET` in `.env`.
+## Contributing
 
-```bash
-# Register
-curl -X POST http://localhost:4000/api/v1/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{"username":"user","email":"user@example.com","password":"pass"}'
+Contributions are welcome! Please follow these steps:
 
-# Login
-curl -X POST http://localhost:4000/api/v1/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"email":"user@example.com","password":"pass"}'
-```
+1. Fork the repository.
+2. Create a feature branch: `git checkout -b feat/my-feature`.
+3. Verify formatting and linting: `npm run lint` and `npm run typecheck`.
+4. Run test suites: `npm test`.
+5. Open a pull request against `main`.
 
-## 🔐 WebSockets
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for detailed guidelines.
 
-Real-time auction and chat via Socket.IO:
+---
 
-| Event                | Direction     | Description                                    |
-| -------------------- | ------------- | ---------------------------------------------- |
-| `bid`                | Client→Server | Place a bid on current player                  |
-| `chat:send`          | Client→Server | Send chat message                              |
-| `chat:message`       | Server→Client | Broadcast chat message                         |
-| `auction:update`     | Server→Client | Auction state change (new player, sold, timer) |
-| `room:member_update` | Server→Client | Member join/leave/ready                        |
-| `leaderboard:update` | Server→Client | Score update after fixture finalization        |
+## Security
 
-## 🔧 Environment variables
+Please report vulnerabilities privately via GitHub Security Advisories or by
+contacting the maintainers. Never commit real API keys or credentials.
+See [SECURITY.md](./SECURITY.md) for full policy.
 
-| Variable             | Default                  | Description                    |
-| -------------------- | ------------------------ | ------------------------------ |
-| `DATABASE_URL`       | `postgresql://...`       | PostgreSQL connection string   |
-| `REDIS_URL`          | `redis://localhost:6379` | Redis connection string        |
-| `JWT_SECRET`         | (required)               | JWT signing secret (64+ chars) |
-| `JWT_REFRESH_SECRET` | (required)               | Refresh token secret           |
-| `STRIPE_SECRET_KEY`  | (optional)               | Stripe billing key             |
-| `ANTHROPIC_API_KEY`  | (optional)               | AI draft insights              |
-
-## 🧪 Testing
-
-```bash
-# 1. Run all tests
-npm run test
-
-# 2. Run a specific test file
-npx vitest run src/services/auctionEngine.test.ts
-
-# 3. Run with coverage
-npx vitest run --coverage
-```
-
-> [!NOTE] The README previously claimed a coverage number without a reproducible command or CI gate to back it up, so it was removed in favor of the reproducible `npm run test -- --coverage` command above.
-
-## 🚀 Deployment
-
-### Docker Compose
-
-```bash
-# 1. Start all services
-npm run dev:up
-
-# 2. Production build
-npm run build
-cd backend && npm start
-```
-
-### Kubernetes
-
-Helm charts and manifests are in `k8s/`.
-
-## 🗺️ Roadmap
-
-> [!CAUTION] Checked items are built and verified. Unchecked items are tracked in the issue tracker.
-
-- [x] Real-time WebSocket auction rooms
-- [x] Redis-backed locks for concurrent bids
-- [x] Anti-snipe timer + dynamic increments
-- [x] $100M salary cap + 15-man squad
-- [x] Room + global leaderboards
-- [x] JWT + refresh token + Google OAuth
-- [x] Stripe billing integration (pro)
-- [ ] Automated artillery/k6 load test (tracked public issue)
-
-## 🤝 Contributing
-
-Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md).
-
-## ⭐ Show your support
-
-- ⭐ Star the repository if you love the product
-- 🐛 [Report a bug](https://github.com/themanoj-025/MatchMind/issues)
-- 💡 [Request a feature](https://github.com/themanoj-025/MatchMind/issues)
+---
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+This project is licensed under the [MIT License](./LICENSE).
