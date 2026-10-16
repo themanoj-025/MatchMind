@@ -1,6 +1,50 @@
+# Auto-detect text files and normalize line endings
+* text=auto eol=lf
+
 # Shell scripts must have LF line endings (Unix compatibility)
 scripts/*.sh text eol=lf
 .husky/* text eol=lf
+*.sh text eol=lf
+*.bat text eol=crlf
+*.ps1 text eol=crlf
 
-# Auto-detect text files
-* text=auto
+# Source code
+*.ts text
+*.tsx text
+*.js text
+*.jsx text
+*.py text diff=python
+*.html text diff=html
+*.css text
+
+# Config files
+*.json text
+*.yml text
+*.yaml text
+*.toml text
+*.prisma text
+
+# Security: prevent secret files from appearing in diffs if accidentally created
+*.env -diff
+*.pem -diff
+*.key -diff
+*.cert -diff
+*.p12 -diff
+*.pfx -diff
+*.pkcs12 -diff
+
+# Markdown
+*.md text eol=lf
+
+# Binary files - don't modify
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.zip binary
+*.tar.gz binary
+*.db binary
+*.sqlite binary
+*.sqlite3 binary
