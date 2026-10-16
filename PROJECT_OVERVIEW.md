@@ -701,55 +701,55 @@ Production deployment is achieved via Kubernetes manifests in [`k8s/`](k8s/) wit
 
 ## <a id="exam"></a>§EXAM — Cold-Reader Verification Exam (25 Questions)
 
-1. **Q: What is the primary domain focus of MatchMind?**  
+1. **Q: What is the primary domain focus of MatchMind?**
    _A:_ Real-time football social prediction and live auction draft platform. Reference: [§TLDR](#tldr).
-2. **Q: How many total tracked files exist in the Match-Mind repository?**  
+2. **Q: How many total tracked files exist in the Match-Mind repository?**
    _A:_ 411 files. Reference: [§APP](#app).
-3. **Q: How many automated test functions exist across how many test files?**  
+3. **Q: How many automated test functions exist across how many test files?**
    _A:_ 767 test functions across 71 test files. Reference: [`backend/src/__tests__/`](backend/src/__tests__/).
-4. **Q: What UI aesthetic is utilized by the React 19 frontend?**  
+4. **Q: What UI aesthetic is utilized by the React 19 frontend?**
    _A:_ A Bloomberg-style financial trading terminal aesthetic. Reference: [§TLDR](#tldr).
-5. **Q: What state management library is used in the frontend?**  
+5. **Q: What state management library is used in the frontend?**
    _A:_ Zustand. Reference: [`package.json`](package.json).
-6. **Q: What is the anti-snipe protection mechanism?**  
+6. **Q: What is the anti-snipe protection mechanism?**
    _A:_ An automated timer extension (adding 10 seconds) whenever a bid lands in the final seconds of a countdown. Reference: [§WHAT](#what).
-7. **Q: What protocol powers live bid synchronization between clients?**  
+7. **Q: What protocol powers live bid synchronization between clients?**
    _A:_ WebSockets via Socket.IO. Reference: [`package.json`](package.json).
-8. **Q: What module handles crash-resilient auction recovery and state snapshots?**  
+8. **Q: What module handles crash-resilient auction recovery and state snapshots?**
    _A:_ `backend/src/lib/auctionRecovery.ts`. Reference: [`backend/src/lib/auctionRecovery.ts`](backend/src/lib/auctionRecovery.ts).
-9. **Q: What total lines of code exist across the codebase?**  
+9. **Q: What total lines of code exist across the codebase?**
    _A:_ 121,563 lines of code. Reference: [§META](#meta).
-10. **Q: What git commit hash was verified for this documentation?**  
+10. **Q: What git commit hash was verified for this documentation?**
     _A:_ `4df3748` (`4df3748ee8d47f3a22f5bcdf4cf094096830ce11`). Reference: [§META](#meta).
-11. **Q: What git tree hash represents the verified repository state?**  
+11. **Q: What git tree hash represents the verified repository state?**
     _A:_ `19bb94aaa127c586ec7f9658c2b59db5e50aa719`. Reference: [§META](#meta).
-12. **Q: What runtime requirement is specified for Node.js?**  
+12. **Q: What runtime requirement is specified for Node.js?**
     _A:_ Node.js >= 20. Reference: [`README.md`](README.md).
-13. **Q: What in-memory store handles distributed locks and room state?**  
+13. **Q: What in-memory store handles distributed locks and room state?**
     _A:_ Redis. Reference: [§ENV](#env).
-14. **Q: What test file executes room lifecycle end-to-end tests?**  
+14. **Q: What test file executes room lifecycle end-to-end tests?**
     _A:_ `backend/src/e2e/room-lifecycle.test.ts`. Reference: [`backend/src/e2e/room-lifecycle.test.ts`](backend/src/e2e/room-lifecycle.test.ts).
-15. **Q: What test file executes auction lifecycle end-to-end tests?**  
+15. **Q: What test file executes auction lifecycle end-to-end tests?**
     _A:_ `backend/src/e2e/auction-lifecycle.test.ts`. Reference: [`backend/src/e2e/auction-lifecycle.test.ts`](backend/src/e2e/auction-lifecycle.test.ts).
-16. **Q: What schema validation library is used across TypeScript routes?**  
+16. **Q: What schema validation library is used across TypeScript routes?**
     _A:_ Zod. Reference: [`package.json`](package.json).
-17. **Q: What error class serves as the root for standardized domain exceptions?**  
+17. **Q: What error class serves as the root for standardized domain exceptions?**
     _A:_ `DomainError`. Reference: [`backend/src/errors/DomainError.ts`](backend/src/errors/DomainError.ts).
-18. **Q: How does the system prevent managers from overspending their budget?**  
+18. **Q: How does the system prevent managers from overspending their budget?**
     _A:_ Server-side validation asserts that proposed bids do not exceed the remaining roster budget before acceptance. Reference: [§SEC-MODEL](#sec-model).
-19. **Q: What is the measured WebSocket bid propagation latency?**  
+19. **Q: What is the measured WebSocket bid propagation latency?**
     _A:_ 18 ms (target SLA < 50 ms). Reference: [§PERF](#perf).
-20. **Q: How does the platform authenticate WebSocket connections?**  
+20. **Q: How does the platform authenticate WebSocket connections?**
     _A:_ Cryptographic JWT token validation upon socket handshake. Reference: [§AUTH](#auth).
-21. **Q: Where are Kubernetes deployment definitions located?**  
+21. **Q: Where are Kubernetes deployment definitions located?**
     _A:_ In the `k8s/` directory. Reference: [`k8s/`](k8s/).
-22. **Q: What build tool packages the React 19 frontend?**  
+22. **Q: What build tool packages the React 19 frontend?**
     _A:_ Vite. Reference: [`frontend/package.json`](package.json).
-23. **Q: What happens if a nominated player receives zero bids when the countdown finishes?**  
+23. **Q: What happens if a nominated player receives zero bids when the countdown finishes?**
     _A:_ The lot transitions to `LOT_PASSED` and the room awaits the next nomination. Reference: [§STATE](#state).
-24. **Q: What tool is configured for formatting across the TypeScript codebase?**  
+24. **Q: What tool is configured for formatting across the TypeScript codebase?**
     _A:_ Prettier. Reference: [`.prettierrc`](.prettierrc).
-25. **Q: How many files are cataloged with 100% manifest coverage in Appendix A?**  
+25. **Q: How many files are cataloged with 100% manifest coverage in Appendix A?**
     _A:_ All 411 tracked files. Reference: [§APP](#app).
 
 ---
