@@ -1,57 +1,145 @@
 # ════════════════════════════════════════════════════════════════
-#  SECRETS & ENVIRONMENT  (NEVER COMMIT THESE)
+# Match-Mind - Security & Production .gitignore
 # ════════════════════════════════════════════════════════════════
+
+# ------------------------------------------------------------------------------
+# 1. SECRETS & ENVIRONMENT (CRITICAL)
+# ------------------------------------------------------------------------------
 .env
 .env.*
+*.env
+.env.local
+.env.*.local
+.env.development
+.env.test
+.env.staging
+.env.production
 !.env.example
+!.env.template
+!.env.sample
+backend/.env
+backend/.env.*
+!backend/.env.example
+frontend/.env
+frontend/.env.*
+!frontend/.env.example
+
+# Private keys, certificates & credentials
 *.pem
 *.key
+*.keystore
+*.jks
+*.p12
+*.pfx
+*.pkcs12
+*.cer
+*.crt
+*.der
+*.id_rsa
+id_rsa*
+id_ed25519*
+id_ecdsa*
+id_dsa*
+
+# Cloud & service credentials
 secrets.json
 credentials.json
+client_secret*.json
+service-account*.json
+service_account*.json
+serviceAccountKey*.json
+google-services.json
+GoogleService-Info.plist
+.aws/
+.azure/
+.gcp/
+gcloud/
+.act-secrets
+*.publishsettings
 
-# ════════════════════════════════════════════════════════════════
-#  PYTHON
-# ════════════════════════════════════════════════════════════════
-__pycache__/
-*.py[cod]
-*.egg-info/
-.venv/
-venv/
+# Authentication tokens & configs
+.netrc
+.pypirc
+.npmrc
+*token*.json
+token.pickle
+auth*.json
 
-# ════════════════════════════════════════════════════════════════
-#  NODE.JS
-# ════════════════════════════════════════════════════════════════
+# ------------------------------------------------------------------------------
+# 2. NODE.JS & TYPESCRIPT BUILDS
+# ------------------------------------------------------------------------------
 node_modules/
+backend/node_modules/
+frontend/node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
-# ════════════════════════════════════════════════════════════════
-#  BUILD ARTIFACTS
-# ════════════════════════════════════════════════════════════════
 dist/
 dist-ssr/
 build/
+backend/dist/
+frontend/dist/
+backend/build/
+frontend/build/
 *.tsbuildinfo
+backend/prisma/*.tsbuildinfo
 
-# ════════════════════════════════════════════════════════════════
-#  COVERAGE / TEST ARTIFACTS
-# ════════════════════════════════════════════════════════════════
-backend/coverage/
+# ------------------------------------------------------------------------------
+# 3. PYTHON RUNTIME & VIRTUAL ENVIRONMENTS
+# ------------------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.venv/
+venv/
+env/
+ENV/
+.venv*/
+env.bak/
+venv.bak/
+
+# ------------------------------------------------------------------------------
+# 4. COVERAGE & TEST ARTIFACTS
+# ------------------------------------------------------------------------------
 coverage/
+backend/coverage/
+frontend/coverage/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+.pytest_cache/
+radar_balance.txt
 
-# ════════════════════════════════════════════════════════════════
-#  LOGS
-# ════════════════════════════════════════════════════════════════
+# ------------------------------------------------------------------------------
+# 5. LOGS & DATABASES
+# ------------------------------------------------------------------------------
 logs/
 *.log
+*.dump
+*.stackdump
+*.db
+*.db-shm
+*.db-wal
+*.db-journal
+*.sqlite
+*.sqlite3
 
-# ════════════════════════════════════════════════════════════════
-#  IDE & EDITOR
-# ════════════════════════════════════════════════════════════════
+# ------------------------------------------------------------------------------
+# 6. IDE, EDITORS & LOCAL SCRIPTS
+# ------------------------------------------------------------------------------
 .vscode/*
 !.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.vscode/*.local.*
+.vscode/mcp.json
 .idea/
 *.swp
 *.swo
@@ -60,51 +148,28 @@ logs/
 *.ntvs*
 *.njsproj
 *.sln
-
-# ════════════════════════════════════════════════════════════════
-#  OS FILES
-# ════════════════════════════════════════════════════════════════
-.DS_Store
-Thumbs.db
-Desktop.ini
-
-# ════════════════════════════════════════════════════════════════
-#  PRISMA (generated at runtime)
-# ════════════════════════════════════════════════════════════════
-backend/prisma/*.tsbuildinfo
-
-# ════════════════════════════════════════════════════════════════
-#  MISC TEMPORARY FILES
-# ════════════════════════════════════════════════════════════════
-*.tmp
-*.temp
-.cache/
-
-.gemini/
-.cursorrules
-
-CLAUDE.md
 start.bat
 
-# Runtime balance log
-radar_balance.txt
-
-# Test coverage artifacts
-.coverage
-.coverage.*
-htmlcov/
-coverage.xml
-
-# ── Portfolio-standard ignores (sweep 2026-09) ──────────────
-*.db
-*.db-shm
-*.db-wal
+# ------------------------------------------------------------------------------
+# 7. OS FILES & TEMPORARIES
+# ------------------------------------------------------------------------------
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+desktop.ini
+$RECYCLE.BIN/
+*.tmp
+*.temp
+*.bak
+.cache/
 
 # =====================================================================
-# KEEP: AI provenance & transparency files — these must remain
-# visible to any repository viewer. Do not add rules above this block
-# that would shadow a directory these files live in without also
-# adding a negation here. Verified with `git check-ignore -v`.
+# KEEP: AI provenance & transparency files — must remain visible
 # =====================================================================
 !AI_DISCLOSURE.md
 !AI_USAGE.md
