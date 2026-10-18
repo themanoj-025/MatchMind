@@ -113,7 +113,8 @@ router.post('/webhook', async (req, res) => {
       { event: 'stripe.webhook_verification_failed', err: (err as Error).message },
       'Stripe webhook signature verification failed',
     )
-    return res.status(400).send(`Webhook Error: ${(err as Error).message}`)
+    res.type('text/plain')
+    return res.status(400).send('Webhook Error: signature verification failed')
   }
   const stripeService = req.container.cradle.stripeService
   const userService = req.container.cradle.userService
