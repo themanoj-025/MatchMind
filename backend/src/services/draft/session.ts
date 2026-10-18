@@ -1,6 +1,7 @@
 // Wiring restored after the monolith→(session|picks) split: the split moved
 // code here without bringing the imports, and private helpers that the sibling
 // file calls were never exported.
+import crypto from 'crypto'
 import { DRAFT, RARITY_TIERS, type RarityTierName } from '../../config/constants'
 import type { DatabaseClient } from '../../repositories'
 import logger from '../../utils/logger'
@@ -33,7 +34,7 @@ export function getFormation(id: string): Formation | undefined {
 }
 // ─── Rarity Roll (§1.4: weighted random from packWeight distribution) ──
 export function rollRarity(): RarityTierName {
-  const roll = Math.random()
+  const roll = crypto.randomBytes(4).readUInt32BE(0) / 0xffffffff
   let cumulative = 0
   for (const tier of RARITY_TIERS) {
     cumulative += tier.packWeight
@@ -118,7 +119,7 @@ function pickOfferedPlayer(
   const candidates = pool.filter((_, idx) => !usedIndices.has(idx) && pool[idx]!.rarityTier === targetRarity)
   const chosen =
     candidates.length > 0
-      ? candidates[Math.floor(Math.random() * candidates.length)]
+      ? candidates[crypto.randomInt(0, candidates.length)]
       : pool.find((_, idx) => !usedIndices.has(idx))
   if (!chosen) {
     return null
