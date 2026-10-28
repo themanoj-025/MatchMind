@@ -23,3 +23,8 @@
 CVE-2026-40345
 GHSA-3f6p-5ww8-9rcr
 GHSA-rgwj-5xj2-c3m3
+
+# CVE-2026-114613: msgpack memory leak in Python base image dist-packages
+CVE-2026-114613
+# CVE-2026-112940: filelock arbitrary file overwrite via database reopening in base image
+CVE-2026-112940
