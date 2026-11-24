@@ -1,0 +1,6 @@
+name: 'MatchMind CodeQL Config'
+paths-ignore:
+  - '**/__tests__/**'
+  - '**/*.test.ts'
+  - '**/*.test.tsx'
+  - 'backend/src/test-utils/**'
