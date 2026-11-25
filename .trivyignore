@@ -19,8 +19,14 @@
 #     prisma >7.10.0 moves its pin (same chain is allowlisted in the npm
 #     audit gates in this workflow).
 #
-# Neither package is reachable from application code at runtime.
+#   CVE-2026-121707 (GHSA-7589-6fvf-x4pw) — effect 3.20.0 ReDoS in
+#     Schema.TemplateLiteral via @prisma/config <- prisma CLI. Only used
+#     when invoking the Prisma CLI; container CMD runs `node dist/src/index.js`,
+#     so effect is never executed at runtime and prisma is incompatible with 3.22.x.
+#
+# None of these packages are reachable from application code at runtime.
 CVE-2026-40345
+CVE-2026-121707
 GHSA-3f6p-5ww8-9rcr
 GHSA-rgwj-5xj2-c3m3
 
